@@ -10,7 +10,7 @@ Box Boy is on a mission to prove he can be a hero without superpowers. He runs a
 
 - `WASD` / arrow keys: move
 - `Space`: jump, then hold to glide
-- `F`: Gadget Burst when the hero meter reaches 100%
+- `F`: punch
 - `Enter`: start or restart
 
 ## Current Structure
@@ -19,7 +19,7 @@ Box Boy is on a mission to prove he can be a hero without superpowers. He runs a
 - Multiple city platforming levels
 - Detailed parallax skyline backgrounds
 - Boss fights including the Signal Warden and Vacuum Dragon
-- Civilian rescues, hero-charge pickups, and end-of-level beacons
+- Civilian rescues, punch/stomp combat, and end-of-level beacons
 
 ## Run
 

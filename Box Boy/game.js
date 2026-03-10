@@ -14,6 +14,9 @@ const JUMP_SPEED = 690;
 const GLIDE_GRAVITY = 320;
 const GLIDE_FALL_SPEED = 170;
 const WORLD_FLOOR = 512;
+const PUNCH_DURATION = 0.16;
+const PUNCH_COOLDOWN = 0.24;
+const SAVE_KEY = "box_boy_story_save_v1";
 
 const scenes = {
   title: "title",
@@ -319,11 +322,37 @@ const state = {
   cameraX: 0,
   message: "Press Enter to begin Story Mode.",
   totalRescues: 0,
-  totalCharges: 0,
+  totalDefeats: 0,
   storyCard: 0,
   transitionTimer: 0,
   lastTime: 0,
 };
+
+function loadSave() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return;
+    const save = JSON.parse(raw);
+    state.highestUnlockedLevel = clamp(save.highestUnlockedLevel ?? 0, 0, levels.length - 1);
+    state.levelIndex = clamp(save.levelIndex ?? 0, 0, levels.length - 1);
+    state.mapSelection = clamp(save.mapSelection ?? state.levelIndex, 0, levels.length - 1);
+    state.totalRescues = Math.max(0, save.totalRescues ?? 0);
+    state.totalDefeats = Math.max(0, save.totalDefeats ?? 0);
+  } catch {
+    localStorage.removeItem(SAVE_KEY);
+  }
+}
+
+function saveProgress() {
+  const save = {
+    highestUnlockedLevel: state.highestUnlockedLevel,
+    levelIndex: state.levelIndex,
+    mapSelection: state.mapSelection,
+    totalRescues: state.totalRescues,
+    totalDefeats: state.totalDefeats,
+  };
+  localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+}
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
@@ -341,19 +370,20 @@ function makePlayer() {
   return {
     x: 80,
     y: 440,
-    w: 34,
-    h: 52,
+    w: 36,
+    h: 74,
     vx: 0,
     vy: 0,
     facing: 1,
     onGround: false,
     hp: 5,
     invuln: 0,
-    heroMeter: 0,
-    gadgetReady: false,
     rescues: 0,
-    charges: 0,
     glideTime: 0,
+    jumpsLeft: 2,
+    punchTimer: 0,
+    punchCooldown: 0,
+    walkCycle: 0,
   };
 }
 
@@ -407,13 +437,14 @@ function resetLevel(index) {
   state.player = makePlayer();
   state.enemies = level.enemies.map(makeEnemy);
   state.civilians = level.civilians.map((civ) => ({ ...civ, rescued: false, w: 24, h: 36 }));
-  state.charges = level.charges.map((charge) => ({ ...charge, taken: false, r: 10, bob: rand(0, Math.PI * 2) }));
+  state.charges = [];
   state.projectiles = [];
   state.boss = level.boss ? makeBoss(level.boss) : null;
   state.particles = [];
   state.cameraX = 0;
   state.message = level.story;
   state.transitionTimer = 2.8;
+  saveProgress();
 }
 
 function setScene(scene) {
@@ -422,6 +453,7 @@ function setScene(scene) {
 
 function advanceLevel() {
   state.highestUnlockedLevel = Math.max(state.highestUnlockedLevel, Math.min(levels.length - 1, state.levelIndex + 1));
+  saveProgress();
   if (state.levelIndex + 1 >= levels.length) {
     setScene(scenes.win);
     state.message = "The city finally sees him. Box Boy did not get powers. He got proof.";
@@ -435,11 +467,12 @@ function advanceLevel() {
 
 function startStoryMode() {
   state.totalRescues = 0;
-  state.totalCharges = 0;
+  state.totalDefeats = 0;
   state.highestUnlockedLevel = Math.max(state.highestUnlockedLevel, 0);
   resetLevel(0);
   setScene(scenes.story);
   state.storyCard = 0;
+  saveProgress();
 }
 
 function getWorldWidth() {
@@ -450,18 +483,49 @@ function getPlatforms() {
   return state.level.platforms;
 }
 
+const HAZARD_LAYOUTS = {
+  "alley-run": [
+    { x: 820, y: 502, w: 56, h: 18, type: "spikes" },
+    { x: 1670, y: 322, w: 48, h: 18, type: "crate" },
+  ],
+  "train-yard": [
+    { x: 910, y: 502, w: 64, h: 18, type: "spikes" },
+    { x: 1760, y: 222, w: 52, h: 18, type: "crate" },
+  ],
+  "signal-bridge": [
+    { x: 1280, y: 502, w: 90, h: 18, type: "laser" },
+  ],
+  "midtown-rise": [
+    { x: 1540, y: 502, w: 72, h: 18, type: "spikes" },
+    { x: 2140, y: 220, w: 56, h: 18, type: "crate" },
+  ],
+  "skyline-arc": [
+    { x: 1220, y: 502, w: 72, h: 18, type: "spikes" },
+    { x: 2140, y: 502, w: 72, h: 18, type: "spikes" },
+  ],
+  "city-hall": [
+    { x: 1340, y: 502, w: 78, h: 18, type: "laser" },
+    { x: 2480, y: 190, w: 56, h: 18, type: "crate" },
+  ],
+  finale: [
+    { x: 1420, y: 502, w: 82, h: 18, type: "spikes" },
+    { x: 1760, y: 170, w: 56, h: 18, type: "crate" },
+  ],
+};
+
+function getHazards() {
+  return HAZARD_LAYOUTS[state.level.id] || [];
+}
+
 function getPriorityText() {
   const player = state.player;
   if (!player) return state.message;
 
-  if (player.charges < state.level.heroTarget) {
-    return `Collect hero charge: ${player.charges}/${state.level.heroTarget}`;
-  }
   if (player.rescues < state.level.civiliansTarget) {
     return `Rescue civilians: ${player.rescues}/${state.level.civiliansTarget}`;
   }
   if (state.boss) {
-    return player.gadgetReady ? "Press F near the boss for Gadget Burst." : "Fill the hero meter, then use Gadget Burst on the boss.";
+    return "Punch the boss up close and avoid its attacks.";
   }
   return "Reach the beacon at the end of the level.";
 }
@@ -474,6 +538,7 @@ function updatePlayer(dt) {
 
   player.vx = move * MOVE_SPEED;
   if (move !== 0) player.facing = Math.sign(move);
+  if (Math.abs(player.vx) > 0) player.walkCycle += dt * 10;
 
   const holdingJump = keys.has("Space") || keys.has("KeyW") || keys.has("ArrowUp");
   const gliding = !player.onGround && player.vy > 0 && holdingJump;
@@ -498,6 +563,8 @@ function updatePlayer(dt) {
   }
 
   player.invuln = Math.max(0, player.invuln - dt);
+  player.punchTimer = Math.max(0, player.punchTimer - dt);
+  player.punchCooldown = Math.max(0, player.punchCooldown - dt);
 }
 
 function resolveHorizontal(player) {
@@ -516,6 +583,7 @@ function resolveVertical(player) {
       player.y = platform.y - player.h;
       player.vy = 0;
       player.onGround = true;
+      player.jumpsLeft = 2;
     } else if (player.vy < 0) {
       player.y = platform.y + platform.h;
       player.vy = 0;
@@ -523,24 +591,13 @@ function resolveVertical(player) {
   }
 }
 
-function collectCharge(charge) {
-  charge.taken = true;
-  state.player.charges += 1;
-  state.totalCharges += 1;
-  state.player.heroMeter = clamp(state.player.heroMeter + 20, 0, 100);
-  state.player.gadgetReady = state.player.heroMeter >= 100;
-  state.message = state.player.gadgetReady ? "Hero meter full. Gadget Burst is ready." : "Hero charge collected.";
-  spawnParticles(charge.x, charge.y, "#ffe27e", 14);
-}
-
 function rescueCivilian(civ) {
   civ.rescued = true;
   state.player.rescues += 1;
   state.totalRescues += 1;
-  state.player.heroMeter = clamp(state.player.heroMeter + 18, 0, 100);
-  state.player.gadgetReady = state.player.heroMeter >= 100;
   state.message = `${civ.name} is safe. The city is starting to notice.`;
   spawnParticles(civ.x, civ.y, "#8be7b3", 18);
+  saveProgress();
 }
 
 function damagePlayer(sourceX) {
@@ -550,7 +607,7 @@ function damagePlayer(sourceX) {
   player.invuln = 1;
   player.vx = sourceX < player.x ? 240 : -240;
   player.vy = -260;
-  state.message = "That gadget definitely did not protect him.";
+  state.message = "Box Boy gets clipped and stumbles back.";
   spawnParticles(player.x + player.w / 2, player.y + player.h / 2, "#ff8f8f", 14);
   if (player.hp <= 0) {
     setScene(scenes.gameOver);
@@ -558,47 +615,24 @@ function damagePlayer(sourceX) {
   }
 }
 
-function triggerGadgetBurst() {
+function startPunch() {
   const player = state.player;
-  if (!player.gadgetReady) return;
-
-  player.gadgetReady = false;
-  player.heroMeter = 0;
-  state.message = "Gadget Burst somehow works.";
-  spawnParticles(player.x + 18, player.y + 24, "#7fd2ff", 30);
-
-  for (const enemy of state.enemies) {
-    const dx = Math.abs((enemy.x + enemy.w / 2) - (player.x + player.w / 2));
-    const dy = Math.abs((enemy.y + enemy.h / 2) - (player.y + player.h / 2));
-    if (dx < 180 && dy < 120) {
-      enemy.hp = 0;
-      spawnParticles(enemy.x, enemy.y, "#ffcf7e", 12);
-    }
-  }
-
-  if (state.boss) {
-    const boss = state.boss;
-    const dx = Math.abs((boss.x + boss.w / 2) - (player.x + player.w / 2));
-    const dy = Math.abs((boss.y + boss.h / 2) - (player.y + player.h / 2));
-    if (dx < 220 && dy < 180) {
-      boss.hp -= 2;
-      state.message = boss.hp <= 0 ? `${boss.name} is finished.` : `${boss.name} took a direct Gadget Burst.`;
-      spawnParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, "#ff9a6e", 18);
-    }
-  }
+  if (player.punchCooldown > 0) return;
+  player.punchCooldown = PUNCH_COOLDOWN;
+  player.punchTimer = PUNCH_DURATION;
+  state.message = "Box Boy throws a cardboard haymaker.";
 }
 
-function updateChargesAndCivilians(dt) {
-  for (const charge of state.charges) {
-    charge.bob += dt * 3;
-    if (!charge.taken && aabb(state.player.x, state.player.y, state.player.w, state.player.h, charge.x - 10, charge.y - 10, 20, 20)) {
-      collectCharge(charge);
-    }
-  }
-
+function updateRescuesAndHazards() {
   for (const civ of state.civilians) {
     if (!civ.rescued && aabb(state.player.x, state.player.y, state.player.w, state.player.h, civ.x, civ.y, civ.w, civ.h)) {
       rescueCivilian(civ);
+    }
+  }
+
+  for (const hazard of getHazards()) {
+    if (aabb(state.player.x, state.player.y, state.player.w, state.player.h, hazard.x, hazard.y, hazard.w, hazard.h)) {
+      damagePlayer(hazard.x);
     }
   }
 }
@@ -627,7 +661,27 @@ function updateEnemies(dt) {
     }
 
     if (aabb(state.player.x, state.player.y, state.player.w, state.player.h, enemy.x, enemy.y, enemy.w, enemy.h)) {
-      damagePlayer(enemy.x);
+      const stomping = state.player.vy > 120 && state.player.y + state.player.h - 12 < enemy.y + 10;
+      if (stomping) {
+        state.player.vy = -420;
+        enemy.vx *= -1;
+        enemy.phase += Math.PI;
+        state.message = "Box Boy stomps off the enemy and bounces upward.";
+        spawnParticles(enemy.x + enemy.w / 2, enemy.y + 4, "#ffe082", 10);
+      } else {
+        damagePlayer(enemy.x);
+      }
+    }
+
+    if (state.player.punchTimer > 0) {
+      const hitboxX = state.player.facing === 1 ? state.player.x + state.player.w : state.player.x - 26;
+      if (aabb(hitboxX, state.player.y + 18, 26, 24, enemy.x, enemy.y, enemy.w, enemy.h)) {
+        enemy.hp = 0;
+        state.totalDefeats += 1;
+        state.message = "Direct punch. Enemy down.";
+        spawnParticles(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, "#ffcf7e", 14);
+        saveProgress();
+      }
     }
   }
 
@@ -665,7 +719,24 @@ function updateBoss(dt) {
   }
 
   if (aabb(state.player.x, state.player.y, state.player.w, state.player.h, boss.x, boss.y, boss.w, boss.h)) {
-    damagePlayer(boss.x);
+    const stomping = state.player.vy > 120 && state.player.y + state.player.h - 10 < boss.y + 14;
+    if (stomping) {
+      state.player.vy = -430;
+      state.message = `${boss.name} shrugs off the stomp, but Box Boy bounces clear.`;
+    } else {
+      damagePlayer(boss.x);
+    }
+  }
+
+  if (state.player.punchTimer > 0) {
+    const hitboxX = state.player.facing === 1 ? state.player.x + state.player.w : state.player.x - 28;
+    if (aabb(hitboxX, state.player.y + 12, 28, 30, boss.x, boss.y, boss.w, boss.h)) {
+      boss.hp -= 1;
+      state.player.punchTimer = 0;
+      state.message = boss.hp <= 0 ? `${boss.name} is finished.` : `${boss.name} reels from the punch.`;
+      spawnParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, "#ff9a6e", 12);
+      if (boss.hp <= 0) saveProgress();
+    }
   }
 
   if (boss.hp <= 0) {
@@ -712,9 +783,9 @@ function updateCamera() {
 
 function checkLevelCompletion() {
   const player = state.player;
-  const readyForExit = player.charges >= state.level.heroTarget && player.rescues >= state.level.civiliansTarget && !state.boss;
+  const readyForExit = player.rescues >= state.level.civiliansTarget && !state.boss;
   if (readyForExit && player.x > state.level.endX) {
-    state.scene = scenes.levelClear;
+    setScene(scenes.levelClear);
     state.message = `${state.level.name} cleared.`;
   }
 }
@@ -722,7 +793,7 @@ function checkLevelCompletion() {
 function updateGame(dt) {
   if (state.transitionTimer > 0) state.transitionTimer -= dt;
   updatePlayer(dt);
-  updateChargesAndCivilians(dt);
+  updateRescuesAndHazards();
   updateEnemies(dt);
   updateBoss(dt);
   updateProjectiles(dt);
@@ -889,23 +960,36 @@ function drawPlatform(platform) {
   }
 }
 
-function drawCharge(charge) {
-  const x = worldToScreen(charge.x);
-  const y = charge.y + Math.sin(charge.bob) * 6;
-  ctx.fillStyle = "rgba(255, 235, 152, 0.22)";
-  ctx.beginPath();
-  ctx.arc(x, y, 18, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "#ffe483";
-  ctx.beginPath();
-  ctx.moveTo(x, y - 12);
-  ctx.lineTo(x + 8, y + 2);
-  ctx.lineTo(x + 2, y + 2);
-  ctx.lineTo(x + 12, y + 14);
-  ctx.lineTo(x - 8, y);
-  ctx.lineTo(x - 2, y);
-  ctx.closePath();
-  ctx.fill();
+function drawHazard(hazard) {
+  const x = worldToScreen(hazard.x);
+  if (hazard.type === "spikes") {
+    ctx.fillStyle = "#a8b4c8";
+    for (let i = 0; i < hazard.w; i += 10) {
+      ctx.beginPath();
+      ctx.moveTo(x + i, hazard.y + hazard.h);
+      ctx.lineTo(x + i + 5, hazard.y);
+      ctx.lineTo(x + i + 10, hazard.y + hazard.h);
+      ctx.closePath();
+      ctx.fill();
+    }
+  } else if (hazard.type === "laser") {
+    ctx.fillStyle = "#ff6a76";
+    ctx.fillRect(x, hazard.y + 8, hazard.w, 4);
+    ctx.fillStyle = "#ffd5d9";
+    ctx.fillRect(x, hazard.y + 9, hazard.w, 2);
+  } else {
+    ctx.fillStyle = "#8c643f";
+    ctx.fillRect(x, hazard.y, hazard.w, hazard.h);
+    ctx.strokeStyle = "#5a3a20";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, hazard.y, hazard.w, hazard.h);
+    ctx.beginPath();
+    ctx.moveTo(x, hazard.y);
+    ctx.lineTo(x + hazard.w, hazard.y + hazard.h);
+    ctx.moveTo(x + hazard.w, hazard.y);
+    ctx.lineTo(x, hazard.y + hazard.h);
+    ctx.stroke();
+  }
 }
 
 function drawCivilian(civ) {
@@ -1008,54 +1092,76 @@ function drawPlayer() {
   ctx.save();
   if (player.invuln > 0 && Math.floor(player.invuln * 10) % 2 === 0) ctx.globalAlpha = 0.45;
 
+  const moving = Math.abs(player.vx) > 10;
+  const gliding = player.glideTime > 0;
+  const legOffset = moving ? Math.sin(player.walkCycle) * 5 : 0;
+  const armOffset = moving ? Math.cos(player.walkCycle) * 4 : 0;
+  const capeReach = gliding ? 42 : moving ? 26 : 10;
+  const capeTop = gliding ? 8 : 16;
+  const capeBottom = gliding ? 30 : 54;
+
   ctx.fillStyle = "rgba(0,0,0,0.18)";
   ctx.beginPath();
-  ctx.ellipse(x + 18, player.y + player.h + 10, 18, 8, 0, 0, Math.PI * 2);
+  ctx.ellipse(x + 18, player.y + player.h + 10, 22, 8, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  const capeWidth = player.glideTime > 0 ? 54 : 36;
-  const capeDrop = player.glideTime > 0 ? 8 : 18;
   ctx.save();
   ctx.beginPath();
-  ctx.moveTo(x + 16, player.y + 16);
-  ctx.lineTo(x - (capeWidth * player.facing), player.y + capeDrop);
-  ctx.lineTo(x - (capeWidth * player.facing) + 12 * player.facing, player.y + 48);
-  ctx.lineTo(x + 18, player.y + 38);
+  ctx.moveTo(x + 18, player.y + 18);
+  if (moving || gliding) {
+    ctx.lineTo(x - (capeReach * player.facing), player.y + capeTop);
+    ctx.lineTo(x - (capeReach * player.facing) + 8 * player.facing, player.y + capeBottom);
+  } else {
+    ctx.lineTo(x - 10, player.y + 34);
+    ctx.lineTo(x + 2, player.y + 62);
+  }
+  ctx.lineTo(x + 28, player.y + 58);
   ctx.closePath();
   ctx.clip();
-  for (let cy = 0; cy < 40; cy += 8) {
-    for (let cx = 0; cx < capeWidth; cx += 8) {
+  for (let cy = 0; cy < 56; cy += 8) {
+    for (let cx = 0; cx < 56; cx += 8) {
       ctx.fillStyle = ((cx + cy) / 8) % 2 === 0 ? "#63b7ff" : "#f5fbff";
-      const drawX = player.facing === 1 ? x - cx : x + cx - capeWidth + 10;
-      ctx.fillRect(drawX, player.y + 10 + cy, 8, 8);
+      const drawX = player.facing === 1 ? x - cx : x + cx - 34;
+      ctx.fillRect(drawX, player.y + 14 + cy, 8, 8);
     }
   }
   ctx.restore();
 
   ctx.fillStyle = "#c6925a";
-  ctx.fillRect(x + 4, player.y, 28, 24);
+  ctx.fillRect(x + 4, player.y, 30, 26);
   ctx.strokeStyle = "#7d552f";
   ctx.lineWidth = 2;
-  ctx.strokeRect(x + 4, player.y, 28, 24);
+  ctx.strokeRect(x + 4, player.y, 30, 26);
   ctx.beginPath();
-  ctx.moveTo(x + 18, player.y);
-  ctx.lineTo(x + 18, player.y + 24);
-  ctx.moveTo(x + 4, player.y + 12);
-  ctx.lineTo(x + 32, player.y + 12);
+  ctx.moveTo(x + 19, player.y);
+  ctx.lineTo(x + 19, player.y + 26);
+  ctx.moveTo(x + 4, player.y + 13);
+  ctx.lineTo(x + 34, player.y + 13);
   ctx.stroke();
 
-  ctx.fillStyle = "#e5b384";
-  ctx.beginPath();
-  ctx.arc(x + 18, player.y + 32, 12, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.fillStyle = "#e6b483";
+  ctx.fillRect(x + 10, player.y + 28, 18, 18);
   ctx.fillStyle = "#1f2d4d";
-  ctx.fillRect(x + 7, player.y + 42, 22, 18);
+  ctx.fillRect(x + 8, player.y + 46, 22, 24);
 
-  ctx.fillStyle = "#c6925a";
-  ctx.fillRect(x - 8, player.y + 40, 10, 10);
-  ctx.fillRect(x + 34, player.y + 40, 10, 10);
-  ctx.fillRect(x + 8, player.y + 60, 8, 12);
-  ctx.fillRect(x + 20, player.y + 60, 8, 12);
+  ctx.fillStyle = "#bc8e58";
+  ctx.fillRect(x + 2 - armOffset * 0.3, player.y + 48 + armOffset * 0.2, 8, 12);
+  ctx.fillRect(x + 30 - armOffset * 0.3, player.y + 48 - armOffset * 0.2, 8, 12);
+  ctx.fillRect(x + 8, player.y + 70 + legOffset, 8, 14);
+  ctx.fillRect(x + 22, player.y + 70 - legOffset, 8, 14);
+  ctx.fillRect(x - 6 + armOffset * 0.4, player.y + 54 + armOffset * 0.2, 12, 12);
+  ctx.fillRect(x + 30 + armOffset * 0.4, player.y + 54 - armOffset * 0.2, 12, 12);
+  ctx.fillRect(x + 4, player.y + 84 + legOffset, 12, 12);
+  ctx.fillRect(x + 20, player.y + 84 - legOffset, 12, 12);
+  ctx.fillStyle = "#e0c59c";
+  ctx.fillRect(x + 7, player.y + 30, 4, 4);
+  ctx.fillRect(x + 27, player.y + 30, 4, 4);
+
+  if (player.punchTimer > 0) {
+    const punchX = player.facing === 1 ? x + 38 : x - 16;
+    ctx.fillStyle = "#e5b384";
+    ctx.fillRect(punchX, player.y + 52, 14, 8);
+  }
   ctx.restore();
 }
 
@@ -1095,26 +1201,17 @@ function drawOnScreenPrompt() {
     ctx.fillText(state.boss.name.toUpperCase(), 644, 40);
   }
 
-  if (state.player.gadgetReady) {
-    drawPanel(384, 18, 216, 32, "rgba(255, 220, 118, 0.96)");
-    ctx.fillStyle = "#17345f";
-    ctx.font = "700 14px Trebuchet MS";
-    ctx.fillText("GADGET BURST READY", 418, 39);
-  }
+  drawPanel(414, 18, 158, 32, "rgba(255, 220, 118, 0.96)");
+  ctx.fillStyle = "#17345f";
+  ctx.font = "700 14px Trebuchet MS";
+  ctx.fillText("F = PUNCH", 454, 39);
 }
 
 function drawObjectiveArrow() {
   let targetX = null;
   let targetY = null;
   let label = "";
-  if (state.player.charges < state.level.heroTarget) {
-    const next = state.charges.find((charge) => !charge.taken);
-    if (next) {
-      targetX = next.x;
-      targetY = next.y;
-      label = "Hero Charge";
-    }
-  } else if (state.player.rescues < state.level.civiliansTarget) {
+  if (state.player.rescues < state.level.civiliansTarget) {
     const next = state.civilians.find((civ) => !civ.rescued);
     if (next) {
       targetX = next.x + 12;
@@ -1164,8 +1261,8 @@ function drawPanel(x, y, w, h, fill) {
 function drawGame() {
   drawParallax(state.level.background);
   for (const platform of getPlatforms()) drawPlatform(platform);
+  for (const hazard of getHazards()) drawHazard(hazard);
   drawEndBeacon();
-  for (const charge of state.charges) if (!charge.taken) drawCharge(charge);
   for (const civ of state.civilians) if (!civ.rescued) drawCivilian(civ);
   for (const enemy of state.enemies) drawEnemy(enemy);
   for (const projectile of state.projectiles) drawProjectile(projectile);
@@ -1211,8 +1308,8 @@ function drawTitle() {
   ctx.fillText("Story Mode Platformer", 330, 190);
   ctx.font = "18px Trebuchet MS";
   drawWrappedText("A 2D city platformer about a powerless hero trying to earn his place.", 188, 242, 598, 24, "#17345f");
-  drawWrappedText("Run, jump, glide with the cape, rescue civilians, charge the gadgets, and beat the bosses.", 154, 280, 632, 24, "#17345f");
-  drawWrappedText("Controls: move with WASD or arrows, jump with Space, glide by holding Space, Gadget Burst with F. Press Escape anytime to open the city map.", 146, 320, 644, 22, "#17345f");
+  drawWrappedText("Run, jump, double jump, glide with the cape, rescue civilians, punch enemies, and beat the bosses.", 154, 280, 632, 24, "#17345f");
+  drawWrappedText("Controls: move with WASD or arrows, jump with Space, jump again for a double jump, hold Space to glide, punch with F. Press Escape anytime to open the city map.", 146, 320, 644, 22, "#17345f");
   drawButton(322, 448, 314, 48, "PRESS ENTER TO START", "700 20px Trebuchet MS");
 }
 
@@ -1227,7 +1324,7 @@ function drawStatusScreen(title, body) {
   ctx.font = "18px Trebuchet MS";
   const cy = drawWrappedText(body, 236, 256, 490, 24, "#17345f");
   ctx.fillText(`Total rescues: ${state.totalRescues}`, 236, cy + 10);
-  ctx.fillText(`Hero charges: ${state.totalCharges}`, 236, cy + 38);
+  ctx.fillText(`Enemies punched out: ${state.totalDefeats}`, 236, cy + 38);
   ctx.fillText("Press Enter to continue.", 236, cy + 68);
 }
 
@@ -1326,7 +1423,7 @@ function renderHud() {
   hud.innerHTML = `
     <div class="stat"><span class="label">Stage</span><span class="value">${state.level.name}</span></div>
     <div class="stat"><span class="label">Health</span><span class="value">${"BOX ".repeat(state.player.hp).trim()}</span></div>
-    <div class="stat"><span class="label">Hero Meter</span><span class="value">${state.player.gadgetReady ? "READY" : `${state.player.heroMeter}%`}</span></div>
+    <div class="stat"><span class="label">Jumps</span><span class="value">${state.player.jumpsLeft}/2</span></div>
     <div class="stat"><span class="label">Next Step</span><span class="value">${getPriorityText()}</span></div>
   `;
 }
@@ -1340,9 +1437,9 @@ function renderMission() {
     mission.innerHTML = `
       <h2>Story Mode</h2>
       <p>This version is now a side-scrolling platformer with city backgrounds, multiple levels, boss fights, and story cards between chapters.</p>
-      <p class="tiny">Jump with <kbd>Space</kbd>. Hold <kbd>Space</kbd> while falling to glide with the blanket cape. Use <kbd>F</kbd> when the hero meter is full.</p>
+      <p class="tiny">Jump with <kbd>Space</kbd>. Press <kbd>Space</kbd> again in midair to double jump. Hold <kbd>Space</kbd> while falling to glide. Press <kbd>F</kbd> to punch.</p>
       <div class="legend-grid">
-        <div class="legend-chip legend-star">Yellow = hero charge</div>
+        <div class="legend-chip legend-star">Jump on enemies to bounce</div>
         <div class="legend-chip legend-toy">Green = civilian</div>
         <div class="legend-chip legend-boss">Red = boss objective</div>
       </div>
@@ -1377,12 +1474,11 @@ function renderMission() {
       <strong>Do this now:</strong>
       <p>${getPriorityText()}</p>
     </div>
-    ${checklistItem(state.player.charges >= state.level.heroTarget, `Hero charge: ${state.player.charges}/${state.level.heroTarget}`)}
     ${checklistItem(state.player.rescues >= state.level.civiliansTarget, `Civilians rescued: ${state.player.rescues}/${state.level.civiliansTarget}`)}
     ${state.level.boss ? checklistItem(!state.boss, `Defeat ${state.level.boss.name}`) : ""}
-    ${checklistItem(state.player.charges >= state.level.heroTarget && state.player.rescues >= state.level.civiliansTarget && !state.boss, `Reach the end beacon`)}
+    ${checklistItem(state.player.rescues >= state.level.civiliansTarget && !state.boss, `Reach the end beacon`)}
     <p><strong>Status:</strong> ${state.message}</p>
-    <p class="tiny">The floating marker points to the most important target on screen. Keep moving right once the objectives are complete.</p>
+    <p class="tiny">Stomp enemies to bounce, punch them with <kbd>F</kbd> to remove them, and keep moving right once the objectives are complete.</p>
   `;
 }
 
@@ -1437,22 +1533,25 @@ window.addEventListener("keydown", (event) => {
   if (state.scene === scenes.map) {
     if (event.code === "ArrowLeft" || event.code === "KeyA") {
       state.mapSelection = clamp(state.mapSelection - 1, 0, levels.length - 1);
+      saveProgress();
     }
     if (event.code === "ArrowRight" || event.code === "KeyD") {
       state.mapSelection = clamp(state.mapSelection + 1, 0, levels.length - 1);
+      saveProgress();
     }
     return;
   }
 
   if (state.scene !== scenes.playing) return;
 
-  if (event.code === "Space" && !wasHeld && state.player.onGround) {
+  if (event.code === "Space" && !wasHeld && state.player.jumpsLeft > 0) {
     state.player.vy = -JUMP_SPEED;
     state.player.onGround = false;
+    state.player.jumpsLeft -= 1;
   }
 
   if (event.code === "KeyF") {
-    triggerGadgetBurst();
+    startPunch();
   }
 });
 
@@ -1460,6 +1559,7 @@ window.addEventListener("keyup", (event) => {
   keys.delete(event.code);
 });
 
+loadSave();
 renderHud();
 renderMission();
 requestAnimationFrame(frame);
