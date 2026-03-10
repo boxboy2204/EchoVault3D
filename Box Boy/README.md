@@ -1,17 +1,25 @@
 # Box Boy and the Blanket Cape
 
-A small browser action game prototype about an eight-year-old hero with a cardboard box helmet, box gloves, box boots, and a bright blue checkered blanket tied around his neck like a cape.
+A browser story-mode 2D platformer about a would-be superhero with no powers, a cardboard box helmet, box gloves, box boots, and a bright blue checkered blanket tied around his neck like a cape.
 
 ## Premise
 
-Box Boy's overactive imagination turns ordinary rooms into battlefields. He charges through the bedroom fort, hallway stormfront, and living room sky kingdom to rescue his toys and defeat the Vacuum Dragon before bedtime.
+Box Boy is on a mission to prove he can be a hero without superpowers. He runs across city rooftops, glides with his blanket cape, rescues civilians, charges his unreliable gadgets, and fights through a multi-level story mode with boss encounters.
 
 ## Controls
 
 - `WASD` / arrow keys: move
-- `Space`: dash
-- `F`: Box Burst when imagination reaches 100%
+- `Space`: jump, then hold to glide
+- `F`: Gadget Burst when the hero meter reaches 100%
 - `Enter`: start or restart
+
+## Current Structure
+
+- Story mode with chapter cards between stages
+- Multiple city platforming levels
+- Detailed parallax skyline backgrounds
+- Boss fights including the Signal Warden and Vacuum Dragon
+- Civilian rescues, hero-charge pickups, and end-of-level beacons
 
 ## Run
 

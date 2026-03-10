@@ -1,167 +1,328 @@
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
+ctx.imageSmoothingEnabled = false;
 const hud = document.getElementById("hud");
 const mission = document.getElementById("mission");
 
 const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
-const FLOOR_Y = 432;
 const keys = new Set();
+
+const GRAVITY = 1800;
+const MOVE_SPEED = 265;
+const JUMP_SPEED = 690;
+const GLIDE_GRAVITY = 320;
+const GLIDE_FALL_SPEED = 170;
+const WORLD_FLOOR = 512;
 
 const scenes = {
   title: "title",
+  map: "map",
+  story: "story",
   playing: "playing",
-  win: "win",
+  levelClear: "levelClear",
   gameOver: "gameOver",
+  win: "win",
 };
+
+const storyBeats = [
+  {
+    title: "Rooftop Declaration",
+    body:
+      "Box Boy has no powers, no sponsor, and no functioning gadgets. What he does have is a bright blue checkered cape, cardboard armor, and a refusal to quit.",
+  },
+  {
+    title: "The First Witnesses",
+    body:
+      "A city only believes in heroes after somebody sees the work. Rescue civilians, stop petty threats, and leave with proof that Box Boy belongs in the skyline.",
+  },
+  {
+    title: "Proof Of Heroism",
+    body:
+      "Every broken gadget is still a promise. Box Boy keeps climbing until even the biggest boss in the city has to admit he showed up.",
+  },
+];
 
 const levels = [
   {
-    id: "fort",
-    title: "Bedroom Fort Frontier",
-    subtitle: "Dust Bunnies are swarming the fort launch bay.",
-    objective: "Collect stars, rescue Captain Plush, then move on.",
-    starsNeeded: 6,
-    rescueNeeded: 1,
-    enemyCount: 3,
-    enemySpeed: 82,
-    hazards: [
-      { x: 164, y: 250, w: 156, h: 34, type: "toybox" },
-      { x: 532, y: 142, w: 194, h: 32, type: "bed" },
-      { x: 706, y: 310, w: 146, h: 30, type: "crate" },
+    id: "alley-run",
+    name: "Level 1: Lantern Alley",
+    chapter: "Story Mode",
+    goal: "Reach the radio tower and rescue 2 civilians.",
+    story:
+      "A blackout hits the Old Market blocks. Box Boy starts where every self-appointed hero starts: a dangerous alley and no backup.",
+    background: "market-night",
+    heroTarget: 5,
+    civiliansTarget: 2,
+    endX: 2300,
+    platforms: [
+      { x: 0, y: 520, w: 2500, h: 140, type: "ground" },
+      { x: 190, y: 430, w: 180, h: 20, type: "roof" },
+      { x: 470, y: 360, w: 160, h: 20, type: "roof" },
+      { x: 720, y: 320, w: 140, h: 20, type: "sign" },
+      { x: 940, y: 390, w: 150, h: 20, type: "ac" },
+      { x: 1180, y: 300, w: 180, h: 20, type: "roof" },
+      { x: 1480, y: 246, w: 170, h: 20, type: "roof" },
+      { x: 1730, y: 340, w: 160, h: 20, type: "fireescape" },
+      { x: 1990, y: 270, w: 190, h: 20, type: "roof" },
     ],
-    rescueTargets: [{ x: 836, y: 120, kind: "plush", name: "Captain Plush" }],
-    starSpawns: [
-      { x: 134, y: 130 },
-      { x: 306, y: 168 },
-      { x: 482, y: 116 },
-      { x: 610, y: 360 },
-      { x: 770, y: 286 },
-      { x: 868, y: 98 },
+    charges: [
+      { x: 250, y: 382 }, { x: 552, y: 314 }, { x: 760, y: 272 }, { x: 1012, y: 340 }, { x: 1540, y: 198 },
     ],
-    palette: {
-      sky: "#fff4dd",
-      sky2: "#d8ebff",
-      floor: "#9dc487",
-      floor2: "#6d9652",
-      glow: "#ffd572",
-      accent: "#4e8ed8",
-    },
-    flavor:
-      "A lamp becomes a lighthouse, the toy box becomes a canyon, and the floor is obviously lava-adjacent.",
-    deco: {
-      cloudHue: "#ffffff",
-      paperColor: "#fcf0cb",
-      stripeColor: "#9bc0ec",
-      roomLabel: "Blanket Fort Sector",
-    },
+    civilians: [
+      { x: 1240, y: 252, name: "Riley" },
+      { x: 2050, y: 222, name: "Mrs. Vega" },
+    ],
+    enemies: [
+      { x: 610, y: 486, type: "walker" },
+      { x: 1120, y: 486, type: "walker" },
+      { x: 1840, y: 306, type: "drone" },
+    ],
   },
   {
-    id: "hall",
-    title: "Hallway of Wild Weather",
-    subtitle: "Paper planes dive, laundry goblins roam, and the carpet feels a mile long.",
-    objective: "Collect stars, rescue Admiral Squeak and Rocket Pup.",
-    starsNeeded: 7,
-    rescueNeeded: 2,
-    enemyCount: 4,
-    enemySpeed: 96,
-    hazards: [
-      { x: 230, y: 118, w: 150, h: 24, type: "bench" },
-      { x: 472, y: 236, w: 220, h: 30, type: "laundry" },
-      { x: 84, y: 334, w: 122, h: 24, type: "shoe" },
-      { x: 752, y: 118, w: 104, h: 170, type: "dresser" },
+    id: "train-yard",
+    name: "Level 2: Freightline Sprint",
+    chapter: "Story Mode",
+    goal: "Cross the freight district and rescue 2 civilians.",
+    story:
+      "The city rumors start here. If Box Boy can cross the freight rooftops and bring people back, the neighborhood might stop laughing long enough to notice.",
+    background: "freight-dawn",
+    heroTarget: 6,
+    civiliansTarget: 2,
+    endX: 2600,
+    platforms: [
+      { x: 0, y: 520, w: 2800, h: 140, type: "ground" },
+      { x: 160, y: 430, w: 210, h: 20, type: "container" },
+      { x: 430, y: 350, w: 190, h: 20, type: "container" },
+      { x: 700, y: 280, w: 180, h: 20, type: "crane" },
+      { x: 1010, y: 390, w: 170, h: 20, type: "train" },
+      { x: 1300, y: 320, w: 160, h: 20, type: "container" },
+      { x: 1560, y: 250, w: 200, h: 20, type: "crane" },
+      { x: 1890, y: 350, w: 190, h: 20, type: "container" },
+      { x: 2210, y: 280, w: 220, h: 20, type: "train" },
     ],
-    rescueTargets: [
-      { x: 862, y: 402, kind: "mouse", name: "Admiral Squeak" },
-      { x: 108, y: 78, kind: "rocket", name: "Rocket Pup" },
+    charges: [
+      { x: 230, y: 382 }, { x: 500, y: 302 }, { x: 750, y: 230 }, { x: 1100, y: 340 }, { x: 1370, y: 272 }, { x: 2260, y: 230 },
     ],
-    starSpawns: [
-      { x: 136, y: 208 },
-      { x: 220, y: 82 },
-      { x: 414, y: 144 },
-      { x: 382, y: 392 },
-      { x: 636, y: 110 },
-      { x: 668, y: 358 },
-      { x: 866, y: 332 },
+    civilians: [
+      { x: 1650, y: 202, name: "Dockworker Lee" },
+      { x: 2350, y: 232, name: "Nadia" },
     ],
-    palette: {
-      sky: "#edf6ff",
-      sky2: "#bfdcff",
-      floor: "#cfb48d",
-      floor2: "#a27c51",
-      glow: "#79dbff",
-      accent: "#4a6dd8",
-    },
-    flavor:
-      "In Box Boy's head, the hallway is a storm tunnel full of dive-bombing weather and hostile laundry.",
-    deco: {
-      cloudHue: "#f8fbff",
-      paperColor: "#ffffff",
-      stripeColor: "#dac390",
-      roomLabel: "Thunder Carpet Run",
-    },
+    enemies: [
+      { x: 560, y: 486, type: "walker" },
+      { x: 1160, y: 356, type: "drone" },
+      { x: 1750, y: 486, type: "walker" },
+      { x: 2050, y: 306, type: "drone" },
+    ],
   },
   {
-    id: "lair",
-    title: "Living Room Sky Kingdom",
-    subtitle: "The Vacuum Dragon circles the room. It is very loud and very dramatic.",
-    objective: "Collect stars, rescue Queen Buttons, then use Box Burst to drop the boss.",
-    starsNeeded: 8,
-    rescueNeeded: 1,
-    enemyCount: 4,
-    enemySpeed: 105,
-    boss: true,
-    hazards: [
-      { x: 150, y: 252, w: 158, h: 30, type: "ottoman" },
-      { x: 442, y: 118, w: 118, h: 160, type: "table" },
-      { x: 650, y: 330, w: 202, h: 28, type: "couch" },
-    ],
-    rescueTargets: [{ x: 808, y: 92, kind: "button", name: "Queen Buttons" }],
-    starSpawns: [
-      { x: 100, y: 130 },
-      { x: 276, y: 126 },
-      { x: 382, y: 392 },
-      { x: 600, y: 200 },
-      { x: 612, y: 386 },
-      { x: 826, y: 144 },
-      { x: 880, y: 262 },
-      { x: 854, y: 406 },
-    ],
-    palette: {
-      sky: "#fff6e2",
-      sky2: "#d8ebff",
-      floor: "#90bf91",
-      floor2: "#577f56",
-      glow: "#ff936e",
-      accent: "#4a78d8",
+    id: "signal-bridge",
+    name: "Boss 1: Signal Bridge",
+    chapter: "Story Mode",
+    goal: "Beat the Signal Warden.",
+    story:
+      "A fake hero-killer drone is locking down the bridge and broadcasting that Box Boy is a joke. He takes that personally.",
+    background: "bridge-storm",
+    heroTarget: 5,
+    civiliansTarget: 1,
+    endX: 1800,
+    boss: {
+      name: "Signal Warden",
+      hp: 6,
+      arenaStart: 1240,
+      arenaEnd: 1760,
     },
-    flavor:
-      "The vacuum cleaner is no longer a vacuum cleaner. It is a dragon with a hose tail and carpet wind.",
-    deco: {
-      cloudHue: "#fff7ef",
-      paperColor: "#faedd1",
-      stripeColor: "#a0c4ef",
-      roomLabel: "Vacuum Dragon Airspace",
+    platforms: [
+      { x: 0, y: 520, w: 1900, h: 140, type: "ground" },
+      { x: 240, y: 390, w: 180, h: 20, type: "beam" },
+      { x: 540, y: 330, w: 180, h: 20, type: "beam" },
+      { x: 840, y: 280, w: 170, h: 20, type: "beam" },
+      { x: 1150, y: 330, w: 160, h: 20, type: "beam" },
+      { x: 1420, y: 240, w: 160, h: 20, type: "beam" },
+    ],
+    charges: [
+      { x: 300, y: 342 }, { x: 600, y: 282 }, { x: 900, y: 232 }, { x: 1200, y: 282 }, { x: 1490, y: 192 },
+    ],
+    civilians: [{ x: 1320, y: 474, name: "Courier Pru" }],
+    enemies: [
+      { x: 680, y: 486, type: "walker" },
+      { x: 980, y: 236, type: "drone" },
+    ],
+  },
+  {
+    id: "midtown-rise",
+    name: "Level 4: Midtown Rise",
+    chapter: "Story Mode",
+    goal: "Climb the district towers and rescue 3 civilians.",
+    story:
+      "Now people are watching. Box Boy pushes higher into the city, trying to look like he meant to be up there the whole time.",
+    background: "midtown-noon",
+    heroTarget: 7,
+    civiliansTarget: 3,
+    endX: 3000,
+    platforms: [
+      { x: 0, y: 520, w: 3200, h: 140, type: "ground" },
+      { x: 200, y: 430, w: 150, h: 20, type: "roof" },
+      { x: 440, y: 370, w: 150, h: 20, type: "roof" },
+      { x: 650, y: 310, w: 150, h: 20, type: "roof" },
+      { x: 910, y: 250, w: 180, h: 20, type: "roof" },
+      { x: 1220, y: 330, w: 160, h: 20, type: "roof" },
+      { x: 1450, y: 260, w: 170, h: 20, type: "sign" },
+      { x: 1710, y: 190, w: 160, h: 20, type: "roof" },
+      { x: 1990, y: 310, w: 160, h: 20, type: "roof" },
+      { x: 2230, y: 240, w: 150, h: 20, type: "roof" },
+      { x: 2460, y: 170, w: 170, h: 20, type: "roof" },
+      { x: 2720, y: 260, w: 190, h: 20, type: "roof" },
+    ],
+    charges: [
+      { x: 250, y: 382 }, { x: 490, y: 322 }, { x: 700, y: 262 }, { x: 980, y: 202 }, { x: 1500, y: 212 }, { x: 1760, y: 142 }, { x: 2500, y: 122 },
+    ],
+    civilians: [
+      { x: 1290, y: 282, name: "Theo" },
+      { x: 2280, y: 192, name: "Ava" },
+      { x: 2780, y: 212, name: "Mr. Ortega" },
+    ],
+    enemies: [
+      { x: 570, y: 486, type: "walker" },
+      { x: 1090, y: 486, type: "walker" },
+      { x: 1600, y: 216, type: "drone" },
+      { x: 2370, y: 196, type: "drone" },
+    ],
+  },
+  {
+    id: "skyline-arc",
+    name: "Level 5: Skyline Arc",
+    chapter: "Story Mode",
+    goal: "Glide across the skyline and rescue 2 civilians.",
+    story:
+      "This is the part where a real superhero would fly. Box Boy cannot fly, but he can absolutely leap, glide, panic, and still make it look intentional.",
+    background: "skyline-sunset",
+    heroTarget: 6,
+    civiliansTarget: 2,
+    endX: 2920,
+    platforms: [
+      { x: 0, y: 520, w: 3100, h: 140, type: "ground" },
+      { x: 180, y: 390, w: 150, h: 20, type: "roof" },
+      { x: 420, y: 320, w: 130, h: 20, type: "roof" },
+      { x: 690, y: 260, w: 150, h: 20, type: "roof" },
+      { x: 1010, y: 180, w: 160, h: 20, type: "roof" },
+      { x: 1380, y: 260, w: 170, h: 20, type: "roof" },
+      { x: 1690, y: 200, w: 180, h: 20, type: "roof" },
+      { x: 2030, y: 260, w: 170, h: 20, type: "roof" },
+      { x: 2350, y: 180, w: 170, h: 20, type: "roof" },
+      { x: 2640, y: 280, w: 180, h: 20, type: "roof" },
+    ],
+    charges: [
+      { x: 240, y: 342 }, { x: 460, y: 272 }, { x: 750, y: 212 }, { x: 1070, y: 132 }, { x: 1760, y: 152 }, { x: 2410, y: 132 },
+    ],
+    civilians: [
+      { x: 1420, y: 212, name: "Paramedic Sloane" },
+      { x: 2720, y: 232, name: "Jay" },
+    ],
+    enemies: [
+      { x: 820, y: 486, type: "walker" },
+      { x: 1550, y: 216, type: "drone" },
+      { x: 2200, y: 486, type: "walker" },
+    ],
+  },
+  {
+    id: "city-hall",
+    name: "Level 6: City Hall Run",
+    chapter: "Story Mode",
+    goal: "Rescue 3 civilians and reach the summit doors.",
+    story:
+      "The final district is locked down. If Box Boy wants the city to believe in him, he has to show up where everyone can see it.",
+    background: "civic-night",
+    heroTarget: 7,
+    civiliansTarget: 3,
+    endX: 3200,
+    platforms: [
+      { x: 0, y: 520, w: 3400, h: 140, type: "ground" },
+      { x: 170, y: 430, w: 190, h: 20, type: "steps" },
+      { x: 470, y: 360, w: 160, h: 20, type: "steps" },
+      { x: 760, y: 290, w: 170, h: 20, type: "steps" },
+      { x: 1070, y: 220, w: 180, h: 20, type: "steps" },
+      { x: 1420, y: 320, w: 180, h: 20, type: "ledge" },
+      { x: 1700, y: 250, w: 160, h: 20, type: "ledge" },
+      { x: 1960, y: 180, w: 180, h: 20, type: "ledge" },
+      { x: 2280, y: 280, w: 180, h: 20, type: "ledge" },
+      { x: 2580, y: 210, w: 180, h: 20, type: "ledge" },
+      { x: 2870, y: 150, w: 170, h: 20, type: "ledge" },
+    ],
+    charges: [
+      { x: 240, y: 382 }, { x: 520, y: 312 }, { x: 820, y: 242 }, { x: 1150, y: 172 }, { x: 1780, y: 202 }, { x: 2020, y: 132 }, { x: 2930, y: 102 },
+    ],
+    civilians: [
+      { x: 1460, y: 272, name: "Captain Imani" },
+      { x: 2340, y: 232, name: "Lucia" },
+      { x: 2920, y: 102, name: "Mayor's Aide Ben" },
+    ],
+    enemies: [
+      { x: 660, y: 486, type: "walker" },
+      { x: 1250, y: 486, type: "walker" },
+      { x: 1860, y: 206, type: "drone" },
+      { x: 2700, y: 156, type: "drone" },
+    ],
+  },
+  {
+    id: "finale",
+    name: "Final Boss: Vacuum Dragon",
+    chapter: "Story Mode",
+    goal: "Defeat the Vacuum Dragon and prove yourself.",
+    story:
+      "The machine tearing up downtown is loud, mean, and very real. Box Boy walks in anyway, armed with a cape, stubbornness, and gadgets nobody would insure.",
+    background: "finale-red",
+    heroTarget: 6,
+    civiliansTarget: 1,
+    endX: 2200,
+    boss: {
+      name: "Vacuum Dragon",
+      hp: 8,
+      arenaStart: 1380,
+      arenaEnd: 2140,
     },
+    platforms: [
+      { x: 0, y: 520, w: 2400, h: 140, type: "ground" },
+      { x: 250, y: 410, w: 180, h: 20, type: "roof" },
+      { x: 550, y: 330, w: 180, h: 20, type: "roof" },
+      { x: 860, y: 260, w: 180, h: 20, type: "roof" },
+      { x: 1210, y: 310, w: 180, h: 20, type: "roof" },
+      { x: 1540, y: 240, w: 180, h: 20, type: "roof" },
+      { x: 1820, y: 190, w: 180, h: 20, type: "roof" },
+    ],
+    charges: [
+      { x: 300, y: 362 }, { x: 610, y: 282 }, { x: 920, y: 212 }, { x: 1280, y: 262 }, { x: 1600, y: 192 }, { x: 1890, y: 142 },
+    ],
+    civilians: [{ x: 1460, y: 474, name: "Mara" }],
+    enemies: [
+      { x: 760, y: 486, type: "walker" },
+      { x: 1100, y: 216, type: "drone" },
+      { x: 1730, y: 146, type: "drone" },
+    ],
   },
 ];
 
 const state = {
   scene: scenes.title,
+  sceneIndex: 0,
   levelIndex: 0,
-  message: "Press Enter to start the adventure.",
+  highestUnlockedLevel: 0,
+  mapSelection: 0,
+  level: null,
   player: null,
-  stars: [],
   enemies: [],
-  rescueTargets: [],
+  civilians: [],
+  charges: [],
+  projectiles: [],
   boss: null,
   particles: [],
-  cameraShake: 0,
-  totalStars: 0,
-  rescuedTotal: 0,
+  cameraX: 0,
+  message: "Press Enter to begin Story Mode.",
+  totalRescues: 0,
+  totalCharges: 0,
+  storyCard: 0,
+  transitionTimer: 0,
   lastTime: 0,
-  introTimer: 0,
-  objectivePulse: 0,
 };
 
 function clamp(value, min, max) {
@@ -172,831 +333,1001 @@ function rand(min, max) {
   return Math.random() * (max - min) + min;
 }
 
-function dist(a, b) {
-  return Math.hypot(a.x - b.x, a.y - b.y);
-}
-
-function circleRectCollision(circle, rect) {
-  const closestX = clamp(circle.x, rect.x, rect.x + rect.w);
-  const closestY = clamp(circle.y, rect.y, rect.y + rect.h);
-  const dx = circle.x - closestX;
-  const dy = circle.y - closestY;
-  return dx * dx + dy * dy < circle.r * circle.r;
+function aabb(ax, ay, aw, ah, bx, by, bw, bh) {
+  return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
 }
 
 function makePlayer() {
   return {
-    x: 94,
-    y: FLOOR_Y - 26,
-    r: 18,
-    speed: 220,
-    hp: 5,
-    dashTimer: 0,
-    dashCooldown: 0,
-    invuln: 0,
-    imagination: 0,
-    boxBurstReady: false,
-    rescued: 0,
-    starsCollected: 0,
+    x: 80,
+    y: 440,
+    w: 34,
+    h: 52,
+    vx: 0,
+    vy: 0,
     facing: 1,
+    onGround: false,
+    hp: 5,
+    invuln: 0,
+    heroMeter: 0,
+    gadgetReady: false,
+    rescues: 0,
+    charges: 0,
+    glideTime: 0,
   };
 }
 
-function makeEnemy(level) {
-  const side = Math.random() > 0.5 ? 1 : -1;
+function makeEnemy(base) {
   return {
-    x: side === 1 ? rand(560, 896) : rand(100, 340),
-    y: rand(84, FLOOR_Y - 26),
-    r: 16,
-    speed: level.enemySpeed + rand(-12, 14),
-    drift: rand(0.8, 1.8),
-    angle: rand(0, Math.PI * 2),
+    x: base.x,
+    y: base.type === "drone" ? base.y || 280 : 470,
+    w: base.type === "drone" ? 34 : 38,
+    h: base.type === "drone" ? 26 : 36,
+    type: base.type,
+    vx: base.type === "drone" ? 0 : (Math.random() > 0.5 ? 1 : -1) * 70,
+    baseY: base.type === "drone" ? base.y || 280 : 470,
+    phase: rand(0, Math.PI * 2),
     hp: 1,
   };
 }
 
-function makeBoss() {
+function makeBoss(def) {
   return {
-    x: 724,
-    y: 240,
-    r: 44,
-    hp: 6,
-    breathTimer: 0,
-    pulse: 0,
-    orbit: 0,
+    name: def.name,
+    x: def.arenaStart + 220,
+    y: def.name === "Vacuum Dragon" ? 390 : 280,
+    w: def.name === "Vacuum Dragon" ? 170 : 120,
+    h: def.name === "Vacuum Dragon" ? 98 : 72,
+    hp: def.hp,
+    maxHp: def.hp,
+    dir: 1,
+    cooldown: 0,
+    phase: 0,
   };
 }
 
-function level() {
-  return levels[state.levelIndex];
-}
-
-function getObjectiveText() {
-  if (state.scene !== scenes.playing) return state.message;
-
-  const currentLevel = level();
-  const player = state.player;
-  const starsLeft = Math.max(0, currentLevel.starsNeeded - player.starsCollected);
-  const rescuesLeft = Math.max(0, currentLevel.rescueNeeded - player.rescued);
-
-  if (starsLeft > 0) {
-    return `Collect ${starsLeft} more imagination ${starsLeft === 1 ? "star" : "stars"}.`;
-  }
-
-  if (rescuesLeft > 0) {
-    return `Rescue ${rescuesLeft} more toy ${rescuesLeft === 1 ? "ally" : "allies"}.`;
-  }
-
-  if (currentLevel.boss && state.boss) {
-    return state.player.boxBurstReady
-      ? "Press F near the Vacuum Dragon to unload Box Burst."
-      : "Keep moving, fill imagination, then hit the Vacuum Dragon with Box Burst.";
-  }
-
-  return "Objective complete. Box Boy is moving to the next room.";
-}
-
-function getPriorityTarget() {
-  if (state.scene !== scenes.playing) return null;
-
-  const currentLevel = level();
-  const player = state.player;
-
-  if (player.starsCollected < currentLevel.starsNeeded) {
-    let best = null;
-    let bestDistance = Infinity;
-    for (const star of state.stars) {
-      if (star.taken) continue;
-      const d = dist(player, star);
-      if (d < bestDistance) {
-        best = { ...star, type: "star", label: "Collect this star" };
-        bestDistance = d;
-      }
-    }
-    return best;
-  }
-
-  if (player.rescued < currentLevel.rescueNeeded) {
-    let best = null;
-    let bestDistance = Infinity;
-    for (const toy of state.rescueTargets) {
-      if (toy.rescued) continue;
-      const d = dist(player, toy);
-      if (d < bestDistance) {
-        best = { ...toy, type: "toy", label: `Rescue ${toy.name}` };
-        bestDistance = d;
-      }
-    }
-    return best;
-  }
-
-  if (currentLevel.boss && state.boss) {
-    return { ...state.boss, type: "boss", label: "Defeat the Vacuum Dragon" };
-  }
-
-  return null;
-}
-
-function loadLevel(index) {
-  state.levelIndex = index;
-  state.player = makePlayer();
-  state.player.imagination = index === 2 ? 20 : 0;
-  state.stars = level().starSpawns.map((spawn) => ({
-    ...spawn,
-    r: 10,
-    taken: false,
-    bob: rand(0, Math.PI * 2),
-  }));
-  state.rescueTargets = level().rescueTargets.map((target) => ({
-    ...target,
-    r: 16,
-    rescued: false,
-  }));
-  state.enemies = Array.from({ length: level().enemyCount }, () => makeEnemy(level()));
-  state.boss = level().boss ? makeBoss() : null;
-  state.particles = [];
-  state.cameraShake = 0;
-  state.message = level().subtitle;
-  state.introTimer = 4;
-  state.objectivePulse = 0;
-}
-
-function resetGame() {
-  state.totalStars = 0;
-  state.rescuedTotal = 0;
-  loadLevel(0);
-  state.scene = scenes.playing;
-}
-
-function nextLevel() {
-  if (state.levelIndex + 1 >= levels.length) {
-    state.scene = scenes.win;
-    state.message = "The Vacuum Dragon retreats. Bedtime is saved.";
-    return;
-  }
-
-  loadLevel(state.levelIndex + 1);
-}
-
-function spawnBurst(x, y, color, count, force = 180) {
+function spawnParticles(x, y, color, count) {
   for (let i = 0; i < count; i += 1) {
     state.particles.push({
       x,
       y,
-      vx: rand(-force, force),
-      vy: rand(-force, force),
-      life: rand(0.3, 0.8),
+      vx: rand(-180, 180),
+      vy: rand(-200, 60),
+      size: rand(2, 5),
+      life: rand(0.4, 0.9),
       color,
-      size: rand(2, 6),
     });
   }
 }
 
-function hitPlayer(forceX, forceY) {
+function resetLevel(index) {
+  const level = levels[index];
+  state.levelIndex = index;
+  state.level = level;
+  state.player = makePlayer();
+  state.enemies = level.enemies.map(makeEnemy);
+  state.civilians = level.civilians.map((civ) => ({ ...civ, rescued: false, w: 24, h: 36 }));
+  state.charges = level.charges.map((charge) => ({ ...charge, taken: false, r: 10, bob: rand(0, Math.PI * 2) }));
+  state.projectiles = [];
+  state.boss = level.boss ? makeBoss(level.boss) : null;
+  state.particles = [];
+  state.cameraX = 0;
+  state.message = level.story;
+  state.transitionTimer = 2.8;
+}
+
+function setScene(scene) {
+  state.scene = scene;
+}
+
+function advanceLevel() {
+  state.highestUnlockedLevel = Math.max(state.highestUnlockedLevel, Math.min(levels.length - 1, state.levelIndex + 1));
+  if (state.levelIndex + 1 >= levels.length) {
+    setScene(scenes.win);
+    state.message = "The city finally sees him. Box Boy did not get powers. He got proof.";
+    return;
+  }
+
+  resetLevel(state.levelIndex + 1);
+  setScene(scenes.story);
+  state.storyCard = Math.min(storyBeats.length - 1, Math.floor((state.levelIndex + 1) / 2));
+}
+
+function startStoryMode() {
+  state.totalRescues = 0;
+  state.totalCharges = 0;
+  state.highestUnlockedLevel = Math.max(state.highestUnlockedLevel, 0);
+  resetLevel(0);
+  setScene(scenes.story);
+  state.storyCard = 0;
+}
+
+function getWorldWidth() {
+  return state.level.endX + 320;
+}
+
+function getPlatforms() {
+  return state.level.platforms;
+}
+
+function getPriorityText() {
+  const player = state.player;
+  if (!player) return state.message;
+
+  if (player.charges < state.level.heroTarget) {
+    return `Collect hero charge: ${player.charges}/${state.level.heroTarget}`;
+  }
+  if (player.rescues < state.level.civiliansTarget) {
+    return `Rescue civilians: ${player.rescues}/${state.level.civiliansTarget}`;
+  }
+  if (state.boss) {
+    return player.gadgetReady ? "Press F near the boss for Gadget Burst." : "Fill the hero meter, then use Gadget Burst on the boss.";
+  }
+  return "Reach the beacon at the end of the level.";
+}
+
+function updatePlayer(dt) {
+  const player = state.player;
+  const left = keys.has("ArrowLeft") || keys.has("KeyA");
+  const right = keys.has("ArrowRight") || keys.has("KeyD");
+  const move = (right ? 1 : 0) - (left ? 1 : 0);
+
+  player.vx = move * MOVE_SPEED;
+  if (move !== 0) player.facing = Math.sign(move);
+
+  const holdingJump = keys.has("Space") || keys.has("KeyW") || keys.has("ArrowUp");
+  const gliding = !player.onGround && player.vy > 0 && holdingJump;
+
+  player.vy += (gliding ? GLIDE_GRAVITY : GRAVITY) * dt;
+  if (gliding) {
+    player.glideTime += dt;
+    player.vy = Math.min(player.vy, GLIDE_FALL_SPEED);
+  } else {
+    player.glideTime = 0;
+  }
+
+  player.x += player.vx * dt;
+  resolveHorizontal(player);
+  player.y += player.vy * dt;
+  resolveVertical(player);
+
+  player.x = clamp(player.x, 0, getWorldWidth() - player.w);
+  if (player.y > 760) {
+    state.scene = scenes.gameOver;
+    state.message = "Box Boy fell out of the route. Press Enter to try the level again.";
+  }
+
+  player.invuln = Math.max(0, player.invuln - dt);
+}
+
+function resolveHorizontal(player) {
+  for (const platform of getPlatforms()) {
+    if (!aabb(player.x, player.y, player.w, player.h, platform.x, platform.y, platform.w, platform.h)) continue;
+    if (player.vx > 0) player.x = platform.x - player.w;
+    if (player.vx < 0) player.x = platform.x + platform.w;
+  }
+}
+
+function resolveVertical(player) {
+  player.onGround = false;
+  for (const platform of getPlatforms()) {
+    if (!aabb(player.x, player.y, player.w, player.h, platform.x, platform.y, platform.w, platform.h)) continue;
+    if (player.vy > 0) {
+      player.y = platform.y - player.h;
+      player.vy = 0;
+      player.onGround = true;
+    } else if (player.vy < 0) {
+      player.y = platform.y + platform.h;
+      player.vy = 0;
+    }
+  }
+}
+
+function collectCharge(charge) {
+  charge.taken = true;
+  state.player.charges += 1;
+  state.totalCharges += 1;
+  state.player.heroMeter = clamp(state.player.heroMeter + 20, 0, 100);
+  state.player.gadgetReady = state.player.heroMeter >= 100;
+  state.message = state.player.gadgetReady ? "Hero meter full. Gadget Burst is ready." : "Hero charge collected.";
+  spawnParticles(charge.x, charge.y, "#ffe27e", 14);
+}
+
+function rescueCivilian(civ) {
+  civ.rescued = true;
+  state.player.rescues += 1;
+  state.totalRescues += 1;
+  state.player.heroMeter = clamp(state.player.heroMeter + 18, 0, 100);
+  state.player.gadgetReady = state.player.heroMeter >= 100;
+  state.message = `${civ.name} is safe. The city is starting to notice.`;
+  spawnParticles(civ.x, civ.y, "#8be7b3", 18);
+}
+
+function damagePlayer(sourceX) {
   const player = state.player;
   if (player.invuln > 0) return;
-
   player.hp -= 1;
   player.invuln = 1;
-  state.cameraShake = 14;
-  spawnBurst(player.x, player.y, "#ff8f8f", 16);
-  player.x = clamp(player.x + forceX, 24, WIDTH - 24);
-  player.y = clamp(player.y + forceY, 36, FLOOR_Y - 8);
-
+  player.vx = sourceX < player.x ? 240 : -240;
+  player.vy = -260;
+  state.message = "That gadget definitely did not protect him.";
+  spawnParticles(player.x + player.w / 2, player.y + player.h / 2, "#ff8f8f", 14);
   if (player.hp <= 0) {
-    state.scene = scenes.gameOver;
-    state.message = "Box Boy needs a nap. Press Enter to try again.";
+    setScene(scenes.gameOver);
+    state.message = "Box Boy is down. Press Enter to try the level again.";
   }
 }
 
-function tryBoxBurst() {
+function triggerGadgetBurst() {
   const player = state.player;
-  if (!player.boxBurstReady) return;
+  if (!player.gadgetReady) return;
 
-  player.boxBurstReady = false;
-  player.imagination = 0;
-  state.cameraShake = 20;
-  spawnBurst(player.x, player.y, "#8ad1ff", 34, 230);
+  player.gadgetReady = false;
+  player.heroMeter = 0;
+  state.message = "Gadget Burst somehow works.";
+  spawnParticles(player.x + 18, player.y + 24, "#7fd2ff", 30);
 
   for (const enemy of state.enemies) {
-    if (dist(player, enemy) < 180) {
+    const dx = Math.abs((enemy.x + enemy.w / 2) - (player.x + player.w / 2));
+    const dy = Math.abs((enemy.y + enemy.h / 2) - (player.y + player.h / 2));
+    if (dx < 180 && dy < 120) {
       enemy.hp = 0;
-      spawnBurst(enemy.x, enemy.y, "#ffe38a", 12);
-    }
-  }
-
-  state.enemies = state.enemies.filter((enemy) => enemy.hp > 0);
-
-  if (state.boss && dist(player, state.boss) < 220) {
-    state.boss.hp -= 2;
-    spawnBurst(state.boss.x, state.boss.y, "#ffb07b", 20);
-    state.message = state.boss.hp <= 0
-      ? "Vacuum Dragon defeated. Box Boy is extremely pleased with himself."
-      : "The Vacuum Dragon staggers. Hit it again.";
-    if (state.boss.hp <= 0) {
-      state.boss = null;
-    }
-  } else {
-    state.message = "Box Burst clears the room.";
-  }
-}
-
-function updatePlaying(dt) {
-  const currentLevel = level();
-  const player = state.player;
-  state.introTimer = Math.max(0, state.introTimer - dt);
-  state.objectivePulse += dt * 2.8;
-
-  let moveX = 0;
-  let moveY = 0;
-  if (keys.has("ArrowLeft") || keys.has("KeyA")) moveX -= 1;
-  if (keys.has("ArrowRight") || keys.has("KeyD")) moveX += 1;
-  if (keys.has("ArrowUp") || keys.has("KeyW")) moveY -= 1;
-  if (keys.has("ArrowDown") || keys.has("KeyS")) moveY += 1;
-
-  const moving = moveX !== 0 || moveY !== 0;
-  const length = moving ? Math.hypot(moveX, moveY) : 1;
-  moveX /= length;
-  moveY /= length;
-
-  if (moveX !== 0) player.facing = Math.sign(moveX);
-
-  player.dashTimer = Math.max(0, player.dashTimer - dt);
-  player.dashCooldown = Math.max(0, player.dashCooldown - dt);
-  player.invuln = Math.max(0, player.invuln - dt);
-
-  const speedBoost = player.dashTimer > 0 ? 2.35 : 1;
-  const nextX = player.x + moveX * player.speed * speedBoost * dt;
-  const nextY = player.y + moveY * player.speed * speedBoost * dt;
-  const candidate = { x: nextX, y: nextY, r: player.r };
-
-  let blocked = false;
-  for (const hazard of currentLevel.hazards) {
-    if (circleRectCollision(candidate, hazard)) {
-      blocked = true;
-      break;
-    }
-  }
-
-  if (!blocked) {
-    player.x = clamp(nextX, player.r + 10, WIDTH - player.r - 10);
-    player.y = clamp(nextY, player.r + 26, FLOOR_Y - player.r + 24);
-  }
-
-  for (const star of state.stars) {
-    star.bob += dt * 2.4;
-    if (!star.taken && dist(player, star) < player.r + star.r + 6) {
-      star.taken = true;
-      player.starsCollected += 1;
-      state.totalStars += 1;
-      player.imagination = clamp(player.imagination + 16, 0, 100);
-      player.boxBurstReady = player.imagination >= 100;
-      state.message = player.boxBurstReady
-        ? "Imagination full. Press F near danger for Box Burst."
-        : "Star collected. Keep going.";
-      spawnBurst(star.x, star.y, "#fff0a8", 14);
-    }
-  }
-
-  for (const toy of state.rescueTargets) {
-    if (!toy.rescued && dist(player, toy) < player.r + toy.r + 10) {
-      toy.rescued = true;
-      player.rescued += 1;
-      state.rescuedTotal += 1;
-      player.imagination = clamp(player.imagination + 22, 0, 100);
-      player.boxBurstReady = player.imagination >= 100;
-      state.message = `${toy.name} is safe.`;
-      spawnBurst(toy.x, toy.y, "#94f0c1", 18);
-    }
-  }
-
-  for (const enemy of state.enemies) {
-    enemy.angle += enemy.drift * dt;
-    const dx = player.x - enemy.x;
-    const dy = player.y - enemy.y;
-    const d = Math.hypot(dx, dy) || 1;
-
-    enemy.x += (dx / d) * enemy.speed * dt + Math.cos(enemy.angle) * 12 * dt;
-    enemy.y += (dy / d) * enemy.speed * dt + Math.sin(enemy.angle * 1.35) * 10 * dt;
-
-    for (const hazard of currentLevel.hazards) {
-      if (circleRectCollision(enemy, hazard)) {
-        enemy.x -= (dx / d) * enemy.speed * dt * 0.9;
-        enemy.y -= (dy / d) * enemy.speed * dt * 0.9;
-      }
-    }
-
-    if (dist(player, enemy) < player.r + enemy.r) {
-      hitPlayer((-dx / d) * 18, (-dy / d) * 18);
+      spawnParticles(enemy.x, enemy.y, "#ffcf7e", 12);
     }
   }
 
   if (state.boss) {
     const boss = state.boss;
-    boss.pulse += dt * 2;
-    boss.breathTimer += dt;
-    boss.orbit += dt * 0.85;
-    boss.x = 698 + Math.cos(boss.orbit) * 134;
-    boss.y = 214 + Math.sin(boss.orbit * 1.5) * 122;
+    const dx = Math.abs((boss.x + boss.w / 2) - (player.x + player.w / 2));
+    const dy = Math.abs((boss.y + boss.h / 2) - (player.y + player.h / 2));
+    if (dx < 220 && dy < 180) {
+      boss.hp -= 2;
+      state.message = boss.hp <= 0 ? `${boss.name} is finished.` : `${boss.name} took a direct Gadget Burst.`;
+      spawnParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, "#ff9a6e", 18);
+    }
+  }
+}
 
-    if (dist(player, boss) < player.r + boss.r + 4) {
-      const dx = player.x - boss.x;
-      const dy = player.y - boss.y;
-      const d = Math.hypot(dx, dy) || 1;
-      hitPlayer((dx / d) * 28, (dy / d) * 28);
+function updateChargesAndCivilians(dt) {
+  for (const charge of state.charges) {
+    charge.bob += dt * 3;
+    if (!charge.taken && aabb(state.player.x, state.player.y, state.player.w, state.player.h, charge.x - 10, charge.y - 10, 20, 20)) {
+      collectCharge(charge);
+    }
+  }
+
+  for (const civ of state.civilians) {
+    if (!civ.rescued && aabb(state.player.x, state.player.y, state.player.w, state.player.h, civ.x, civ.y, civ.w, civ.h)) {
+      rescueCivilian(civ);
+    }
+  }
+}
+
+function updateEnemies(dt) {
+  for (const enemy of state.enemies) {
+    if (enemy.hp <= 0) continue;
+    if (enemy.type === "walker") {
+      enemy.x += enemy.vx * dt;
+      const nextBox = { x: enemy.x, y: enemy.y, w: enemy.w, h: enemy.h };
+      let supported = false;
+      for (const platform of getPlatforms()) {
+        const feetY = enemy.y + enemy.h + 4;
+        if (enemy.x + enemy.w > platform.x && enemy.x < platform.x + platform.w && Math.abs(feetY - platform.y) < 10) {
+          supported = true;
+        }
+        if (aabb(nextBox.x, nextBox.y, nextBox.w, nextBox.h, platform.x, platform.y, platform.w, platform.h)) {
+          enemy.vx *= -1;
+        }
+      }
+      if (!supported) enemy.vx *= -1;
+    } else {
+      enemy.phase += dt * 2.4;
+      enemy.x += Math.cos(enemy.phase) * 36 * dt;
+      enemy.y = enemy.baseY + Math.sin(enemy.phase * 1.7) * 18;
     }
 
-    if (boss.breathTimer > 2.2) {
-      boss.breathTimer = 0;
-      spawnBurst(boss.x - 18, boss.y + 12, "#ffd48a", 18);
-      if (dist(player, boss) < 180) {
-        const dx = player.x - boss.x;
-        const dy = player.y - boss.y;
-        const d = Math.hypot(dx, dy) || 1;
-        hitPlayer((dx / d) * 32, (dy / d) * 32);
-        state.message = "The Vacuum Dragon blasts carpet wind.";
+    if (aabb(state.player.x, state.player.y, state.player.w, state.player.h, enemy.x, enemy.y, enemy.w, enemy.h)) {
+      damagePlayer(enemy.x);
+    }
+  }
+
+  state.enemies = state.enemies.filter((enemy) => enemy.hp > 0);
+}
+
+function spawnProjectile(x, y, vx, vy, color) {
+  state.projectiles.push({ x, y, vx, vy, w: 14, h: 14, color, life: 4 });
+}
+
+function updateBoss(dt) {
+  if (!state.boss) return;
+  const boss = state.boss;
+  boss.cooldown -= dt;
+  boss.phase += dt;
+
+  if (boss.name === "Signal Warden") {
+    boss.x += Math.cos(boss.phase) * 70 * dt;
+    boss.y = 220 + Math.sin(boss.phase * 1.7) * 48;
+    if (boss.cooldown <= 0) {
+      boss.cooldown = 1.2;
+      const dx = (state.player.x - boss.x) * 0.9;
+      spawnProjectile(boss.x + boss.w / 2, boss.y + boss.h / 2, clamp(dx, -240, 240), 120, "#8ac6ff");
+    }
+  } else {
+    boss.x += boss.dir * 86 * dt;
+    if (boss.x < state.level.boss.arenaStart + 40 || boss.x + boss.w > state.level.boss.arenaEnd - 40) {
+      boss.dir *= -1;
+    }
+    if (boss.cooldown <= 0) {
+      boss.cooldown = 1.55;
+      spawnProjectile(boss.x + 30, boss.y + 48, -180, 0, "#ff9f70");
+      spawnProjectile(boss.x + 120, boss.y + 48, -90, -60, "#ffcf7e");
+    }
+  }
+
+  if (aabb(state.player.x, state.player.y, state.player.w, state.player.h, boss.x, boss.y, boss.w, boss.h)) {
+    damagePlayer(boss.x);
+  }
+
+  if (boss.hp <= 0) {
+    state.boss = null;
+  }
+}
+
+function updateProjectiles(dt) {
+  for (const projectile of state.projectiles) {
+    projectile.x += projectile.vx * dt;
+    projectile.y += projectile.vy * dt;
+    projectile.vy += 240 * dt;
+    projectile.life -= dt;
+
+    if (aabb(state.player.x, state.player.y, state.player.w, state.player.h, projectile.x, projectile.y, projectile.w, projectile.h)) {
+      damagePlayer(projectile.x);
+      projectile.life = 0;
+    }
+
+    for (const platform of getPlatforms()) {
+      if (aabb(projectile.x, projectile.y, projectile.w, projectile.h, platform.x, platform.y, platform.w, platform.h)) {
+        projectile.life = 0;
       }
     }
   }
 
+  state.projectiles = state.projectiles.filter((projectile) => projectile.life > 0);
+}
+
+function updateParticles(dt) {
   for (const particle of state.particles) {
-    particle.life -= dt;
     particle.x += particle.vx * dt;
     particle.y += particle.vy * dt;
-    particle.vx *= 0.96;
-    particle.vy *= 0.96;
+    particle.vy += 340 * dt;
+    particle.life -= dt;
   }
   state.particles = state.particles.filter((particle) => particle.life > 0);
-  state.cameraShake = Math.max(0, state.cameraShake - dt * 24);
+}
 
-  const rescuedEnough = player.rescued >= currentLevel.rescueNeeded;
-  const starsEnough = player.starsCollected >= currentLevel.starsNeeded;
-  const bossDown = !currentLevel.boss || state.boss === null;
-  if (rescuedEnough && starsEnough && bossDown) {
-    nextLevel();
+function updateCamera() {
+  const focus = state.player.x + state.player.w / 2 - WIDTH / 2;
+  state.cameraX = clamp(focus, 0, Math.max(0, getWorldWidth() - WIDTH));
+}
+
+function checkLevelCompletion() {
+  const player = state.player;
+  const readyForExit = player.charges >= state.level.heroTarget && player.rescues >= state.level.civiliansTarget && !state.boss;
+  if (readyForExit && player.x > state.level.endX) {
+    state.scene = scenes.levelClear;
+    state.message = `${state.level.name} cleared.`;
   }
 }
 
-function drawRoundedRect(x, y, w, h, radius, fillStyle, strokeStyle = null) {
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.arcTo(x + w, y, x + w, y + h, radius);
-  ctx.arcTo(x + w, y + h, x, y + h, radius);
-  ctx.arcTo(x, y + h, x, y, radius);
-  ctx.arcTo(x, y, x + w, y, radius);
-  ctx.closePath();
-  ctx.fillStyle = fillStyle;
-  ctx.fill();
-  if (strokeStyle) {
-    ctx.strokeStyle = strokeStyle;
-    ctx.lineWidth = 2;
-    ctx.stroke();
-  }
+function updateGame(dt) {
+  if (state.transitionTimer > 0) state.transitionTimer -= dt;
+  updatePlayer(dt);
+  updateChargesAndCivilians(dt);
+  updateEnemies(dt);
+  updateBoss(dt);
+  updateProjectiles(dt);
+  updateParticles(dt);
+  updateCamera();
+  checkLevelCompletion();
 }
 
-function drawBackdrop(levelData) {
+function drawWrappedText(text, x, y, maxWidth, lineHeight, color = null) {
+  const paragraphs = String(text).split("\n");
+  let cy = y;
+  if (color) ctx.fillStyle = color;
+  for (const paragraph of paragraphs) {
+    const words = paragraph.split(/\s+/).filter(Boolean);
+    let line = "";
+    for (const word of words) {
+      const next = line ? `${line} ${word}` : word;
+      if (ctx.measureText(next).width > maxWidth && line) {
+        ctx.fillText(line, x, cy);
+        cy += lineHeight;
+        line = word;
+      } else {
+        line = next;
+      }
+    }
+    if (line) {
+      ctx.fillText(line, x, cy);
+      cy += lineHeight;
+    }
+    if (!words.length) {
+      cy += lineHeight;
+    }
+  }
+  return cy;
+}
+
+function drawButton(x, y, w, h, label, font = "700 18px Trebuchet MS") {
+  drawPanel(x, y, w, h, "rgba(255,220,118,0.96)");
+  ctx.fillStyle = "#17345f";
+  ctx.font = font;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(label, x + w / 2, y + h / 2 + 1);
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+}
+
+function worldToScreen(x) {
+  return x - state.cameraX;
+}
+
+function drawParallax(background) {
+  const palettes = {
+    "market-night": {
+      skyTop: "#10203c", skyBottom: "#2d4f7f", glow: "#ffcf78", far: "#182b46", mid: "#254264", near: "#345a83",
+    },
+    "freight-dawn": {
+      skyTop: "#6a7fd8", skyBottom: "#f4b282", glow: "#ffd9a6", far: "#48506f", mid: "#646f8c", near: "#7986a5",
+    },
+    "bridge-storm": {
+      skyTop: "#1f253b", skyBottom: "#5c6693", glow: "#dce7ff", far: "#1e2536", mid: "#2c3952", near: "#3f516f",
+    },
+    "midtown-noon": {
+      skyTop: "#82bfff", skyBottom: "#f6fbff", glow: "#ffffff", far: "#98b3d6", mid: "#6f91bc", near: "#5576a2",
+    },
+    "skyline-sunset": {
+      skyTop: "#f28b67", skyBottom: "#5f79d6", glow: "#ffd59f", far: "#523863", mid: "#624c7c", near: "#7a6194",
+    },
+    "civic-night": {
+      skyTop: "#112143", skyBottom: "#3757a4", glow: "#ffe083", far: "#1d2b4b", mid: "#26395c", near: "#345076",
+    },
+    "finale-red": {
+      skyTop: "#3f1120", skyBottom: "#e46953", glow: "#ffd998", far: "#35131d", mid: "#4e1f2f", near: "#6d3145",
+    },
+  };
+
+  const palette = palettes[background];
   const sky = ctx.createLinearGradient(0, 0, 0, HEIGHT);
-  sky.addColorStop(0, levelData.palette.sky);
-  sky.addColorStop(0.45, levelData.palette.sky2);
-  sky.addColorStop(0.451, levelData.palette.floor);
-  sky.addColorStop(1, levelData.palette.floor2);
+  sky.addColorStop(0, palette.skyTop);
+  sky.addColorStop(1, palette.skyBottom);
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-  ctx.fillStyle = "rgba(255,255,255,0.34)";
-  for (let i = 0; i < 6; i += 1) {
-    const x = 70 + i * 154;
-    const y = 74 + (i % 2) * 12;
-    ctx.beginPath();
-    ctx.arc(x, y, 24, Math.PI, Math.PI * 2);
-    ctx.arc(x + 28, y + 4, 18, Math.PI, Math.PI * 2);
-    ctx.arc(x - 26, y + 8, 16, Math.PI, Math.PI * 2);
-    ctx.fill();
-  }
-
-  for (let i = 0; i < 7; i += 1) {
-    ctx.fillStyle = levelData.deco.paperColor;
-    ctx.fillRect(40 + i * 132, 28 + (i % 2) * 6, 74, 10);
-    ctx.fillStyle = levelData.deco.stripeColor;
-    ctx.fillRect(40 + i * 132, 36 + (i % 2) * 6, 74, 3);
-  }
-
-  ctx.fillStyle = "rgba(255,255,255,0.14)";
-  for (let i = 0; i < 10; i += 1) {
-    ctx.fillRect(26 + i * 100, FLOOR_Y + 20 + (i % 3) * 7, 82, 5);
-  }
-
-  ctx.fillStyle = "rgba(22, 39, 72, 0.12)";
-  ctx.fillRect(0, FLOOR_Y - 2, WIDTH, 2);
-}
-
-function drawRoomDetails(levelData) {
-  drawRoundedRect(22, 20, 214, 44, 16, "rgba(255,255,255,0.58)");
-  ctx.fillStyle = "#21406f";
-  ctx.font = "700 16px Trebuchet MS";
-  ctx.fillText(levelData.deco.roomLabel, 38, 48);
-
-  ctx.save();
-  ctx.globalAlpha = 0.34;
-  ctx.strokeStyle = levelData.palette.accent;
-  ctx.lineWidth = 4;
+  ctx.fillStyle = palette.glow;
   ctx.beginPath();
-  ctx.moveTo(40, 116);
-  ctx.lineTo(110, 132);
-  ctx.lineTo(160, 110);
-  ctx.lineTo(230, 144);
-  ctx.stroke();
-  ctx.restore();
-}
-
-function drawHazard(hazard) {
-  const fills = {
-    toybox: ["#d9a057", "#9d6b34"],
-    bed: ["#9ac3ea", "#5d7fa7"],
-    crate: ["#c48d46", "#845724"],
-    bench: ["#efdb9a", "#a9864a"],
-    laundry: ["#d9b2d7", "#92648b"],
-    shoe: ["#e56f61", "#913d34"],
-    dresser: ["#b48759", "#714a25"],
-    ottoman: ["#f0c16e", "#986a27"],
-    table: ["#a2c1e6", "#5b7b9a"],
-    couch: ["#99d2a3", "#517b58"],
-  };
-  const [top, side] = fills[hazard.type] || ["#d4c39a", "#8e7b54"];
-
-  ctx.fillStyle = "rgba(24, 31, 44, 0.18)";
-  ctx.fillRect(hazard.x + 10, hazard.y + hazard.h - 2, hazard.w - 8, 14);
-  drawRoundedRect(hazard.x, hazard.y, hazard.w, hazard.h, 12, top, side);
-  ctx.fillStyle = "rgba(255,255,255,0.22)";
-  ctx.fillRect(hazard.x + 8, hazard.y + 8, hazard.w - 16, 6);
-
-  if (hazard.type === "dresser" || hazard.type === "table") {
-    ctx.fillStyle = "rgba(40, 26, 12, 0.18)";
-    ctx.fillRect(hazard.x + 16, hazard.y + 16, hazard.w - 32, hazard.h - 32);
-  }
-}
-
-function drawStar(star, glow = "#ffe789") {
-  const bobY = Math.sin(star.bob) * 5;
-  ctx.save();
-  ctx.translate(star.x, star.y + bobY);
-  ctx.fillStyle = "rgba(255, 237, 170, 0.22)";
-  ctx.beginPath();
-  ctx.arc(0, 0, 18, 0, Math.PI * 2);
+  ctx.arc(WIDTH - 160, 86, 38, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = glow;
-  ctx.beginPath();
-  for (let i = 0; i < 5; i += 1) {
-    const a = -Math.PI / 2 + i * (Math.PI * 2 / 5);
-    const outerX = Math.cos(a) * 10;
-    const outerY = Math.sin(a) * 10;
-    const innerA = a + Math.PI / 5;
-    const innerX = Math.cos(innerA) * 4;
-    const innerY = Math.sin(innerA) * 4;
-    if (i === 0) ctx.moveTo(outerX, outerY);
-    else ctx.lineTo(outerX, outerY);
-    ctx.lineTo(innerX, innerY);
+
+  ctx.fillStyle = "rgba(255,255,255,0.06)";
+  for (let gx = 0; gx < WIDTH; gx += 8) ctx.fillRect(gx, 0, 1, HEIGHT);
+  for (let gy = 0; gy < HEIGHT; gy += 8) ctx.fillRect(0, gy, WIDTH, 1);
+
+  const layers = [
+    { color: palette.far, speed: 0.2, height: 230, base: 280, detail: "#ffffff10" },
+    { color: palette.mid, speed: 0.45, height: 290, base: 330, detail: "#ffffff18" },
+    { color: palette.near, speed: 0.7, height: 360, base: 390, detail: "#ffffff22" },
+  ];
+
+  for (const layer of layers) {
+    ctx.fillStyle = layer.color;
+    for (let i = -1; i < 14; i += 1) {
+      const width = 88 + ((i * 37) % 90);
+      const height = layer.height - ((i * 53) % 120);
+      const x = (i * 160) - ((state.cameraX * layer.speed) % 160);
+      const y = layer.base - height;
+      ctx.fillRect(x, y, width, height);
+      ctx.fillStyle = "rgba(255, 241, 181, 0.18)";
+      for (let wy = y + 12; wy < y + height - 10; wy += 18) {
+        for (let wx = x + 10; wx < x + width - 12; wx += 18) {
+          if (((wx + wy) / 18) % 3 < 1) ctx.fillRect(wx, wy, 8, 10);
+        }
+      }
+      ctx.fillStyle = layer.detail;
+      for (let sy = y + 8; sy < y + height; sy += 16) {
+        ctx.fillRect(x, sy, width, 1);
+      }
+      ctx.fillStyle = "rgba(0,0,0,0.12)";
+      for (let wx = x + 6; wx < x + width; wx += 16) {
+        ctx.fillRect(wx, y, 1, height);
+      }
+      if (i % 3 === 0) {
+        ctx.fillStyle = "rgba(255,220,140,0.10)";
+        ctx.fillRect(x + width - 18, y - 34, 6, 34);
+        ctx.fillRect(x + width - 24, y - 30, 18, 4);
+      }
+      ctx.fillStyle = layer.color;
+    }
   }
+
+  ctx.strokeStyle = "rgba(255,255,255,0.18)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, 154);
+  ctx.bezierCurveTo(220, 122, 360, 204, 560, 168);
+  ctx.bezierCurveTo(720, 140, 820, 190, WIDTH, 152);
+  ctx.stroke();
+}
+
+function drawPlatform(platform) {
+  const x = worldToScreen(platform.x);
+  const colors = {
+    ground: ["#353740", "#1f2026"],
+    roof: ["#d8dde8", "#8d96a8"],
+    sign: ["#7de4ff", "#2b628d"],
+    ac: ["#bcc7d9", "#7a8498"],
+    fireescape: ["#f3c77d", "#855f27"],
+    container: ["#cb6b5b", "#7d332a"],
+    crane: ["#f2bf58", "#906a23"],
+    train: ["#6889b6", "#385274"],
+    beam: ["#9bc9ff", "#436392"],
+    steps: ["#d5d0c3", "#8b7f6a"],
+    ledge: ["#c7ceda", "#778093"],
+  };
+  const [top, bottom] = colors[platform.type] || colors.roof;
+  ctx.fillStyle = "rgba(0,0,0,0.16)";
+  ctx.fillRect(x + 6, platform.y + platform.h - 2, platform.w - 8, 12);
+  ctx.fillStyle = top;
+  ctx.fillRect(x, platform.y, platform.w, platform.h);
+  ctx.fillStyle = bottom;
+  ctx.fillRect(x, platform.y + platform.h - 6, platform.w, 6);
+  ctx.fillStyle = "rgba(255,255,255,0.22)";
+  for (let px = 4; px < platform.w - 2; px += 16) {
+    ctx.fillRect(x + px, platform.y + 4, 8, 2);
+  }
+}
+
+function drawCharge(charge) {
+  const x = worldToScreen(charge.x);
+  const y = charge.y + Math.sin(charge.bob) * 6;
+  ctx.fillStyle = "rgba(255, 235, 152, 0.22)";
+  ctx.beginPath();
+  ctx.arc(x, y, 18, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#ffe483";
+  ctx.beginPath();
+  ctx.moveTo(x, y - 12);
+  ctx.lineTo(x + 8, y + 2);
+  ctx.lineTo(x + 2, y + 2);
+  ctx.lineTo(x + 12, y + 14);
+  ctx.lineTo(x - 8, y);
+  ctx.lineTo(x - 2, y);
   ctx.closePath();
   ctx.fill();
-  ctx.restore();
 }
 
-function drawToy(toy) {
-  ctx.save();
-  ctx.translate(toy.x, toy.y);
-  ctx.fillStyle = "rgba(255,255,255,0.18)";
+function drawCivilian(civ) {
+  const x = worldToScreen(civ.x);
+  ctx.fillStyle = "rgba(141, 235, 175, 0.18)";
   ctx.beginPath();
-  ctx.arc(0, 0, 22, 0, Math.PI * 2);
+  ctx.arc(x + 13, civ.y + 16, 22, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = "#f7f1dd";
-  if (toy.kind === "plush") {
-    ctx.beginPath();
-    ctx.arc(0, 0, 14, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#946648";
-    ctx.fillRect(-8, 12, 16, 8);
-  } else if (toy.kind === "mouse") {
-    ctx.beginPath();
-    ctx.ellipse(0, 0, 16, 11, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#ffcad8";
-    ctx.beginPath();
-    ctx.arc(-9, -8, 5, 0, Math.PI * 2);
-    ctx.arc(8, -8, 5, 0, Math.PI * 2);
-    ctx.fill();
-  } else if (toy.kind === "rocket") {
-    ctx.fillStyle = "#d13d4f";
-    ctx.fillRect(-8, -18, 16, 36);
-    ctx.fillStyle = "#8ed2ff";
-    ctx.beginPath();
-    ctx.arc(0, -4, 5, 0, Math.PI * 2);
-    ctx.fill();
-  } else if (toy.kind === "button") {
-    ctx.fillStyle = "#fff4b8";
-    ctx.beginPath();
-    ctx.arc(0, 0, 16, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#8a6b29";
-    ctx.fillRect(-2, -8, 4, 16);
-    ctx.fillRect(-8, -2, 16, 4);
-  }
-  ctx.restore();
+  ctx.fillStyle = "#f3f6ff";
+  ctx.fillRect(x + 8, civ.y + 10, 10, 20);
+  ctx.fillStyle = "#e3b282";
+  ctx.beginPath();
+  ctx.arc(x + 13, civ.y + 8, 8, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "rgba(131, 231, 173, 0.26)";
+  ctx.beginPath();
+  ctx.arc(x + 13, civ.y + 14, 26, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 function drawEnemy(enemy) {
-  ctx.save();
-  ctx.translate(enemy.x, enemy.y);
-  ctx.fillStyle = "rgba(28, 33, 50, 0.22)";
-  ctx.beginPath();
-  ctx.ellipse(0, 16, 18, 8, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "#756d83";
-  ctx.beginPath();
-  ctx.arc(0, 0, enemy.r, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "#ffffff";
-  ctx.beginPath();
-  ctx.arc(-5, -3, 4, 0, Math.PI * 2);
-  ctx.arc(6, -3, 4, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "#1c1c1c";
-  ctx.fillRect(-9, 7, 18, 3);
-  ctx.fillStyle = "#9d93ae";
-  ctx.beginPath();
-  ctx.arc(-11, -11, 5, 0, Math.PI * 2);
-  ctx.arc(11, -11, 5, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
+  const x = worldToScreen(enemy.x);
+  const palette = enemy.type === "walker"
+    ? (Math.floor(enemy.x / 200) % 2 === 0
+      ? { body: "#613543", accent: "#ffdd78", visor: "#2a1018", title: "Bandit" }
+      : { body: "#243055", accent: "#7ee1ff", visor: "#12182e", title: "Henchman" })
+    : { body: "#7cbef2", accent: "#f84f76", visor: "#24486f", title: "Scout Drone" };
+  if (enemy.type === "walker") {
+    ctx.fillStyle = "rgba(0,0,0,0.16)";
+    ctx.fillRect(x + 6, enemy.y + enemy.h + 6, 24, 6);
+    ctx.fillStyle = palette.body;
+    ctx.fillRect(x + 4, enemy.y, enemy.w - 8, enemy.h);
+    ctx.fillStyle = "#ffd8bf";
+    ctx.fillRect(x + 10, enemy.y - 12, 18, 16);
+    ctx.fillStyle = palette.accent;
+    ctx.fillRect(x + 8, enemy.y + 8, 22, 6);
+    ctx.fillStyle = palette.visor;
+    ctx.fillRect(x + 8, enemy.y + 18, 22, 10);
+    ctx.fillStyle = "#20121a";
+    ctx.fillRect(x + 8, enemy.y + enemy.h, 7, 10);
+    ctx.fillRect(x + 21, enemy.y + enemy.h, 7, 10);
+    ctx.fillStyle = palette.accent;
+    ctx.fillRect(x + 1, enemy.y + 18, 4, 14);
+    ctx.fillRect(x + enemy.w - 5, enemy.y + 18, 4, 14);
+  } else {
+    ctx.fillStyle = "rgba(0,0,0,0.14)";
+    ctx.fillRect(x + 6, enemy.y + enemy.h + 4, 24, 5);
+    ctx.fillStyle = palette.body;
+    ctx.beginPath();
+    ctx.roundRect(x, enemy.y, enemy.w, enemy.h, 10);
+    ctx.fill();
+    ctx.fillStyle = palette.visor;
+    ctx.fillRect(x + 7, enemy.y + 8, 20, 10);
+    ctx.fillStyle = palette.accent;
+    ctx.fillRect(x + 4, enemy.y + 4, 6, 18);
+    ctx.fillRect(x + 24, enemy.y + 4, 6, 18);
+    ctx.fillStyle = "#d8f0ff";
+    ctx.fillRect(x + 10, enemy.y + 10, 14, 4);
+  }
 }
 
 function drawBoss(boss) {
-  ctx.save();
-  ctx.translate(boss.x, boss.y);
-  const glow = 0.72 + Math.sin(boss.pulse) * 0.18;
-  ctx.fillStyle = `rgba(255, 168, 92, ${glow})`;
-  ctx.beginPath();
-  ctx.arc(0, 0, boss.r + 14, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "#8d95a8";
-  ctx.beginPath();
-  ctx.arc(0, 0, boss.r, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "#606879";
-  ctx.fillRect(-18, -48, 36, 96);
-  ctx.strokeStyle = "#445064";
-  ctx.lineWidth = 11;
-  ctx.beginPath();
-  ctx.arc(28, 18, 56, -1.8, 0.76);
-  ctx.stroke();
-  ctx.fillStyle = "#ffecac";
-  ctx.beginPath();
-  ctx.arc(-10, -10, 7, 0, Math.PI * 2);
-  ctx.arc(11, -10, 7, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "#e56d57";
-  ctx.fillRect(-12, 10, 24, 7);
-  ctx.restore();
+  const x = worldToScreen(boss.x);
+  if (boss.name === "Vacuum Dragon") {
+    ctx.fillStyle = "#8a8e9f";
+    ctx.beginPath();
+    ctx.roundRect(x, boss.y, boss.w, boss.h, 26);
+    ctx.fill();
+    ctx.strokeStyle = "#5a6070";
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    ctx.moveTo(x + boss.w - 16, boss.y + boss.h - 14);
+    ctx.bezierCurveTo(x + boss.w + 60, boss.y + 30, x + boss.w + 100, boss.y + 120, x + boss.w + 132, boss.y + 90);
+    ctx.stroke();
+    ctx.fillStyle = "#ffcc8c";
+    ctx.fillRect(x + 26, boss.y + 26, 22, 18);
+    ctx.fillRect(x + 72, boss.y + 26, 22, 18);
+  } else {
+    ctx.fillStyle = "#5d8ad1";
+    ctx.beginPath();
+    ctx.roundRect(x, boss.y, boss.w, boss.h, 20);
+    ctx.fill();
+    ctx.fillStyle = "#d8f0ff";
+    ctx.fillRect(x + 18, boss.y + 16, 24, 12);
+    ctx.fillRect(x + 68, boss.y + 16, 24, 12);
+  }
 }
 
-function drawCheckeredCape(player) {
-  const sway = Math.sin(state.lastTime * 0.01) * 3;
-  const capeWidth = player.dashTimer > 0 ? 44 : 34;
-  const capeLength = player.dashTimer > 0 ? 34 : 26;
-  const startX = -2;
-  const endX = -capeWidth * player.facing;
-  const topY = 8;
-  const bottomY = 28 + sway;
+function drawProjectile(projectile) {
+  const x = worldToScreen(projectile.x);
+  ctx.fillStyle = projectile.color;
+  ctx.beginPath();
+  ctx.arc(x + projectile.w / 2, projectile.y + projectile.h / 2, projectile.w / 2, 0, Math.PI * 2);
+  ctx.fill();
+}
 
+function drawPlayer() {
+  const player = state.player;
+  const x = worldToScreen(player.x);
+  ctx.save();
+  if (player.invuln > 0 && Math.floor(player.invuln * 10) % 2 === 0) ctx.globalAlpha = 0.45;
+
+  ctx.fillStyle = "rgba(0,0,0,0.18)";
+  ctx.beginPath();
+  ctx.ellipse(x + 18, player.y + player.h + 10, 18, 8, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  const capeWidth = player.glideTime > 0 ? 54 : 36;
+  const capeDrop = player.glideTime > 0 ? 8 : 18;
   ctx.save();
   ctx.beginPath();
-  ctx.moveTo(startX, topY);
-  ctx.lineTo(endX, 2 + sway * 0.4);
-  ctx.lineTo(endX + 10 * player.facing, bottomY);
-  ctx.lineTo(0, 24);
+  ctx.moveTo(x + 16, player.y + 16);
+  ctx.lineTo(x - (capeWidth * player.facing), player.y + capeDrop);
+  ctx.lineTo(x - (capeWidth * player.facing) + 12 * player.facing, player.y + 48);
+  ctx.lineTo(x + 18, player.y + 38);
   ctx.closePath();
   ctx.clip();
-
-  const size = 8;
-  for (let y = 0; y < capeLength; y += size) {
-    for (let x = 0; x < capeWidth; x += size) {
-      const isBlue = ((x / size) + (y / size)) % 2 === 0;
-      ctx.fillStyle = isBlue ? "#66b8ff" : "#f4f8ff";
-      const drawX = player.facing === 1 ? -x - 8 : x - capeWidth;
-      ctx.fillRect(drawX, y, size, size);
+  for (let cy = 0; cy < 40; cy += 8) {
+    for (let cx = 0; cx < capeWidth; cx += 8) {
+      ctx.fillStyle = ((cx + cy) / 8) % 2 === 0 ? "#63b7ff" : "#f5fbff";
+      const drawX = player.facing === 1 ? x - cx : x + cx - capeWidth + 10;
+      ctx.fillRect(drawX, player.y + 10 + cy, 8, 8);
     }
   }
   ctx.restore();
-}
 
-function drawPlayer(player) {
-  ctx.save();
-  ctx.translate(player.x, player.y);
-  if (player.invuln > 0 && Math.floor(player.invuln * 14) % 2 === 0) {
-    ctx.globalAlpha = 0.55;
-  }
-
-  ctx.fillStyle = "rgba(28, 38, 52, 0.22)";
-  ctx.beginPath();
-  ctx.ellipse(0, 22, 20, 9, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  drawCheckeredCape(player);
-
-  ctx.fillStyle = "#e4b37b";
-  ctx.beginPath();
-  ctx.arc(0, 4, 14, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = "#c2915a";
-  ctx.fillRect(-14, -24, 28, 24);
-  ctx.strokeStyle = "#815a33";
+  ctx.fillStyle = "#c6925a";
+  ctx.fillRect(x + 4, player.y, 28, 24);
+  ctx.strokeStyle = "#7d552f";
   ctx.lineWidth = 2;
-  ctx.strokeRect(-14, -24, 28, 24);
+  ctx.strokeRect(x + 4, player.y, 28, 24);
   ctx.beginPath();
-  ctx.moveTo(-14, -12);
-  ctx.lineTo(14, -12);
-  ctx.moveTo(0, -24);
-  ctx.lineTo(0, 0);
+  ctx.moveTo(x + 18, player.y);
+  ctx.lineTo(x + 18, player.y + 24);
+  ctx.moveTo(x + 4, player.y + 12);
+  ctx.lineTo(x + 32, player.y + 12);
   ctx.stroke();
 
-  ctx.fillStyle = "#24385f";
-  ctx.fillRect(-11, 10, 22, 20);
-  ctx.fillStyle = "#f0f7ff";
-  ctx.fillRect(-5, -10, 4, 4);
-  ctx.fillRect(3, -10, 4, 4);
+  ctx.fillStyle = "#e5b384";
+  ctx.beginPath();
+  ctx.arc(x + 18, player.y + 32, 12, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#1f2d4d";
+  ctx.fillRect(x + 7, player.y + 42, 22, 18);
 
-  ctx.fillStyle = "#c2915a";
-  ctx.fillRect(-24, 12, 10, 10);
-  ctx.fillRect(14, 12, 10, 10);
-  ctx.fillRect(-10, 30, 8, 10);
-  ctx.fillRect(2, 30, 8, 10);
-
-  if (player.dashTimer > 0) {
-    ctx.fillStyle = "rgba(123, 192, 255, 0.45)";
-    ctx.beginPath();
-    ctx.ellipse(-28 * player.facing, 10, 28, 16, 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
+  ctx.fillStyle = "#c6925a";
+  ctx.fillRect(x - 8, player.y + 40, 10, 10);
+  ctx.fillRect(x + 34, player.y + 40, 10, 10);
+  ctx.fillRect(x + 8, player.y + 60, 8, 12);
+  ctx.fillRect(x + 20, player.y + 60, 8, 12);
   ctx.restore();
 }
 
 function drawParticles() {
   for (const particle of state.particles) {
-    ctx.globalAlpha = Math.max(0, particle.life * 1.4);
+    ctx.globalAlpha = particle.life;
     ctx.fillStyle = particle.color;
-    ctx.fillRect(particle.x, particle.y, particle.size, particle.size);
+    ctx.fillRect(worldToScreen(particle.x), particle.y, particle.size, particle.size);
   }
   ctx.globalAlpha = 1;
 }
 
-function drawPriorityTarget(target) {
-  if (!target) return;
-
-  const bob = Math.sin(state.objectivePulse * 2) * 5;
-  const y = target.y - (target.type === "boss" ? target.r + 44 : 34) + bob;
-
-  ctx.save();
-  ctx.translate(target.x, y);
-  ctx.fillStyle = target.type === "boss" ? "#ff936e" : target.type === "toy" ? "#8df1b3" : "#ffe789";
+function drawEndBeacon() {
+  const x = worldToScreen(state.level.endX);
+  ctx.fillStyle = "rgba(255,255,255,0.14)";
+  ctx.fillRect(x - 10, 120, 20, 400);
+  ctx.fillStyle = "#ffd86b";
   ctx.beginPath();
-  ctx.moveTo(0, 0);
-  ctx.lineTo(-14, -18);
-  ctx.lineTo(14, -18);
-  ctx.closePath();
+  ctx.arc(x, 138, 14, 0, Math.PI * 2);
   ctx.fill();
-  drawRoundedRect(-72, -52, 144, 26, 13, "rgba(20, 35, 61, 0.85)");
-  ctx.fillStyle = "#f4f8ff";
-  ctx.font = "700 12px Trebuchet MS";
-  ctx.textAlign = "center";
-  ctx.fillText(target.label, 0, -34);
-  ctx.textAlign = "left";
-  ctx.restore();
 }
 
-function drawTopOverlay(currentLevel) {
-  drawRoundedRect(20, 20, 316, 84, 18, "rgba(255,255,255,0.58)");
-  ctx.fillStyle = "#18325b";
-  ctx.font = "700 22px Trebuchet MS";
-  ctx.fillText(currentLevel.title, 36, 48);
+function drawOnScreenPrompt() {
+  drawPanel(18, 18, 390, 98, "rgba(255,255,255,0.76)");
+  ctx.fillStyle = "#17345f";
+  ctx.font = "700 20px Trebuchet MS";
+  ctx.fillText(state.level.name, 34, 46);
   ctx.font = "14px Trebuchet MS";
-  ctx.fillText(getObjectiveText(), 36, 76);
+  drawWrappedText(getPriorityText(), 34, 72, 340, 16, "#17345f");
 
   if (state.boss) {
-    drawRoundedRect(626, 24, 274, 28, 14, "rgba(255,255,255,0.74)");
-    ctx.fillStyle = "#ff8f62";
-    ctx.fillRect(632, 30, (state.boss.hp / 6) * 262, 16);
-    ctx.fillStyle = "#18263f";
+    drawPanel(632, 20, 278, 28, "rgba(255,255,255,0.82)");
+    ctx.fillStyle = "#ff936e";
+    ctx.fillRect(638, 26, (state.boss.hp / state.boss.maxHp) * 266, 16);
+    ctx.fillStyle = "#17345f";
     ctx.font = "700 12px Trebuchet MS";
-    ctx.fillText("VACUUM DRAGON", 638, 45);
+    ctx.fillText(state.boss.name.toUpperCase(), 644, 40);
   }
 
-  if (state.player.boxBurstReady) {
-    drawRoundedRect(344, 20, 272, 34, 16, "rgba(255, 218, 115, 0.96)");
-    ctx.fillStyle = "#18325b";
+  if (state.player.gadgetReady) {
+    drawPanel(384, 18, 216, 32, "rgba(255, 220, 118, 0.96)");
+    ctx.fillStyle = "#17345f";
     ctx.font = "700 14px Trebuchet MS";
-    ctx.fillText("BOX BURST READY - PRESS F", 376, 42);
+    ctx.fillText("GADGET BURST READY", 418, 39);
   }
 }
 
-function drawIntroBanner(currentLevel) {
-  if (state.introTimer <= 0) return;
-
-  const alpha = clamp(state.introTimer / 4, 0, 1);
-  ctx.globalAlpha = alpha;
-  drawRoundedRect(244, 412, 472, 72, 20, "rgba(18, 33, 61, 0.88)");
-  ctx.fillStyle = "#fff1b8";
-  ctx.font = "700 16px Trebuchet MS";
-  ctx.fillText(currentLevel.title, 270, 440);
-  ctx.fillStyle = "#edf5ff";
-  ctx.font = "14px Trebuchet MS";
-  ctx.fillText(`Goal: ${getObjectiveText()}`, 270, 466);
-  ctx.globalAlpha = 1;
-}
-
-function drawScene() {
-  ctx.clearRect(0, 0, WIDTH, HEIGHT);
-
-  if (state.scene === scenes.title) {
-    drawBackdrop(levels[0]);
-    drawRoomDetails(levels[0]);
-    ctx.fillStyle = "rgba(14, 28, 52, 0.18)";
-    ctx.fillRect(0, 0, WIDTH, HEIGHT);
-    drawRoundedRect(150, 86, 660, 308, 28, "rgba(255,255,255,0.72)");
-    ctx.fillStyle = "#17345f";
-    ctx.font = "800 48px Trebuchet MS";
-    ctx.fillText("BOX BOY", 346, 154);
-    ctx.font = "800 30px Trebuchet MS";
-    ctx.fillText("and the Blanket Cape", 302, 194);
-    ctx.font = "18px Trebuchet MS";
-    ctx.fillText("You are Box Boy.", 220, 246);
-    ctx.fillText("1. Collect the glowing stars.", 220, 282);
-    ctx.fillText("2. Rescue the toy friends with green markers.", 220, 314);
-    ctx.fillText("3. When imagination is full, press F to use Box Burst.", 220, 346);
-    drawRoundedRect(328, 418, 304, 48, 18, "rgba(255, 218, 115, 0.96)");
-    ctx.fillStyle = "#17345f";
-    ctx.font = "700 20px Trebuchet MS";
-    ctx.fillText("PRESS ENTER TO START", 366, 448);
-    return;
+function drawObjectiveArrow() {
+  let targetX = null;
+  let targetY = null;
+  let label = "";
+  if (state.player.charges < state.level.heroTarget) {
+    const next = state.charges.find((charge) => !charge.taken);
+    if (next) {
+      targetX = next.x;
+      targetY = next.y;
+      label = "Hero Charge";
+    }
+  } else if (state.player.rescues < state.level.civiliansTarget) {
+    const next = state.civilians.find((civ) => !civ.rescued);
+    if (next) {
+      targetX = next.x + 12;
+      targetY = next.y;
+      label = "Civilian";
+    }
+  } else if (state.boss) {
+    targetX = state.boss.x + state.boss.w / 2;
+    targetY = state.boss.y;
+    label = state.boss.name;
+  } else {
+    targetX = state.level.endX;
+    targetY = 150;
+    label = "Finish";
   }
 
-  const currentLevel = level();
-  const shakeX = state.cameraShake > 0 ? rand(-state.cameraShake, state.cameraShake) : 0;
-  const shakeY = state.cameraShake > 0 ? rand(-state.cameraShake, state.cameraShake) : 0;
-  ctx.save();
-  ctx.translate(shakeX, shakeY);
-  drawBackdrop(currentLevel);
-  drawRoomDetails(currentLevel);
-  for (const hazard of currentLevel.hazards) drawHazard(hazard);
-  for (const star of state.stars) if (!star.taken) drawStar(star);
-  for (const toy of state.rescueTargets) if (!toy.rescued) drawToy(toy);
+  if (targetX === null) return;
+  const screenX = clamp(worldToScreen(targetX), 90, WIDTH - 90);
+  const bob = Math.sin(state.lastTime * 0.008) * 5;
+  ctx.fillStyle = state.boss ? "#ff8d72" : label === "Civilian" ? "#90ebaf" : "#ffe480";
+  ctx.beginPath();
+  ctx.moveTo(screenX, 110 + bob);
+  ctx.lineTo(screenX - 14, 90 + bob);
+  ctx.lineTo(screenX + 14, 90 + bob);
+  ctx.closePath();
+  ctx.fill();
+  drawPanel(screenX - 54, 54 + bob, 108, 24, "rgba(20,35,61,0.86)");
+  ctx.fillStyle = "#f6fbff";
+  ctx.font = "700 12px Trebuchet MS";
+  ctx.textAlign = "center";
+  ctx.fillText(label, screenX, 70 + bob);
+  ctx.textAlign = "left";
+}
+
+function drawPanel(x, y, w, h, fill) {
+  ctx.fillStyle = fill;
+  ctx.beginPath();
+  ctx.moveTo(x + 18, y);
+  ctx.arcTo(x + w, y, x + w, y + h, 18);
+  ctx.arcTo(x + w, y + h, x, y + h, 18);
+  ctx.arcTo(x, y + h, x, y, 18);
+  ctx.arcTo(x, y, x + w, y, 18);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawGame() {
+  drawParallax(state.level.background);
+  for (const platform of getPlatforms()) drawPlatform(platform);
+  drawEndBeacon();
+  for (const charge of state.charges) if (!charge.taken) drawCharge(charge);
+  for (const civ of state.civilians) if (!civ.rescued) drawCivilian(civ);
   for (const enemy of state.enemies) drawEnemy(enemy);
+  for (const projectile of state.projectiles) drawProjectile(projectile);
   if (state.boss) drawBoss(state.boss);
-  drawPriorityTarget(getPriorityTarget());
-  drawPlayer(state.player);
+  drawObjectiveArrow();
+  drawPlayer();
   drawParticles();
-  drawTopOverlay(currentLevel);
-  drawIntroBanner(currentLevel);
-  ctx.restore();
+  drawOnScreenPrompt();
 
-  if (state.scene === scenes.win || state.scene === scenes.gameOver) {
-    ctx.fillStyle = "rgba(12, 20, 38, 0.56)";
-    ctx.fillRect(0, 0, WIDTH, HEIGHT);
-    drawRoundedRect(188, 160, 584, 198, 24, "rgba(255,247,220,0.95)");
-    ctx.fillStyle = "#17345f";
-    ctx.font = "800 32px Trebuchet MS";
-    ctx.fillText(state.scene === scenes.win ? "Bedtime Victory" : "Mission Failed", 348, 214);
-    ctx.font = "18px Trebuchet MS";
-    ctx.fillText(state.message, 242, 254, 480);
-    ctx.fillText(`Stars claimed: ${state.totalStars}`, 242, 294);
-    ctx.fillText(`Toys rescued: ${state.rescuedTotal}`, 242, 324);
-    ctx.fillText("Press Enter to play again.", 242, 354);
+  if (state.transitionTimer > 0) {
+    ctx.globalAlpha = clamp(state.transitionTimer / 2.8, 0, 1);
+    drawPanel(170, 392, 620, 104, "rgba(16,29,54,0.88)");
+    ctx.fillStyle = "#fff0bd";
+    ctx.font = "700 16px Trebuchet MS";
+    ctx.fillText(state.level.chapter, 204, 438);
+    ctx.fillStyle = "#edf6ff";
+    ctx.font = "14px Trebuchet MS";
+    drawWrappedText(state.level.story, 204, 462, 548, 16, "#edf6ff");
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawStoryCard() {
+  drawParallax(levels[Math.min(state.levelIndex, levels.length - 1)].background);
+  drawPanel(112, 78, 736, 340, "rgba(255,255,255,0.82)");
+  ctx.fillStyle = "#17345f";
+  ctx.font = "800 42px Trebuchet MS";
+  drawWrappedText(storyBeats[state.storyCard].title, 154, 142, 640, 42, "#17345f");
+  ctx.font = "18px Trebuchet MS";
+  let cy = drawWrappedText(storyBeats[state.storyCard].body, 154, 212, 640, 24, "#17345f");
+  cy += 18;
+  drawWrappedText(state.level.story, 154, cy, 640, 24, "#17345f");
+  drawButton(248, 440, 464, 48, "PRESS ENTER TO PLAY THE NEXT LEVEL", "700 18px Trebuchet MS");
+}
+
+function drawTitle() {
+  drawParallax("skyline-sunset");
+  drawPanel(138, 84, 694, 336, "rgba(255,255,255,0.82)");
+  ctx.fillStyle = "#17345f";
+  ctx.font = "800 52px Trebuchet MS";
+  ctx.fillText("BOX BOY", 352, 152);
+  ctx.font = "800 28px Trebuchet MS";
+  ctx.fillText("Story Mode Platformer", 330, 190);
+  ctx.font = "18px Trebuchet MS";
+  drawWrappedText("A 2D city platformer about a powerless hero trying to earn his place.", 188, 242, 598, 24, "#17345f");
+  drawWrappedText("Run, jump, glide with the cape, rescue civilians, charge the gadgets, and beat the bosses.", 154, 280, 632, 24, "#17345f");
+  drawWrappedText("Controls: move with WASD or arrows, jump with Space, glide by holding Space, Gadget Burst with F. Press Escape anytime to open the city map.", 146, 320, 644, 22, "#17345f");
+  drawButton(322, 448, 314, 48, "PRESS ENTER TO START", "700 20px Trebuchet MS");
+}
+
+function drawStatusScreen(title, body) {
+  drawParallax("civic-night");
+  drawPanel(190, 140, 580, 240, "rgba(255,247,220,0.94)");
+  ctx.fillStyle = "#17345f";
+  ctx.font = "800 34px Trebuchet MS";
+  ctx.textAlign = "center";
+  ctx.fillText(title, 480, 212);
+  ctx.textAlign = "left";
+  ctx.font = "18px Trebuchet MS";
+  const cy = drawWrappedText(body, 236, 256, 490, 24, "#17345f");
+  ctx.fillText(`Total rescues: ${state.totalRescues}`, 236, cy + 10);
+  ctx.fillText(`Hero charges: ${state.totalCharges}`, 236, cy + 38);
+  ctx.fillText("Press Enter to continue.", 236, cy + 68);
+}
+
+function drawMapScreen() {
+  drawParallax("civic-night");
+  drawPanel(54, 42, 852, 456, "rgba(255,255,255,0.82)");
+  ctx.fillStyle = "#17345f";
+  ctx.font = "800 42px Trebuchet MS";
+  ctx.fillText("City Map", 92, 98);
+  ctx.font = "16px Trebuchet MS";
+  drawWrappedText("Choose a level. Locked stages open after you clear the previous one. Press Enter to play. Press Escape to leave the map.", 92, 128, 780, 22, "#17345f");
+
+  const nodes = [
+    { x: 130, y: 300 }, { x: 220, y: 236 }, { x: 330, y: 180 }, { x: 468, y: 222 },
+    { x: 574, y: 162 }, { x: 700, y: 228 }, { x: 802, y: 146 },
+  ];
+
+  ctx.strokeStyle = "#4b6da5";
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(nodes[0].x, nodes[0].y);
+  for (let i = 1; i < nodes.length; i += 1) ctx.lineTo(nodes[i].x, nodes[i].y);
+  ctx.stroke();
+
+  for (let i = 0; i < levels.length; i += 1) {
+    const node = nodes[i];
+    const unlocked = i <= state.highestUnlockedLevel;
+    const selected = i === state.mapSelection;
+    ctx.fillStyle = unlocked ? (selected ? "#ffd86b" : "#7ec3ff") : "#8190a6";
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, selected ? 19 : 15, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = unlocked ? "#17345f" : "#dce4f1";
+    ctx.font = "700 12px Trebuchet MS";
+    ctx.textAlign = "center";
+    ctx.fillText(String(i + 1), node.x, node.y + 4);
+    ctx.textAlign = "left";
+    drawPanel(node.x - 64, node.y + 28, 156, 54, unlocked ? "rgba(20,35,61,0.88)" : "rgba(70,79,98,0.88)");
+    ctx.fillStyle = "#f4f8ff";
+    ctx.font = "700 12px Trebuchet MS";
+    drawWrappedText(unlocked ? levels[i].name : "LOCKED", node.x - 54, node.y + 48, 136, 15, "#f4f8ff");
+  }
+
+  const current = levels[state.mapSelection];
+  drawPanel(76, 352, 360, 118, "rgba(20,35,61,0.90)");
+  ctx.fillStyle = "#fff1b8";
+  ctx.font = "700 18px Trebuchet MS";
+  ctx.fillText(current.name, 96, 382);
+  ctx.font = "14px Trebuchet MS";
+  drawWrappedText(current.goal, 96, 408, 320, 18, "#edf6ff");
+  ctx.fillStyle = "#8fd6ff";
+  ctx.fillText(state.mapSelection <= state.highestUnlockedLevel ? "Status: Unlocked" : "Status: Locked", 96, 458);
+}
+
+function renderScene() {
+  ctx.clearRect(0, 0, WIDTH, HEIGHT);
+  if (state.scene === scenes.title) {
+    drawTitle();
+  } else if (state.scene === scenes.map) {
+    drawMapScreen();
+  } else if (state.scene === scenes.story) {
+    drawStoryCard();
+  } else if (state.scene === scenes.playing) {
+    drawGame();
+  } else if (state.scene === scenes.levelClear) {
+    drawStatusScreen("Level Clear", `${state.level.name} is complete. Box Boy keeps climbing.`);
+  } else if (state.scene === scenes.gameOver) {
+    drawStatusScreen("Mission Failed", state.message);
+  } else if (state.scene === scenes.win) {
+    drawStatusScreen("Story Complete", state.message);
   }
 }
 
 function renderHud() {
   if (state.scene === scenes.title) {
     hud.innerHTML = `
-      <div class="stat"><span class="label">Hero</span><span class="value">Box Boy</span></div>
-      <div class="stat"><span class="label">Goal</span><span class="value">Save bedtime</span></div>
-      <div class="stat"><span class="label">Power</span><span class="value">Imagination</span></div>
-      <div class="stat"><span class="label">Best Move</span><span class="value">Box Burst</span></div>
+      <div class="stat"><span class="label">Mode</span><span class="value">Story Mode</span></div>
+      <div class="stat"><span class="label">Genre</span><span class="value">2D Platformer</span></div>
+      <div class="stat"><span class="label">Setting</span><span class="value">Detailed city skyline</span></div>
+      <div class="stat"><span class="label">Promise</span><span class="value">No powers. Still heroic.</span></div>
     `;
     return;
   }
 
-  const currentLevel = level();
-  const player = state.player;
-  const hearts = "BOX ".repeat(player.hp).trim() || "Out";
-  const status = player.boxBurstReady ? "Ready" : `${player.imagination}%`;
-  const objective = getObjectiveText();
+  if (state.scene === scenes.map) {
+    hud.innerHTML = `
+      <div class="stat"><span class="label">Map</span><span class="value">City Route</span></div>
+      <div class="stat"><span class="label">Unlocked</span><span class="value">${state.highestUnlockedLevel + 1}/${levels.length}</span></div>
+      <div class="stat"><span class="label">Selection</span><span class="value">${levels[state.mapSelection].name}</span></div>
+      <div class="stat"><span class="label">Controls</span><span class="value">A/D or arrows, Enter, Escape</span></div>
+    `;
+    return;
+  }
 
+  if (!state.player || !state.level) return;
   hud.innerHTML = `
-    <div class="stat"><span class="label">Chapter</span><span class="value">${state.levelIndex + 1}. ${currentLevel.title}</span></div>
-    <div class="stat"><span class="label">Health</span><span class="value">${hearts}</span></div>
-    <div class="stat"><span class="label">Imagination</span><span class="value">${status}</span></div>
-    <div class="stat"><span class="label">Next Step</span><span class="value">${objective}</span></div>
+    <div class="stat"><span class="label">Stage</span><span class="value">${state.level.name}</span></div>
+    <div class="stat"><span class="label">Health</span><span class="value">${"BOX ".repeat(state.player.hp).trim()}</span></div>
+    <div class="stat"><span class="label">Hero Meter</span><span class="value">${state.player.gadgetReady ? "READY" : `${state.player.heroMeter}%`}</span></div>
+    <div class="stat"><span class="label">Next Step</span><span class="value">${getPriorityText()}</span></div>
   `;
 }
 
@@ -1007,81 +1338,121 @@ function checklistItem(done, text) {
 function renderMission() {
   if (state.scene === scenes.title) {
     mission.innerHTML = `
-      <h2>How To Play</h2>
-      <p>Follow the marker above the most important target. Yellow means star, green means rescue, red means boss.</p>
-      <p class="tiny">Move with <kbd>WASD</kbd> or arrows. Dash with <kbd>Space</kbd>. When imagination is full, press <kbd>F</kbd> near enemies or the boss.</p>
+      <h2>Story Mode</h2>
+      <p>This version is now a side-scrolling platformer with city backgrounds, multiple levels, boss fights, and story cards between chapters.</p>
+      <p class="tiny">Jump with <kbd>Space</kbd>. Hold <kbd>Space</kbd> while falling to glide with the blanket cape. Use <kbd>F</kbd> when the hero meter is full.</p>
       <div class="legend-grid">
-        <div class="legend-chip legend-star">Stars = progress</div>
-        <div class="legend-chip legend-toy">Green = rescue</div>
-        <div class="legend-chip legend-boss">Red = boss target</div>
+        <div class="legend-chip legend-star">Yellow = hero charge</div>
+        <div class="legend-chip legend-toy">Green = civilian</div>
+        <div class="legend-chip legend-boss">Red = boss objective</div>
       </div>
     `;
     return;
   }
 
-  const currentLevel = level();
-  const player = state.player;
-  const starsDone = player.starsCollected >= currentLevel.starsNeeded;
-  const rescueDone = player.rescued >= currentLevel.rescueNeeded;
-  const bossDone = !currentLevel.boss || state.boss === null;
+  if (state.scene === scenes.map) {
+    const selected = levels[state.mapSelection];
+    mission.innerHTML = `
+      <h2>City Map</h2>
+      <p class="mission-lead">${selected.name}</p>
+      <p class="tiny">${selected.story}</p>
+      <div class="callout">
+        <strong>Selected Stage:</strong>
+        <p>${selected.goal}</p>
+      </div>
+      ${checklistItem(state.mapSelection <= state.highestUnlockedLevel, `Unlocked`)}
+      ${checklistItem(state.mapSelection === state.highestUnlockedLevel, `Furthest available stage`)}
+      <p><strong>Status:</strong> ${state.mapSelection <= state.highestUnlockedLevel ? "Ready to play." : "Locked until earlier levels are cleared."}</p>
+      <p class="tiny">Use left/right to move the selection. Press Enter to play the selected unlocked level.</p>
+    `;
+    return;
+  }
 
+  if (!state.player || !state.level) return;
   mission.innerHTML = `
-    <h2>${currentLevel.title}</h2>
-    <p class="mission-lead">${currentLevel.objective}</p>
-    <p class="tiny">${currentLevel.flavor}</p>
+    <h2>${state.level.name}</h2>
+    <p class="mission-lead">${state.level.goal}</p>
+    <p class="tiny">${state.level.story}</p>
     <div class="callout">
       <strong>Do this now:</strong>
-      <p>${getObjectiveText()}</p>
+      <p>${getPriorityText()}</p>
     </div>
-    ${checklistItem(starsDone, `Collect stars: ${player.starsCollected}/${currentLevel.starsNeeded}`)}
-    ${checklistItem(rescueDone, `Rescue toys: ${player.rescued}/${currentLevel.rescueNeeded}`)}
-    ${currentLevel.boss ? checklistItem(bossDone, `Defeat Vacuum Dragon`) : ""}
+    ${checklistItem(state.player.charges >= state.level.heroTarget, `Hero charge: ${state.player.charges}/${state.level.heroTarget}`)}
+    ${checklistItem(state.player.rescues >= state.level.civiliansTarget, `Civilians rescued: ${state.player.rescues}/${state.level.civiliansTarget}`)}
+    ${state.level.boss ? checklistItem(!state.boss, `Defeat ${state.level.boss.name}`) : ""}
+    ${checklistItem(state.player.charges >= state.level.heroTarget && state.player.rescues >= state.level.civiliansTarget && !state.boss, `Reach the end beacon`)}
     <p><strong>Status:</strong> ${state.message}</p>
-    <p class="tiny">Watch for the floating marker in the level. It points at the next thing you should handle.</p>
+    <p class="tiny">The floating marker points to the most important target on screen. Keep moving right once the objectives are complete.</p>
   `;
 }
 
 function frame(time) {
   const dt = Math.min(0.033, (time - state.lastTime) / 1000 || 0.016);
   state.lastTime = time;
-
-  if (state.scene === scenes.playing) {
-    updatePlaying(dt);
-  }
-
-  drawScene();
+  if (state.scene === scenes.playing) updateGame(dt);
+  renderScene();
   renderHud();
   renderMission();
   requestAnimationFrame(frame);
 }
 
 window.addEventListener("keydown", (event) => {
-  if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(event.code)) {
-    event.preventDefault();
-  }
-
+  if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space", "Escape"].includes(event.code)) event.preventDefault();
+  const wasHeld = keys.has(event.code);
   keys.add(event.code);
 
-  if (event.code === "Enter") {
-    if (state.scene === scenes.title || state.scene === scenes.gameOver || state.scene === scenes.win) {
-      resetGame();
+  if (event.code === "Escape") {
+    if (state.scene === scenes.playing || state.scene === scenes.story || state.scene === scenes.levelClear || state.scene === scenes.gameOver || state.scene === scenes.win) {
+      state.mapSelection = state.levelIndex;
+      setScene(scenes.map);
+      return;
     }
+    if (state.scene === scenes.map) {
+      setScene(state.level ? scenes.story : scenes.title);
+      return;
+    }
+  }
+
+  if (event.code === "Enter") {
+    if (state.scene === scenes.title) {
+      startStoryMode();
+    } else if (state.scene === scenes.map) {
+      if (state.mapSelection <= state.highestUnlockedLevel) {
+        resetLevel(state.mapSelection);
+        setScene(scenes.story);
+        state.storyCard = Math.min(storyBeats.length - 1, Math.floor(state.mapSelection / 2));
+      }
+    } else if (state.scene === scenes.story) {
+      setScene(scenes.playing);
+    } else if (state.scene === scenes.levelClear) {
+      advanceLevel();
+    } else if (state.scene === scenes.gameOver) {
+      resetLevel(state.levelIndex);
+      setScene(scenes.playing);
+    } else if (state.scene === scenes.win) {
+      setScene(scenes.title);
+    }
+  }
+
+  if (state.scene === scenes.map) {
+    if (event.code === "ArrowLeft" || event.code === "KeyA") {
+      state.mapSelection = clamp(state.mapSelection - 1, 0, levels.length - 1);
+    }
+    if (event.code === "ArrowRight" || event.code === "KeyD") {
+      state.mapSelection = clamp(state.mapSelection + 1, 0, levels.length - 1);
+    }
+    return;
   }
 
   if (state.scene !== scenes.playing) return;
 
-  if (event.code === "Space") {
-    const player = state.player;
-    if (player.dashCooldown <= 0) {
-      player.dashTimer = 0.18;
-      player.dashCooldown = 0.75;
-      state.message = "Blanket cape dash!";
-      spawnBurst(player.x, player.y, "#7ec9ff", 10);
-    }
+  if (event.code === "Space" && !wasHeld && state.player.onGround) {
+    state.player.vy = -JUMP_SPEED;
+    state.player.onGround = false;
   }
 
   if (event.code === "KeyF") {
-    tryBoxBurst();
+    triggerGadgetBurst();
   }
 });
 
