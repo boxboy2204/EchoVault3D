@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Box Boy and the Blanket Cape</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Playable prototype</p>
+          <h1>Box Boy and the Blanket Cape</h1>
+          <p class="summary">
+            Box Boy is eight years old, dressed in cardboard armor and a bright blue
+            checkered blanket cape, and absolutely certain the house is under attack.
+            Cross three imagination-fueled rooms, rescue his toy crew, and knock back
+            the Vacuum Dragon before bedtime.
+          </p>
+        </div>
+        <section class="hero-card">
+          <h2>Controls</h2>
+          <p><kbd>WASD</kbd> / <kbd>Arrow Keys</kbd> move</p>
+          <p><kbd>Space</kbd> dash with the cape</p>
+          <p><kbd>F</kbd> unleash Box Burst when imagination is full</p>
+          <p><kbd>Enter</kbd> start or restart</p>
+        </section>
+      </header>
+
+      <section class="hud" id="hud" aria-live="polite"></section>
+
+      <section class="stage-shell">
+        <canvas id="game" width="960" height="540" aria-label="Box Boy game canvas"></canvas>
+        <aside class="mission" id="mission"></aside>
+      </section>
+    </main>
+
+    <script src="./game.js"></script>
+  </body>
+</html>
