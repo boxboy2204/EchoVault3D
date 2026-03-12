@@ -10,6 +10,7 @@ const keys = new Set();
 
 const GRAVITY = 1800;
 const MOVE_SPEED = 265;
+const CROUCH_SPEED = 108;
 const JUMP_SPEED = 690;
 const GLIDE_GRAVITY = 320;
 const GLIDE_FALL_SPEED = 170;
@@ -30,19 +31,24 @@ const scenes = {
 
 const storyBeats = [
   {
-    title: "Rooftop Declaration",
+    title: "Cutscene 1: The Dare",
     body:
-      "Box Boy has no powers, no sponsor, and no functioning gadgets. What he does have is a bright blue checkered cape, cardboard armor, and a refusal to quit.",
+      "The city already has a name everyone fears: Monarch, the biggest villain in the skyline. Box Boy has no powers, no backup, and no business going after him. He goes anyway.",
   },
   {
-    title: "The First Witnesses",
+    title: "Cutscene 2: First Witnesses",
     body:
-      "A city only believes in heroes after somebody sees the work. Rescue civilians, stop petty threats, and leave with proof that Box Boy belongs in the skyline.",
+      "Every rescue makes the rumor bigger. People stop asking who the kid in the blanket cape is and start asking why Monarch's crews keep failing to stop him.",
   },
   {
-    title: "Proof Of Heroism",
+    title: "Cutscene 3: Climbing Higher",
     body:
-      "Every broken gadget is still a promise. Box Boy keeps climbing until even the biggest boss in the city has to admit he showed up.",
+      "Monarch finally notices. The rooftops get meaner, the parkour gets harder, and every district adds a new trap meant to prove Box Boy is out of his league.",
+  },
+  {
+    title: "Cutscene 4: The Whole City Watching",
+    body:
+      "The final run is not about surviving the skyline anymore. It is about reaching Monarch, beating the city's biggest villain in public, and proving Box Boy belongs up there.",
   },
 ];
 
@@ -50,51 +56,61 @@ const levels = [
   {
     id: "alley-run",
     name: "Level 1: Lantern Alley",
-    chapter: "Story Mode",
-    goal: "Reach the radio tower and rescue 2 civilians.",
+    chapter: "Act 1: First Shift",
+    goal: "Cross the market rooftops, hit the spring signs, and rescue 3 civilians.",
     story:
-      "A blackout hits the Old Market blocks. Box Boy starts where every self-appointed hero starts: a dangerous alley and no backup.",
+      "A blackout hits the Old Market blocks after Monarch's crews move in. Box Boy starts in the alley because if he can save this block, people might finally believe he can reach the villain behind it.",
     background: "market-night",
-    heroTarget: 5,
-    civiliansTarget: 2,
-    endX: 2300,
+    civiliansTarget: 3,
+    endX: 3880,
     platforms: [
-      { x: 0, y: 520, w: 2500, h: 140, type: "ground" },
+      { x: 0, y: 520, w: 4100, h: 140, type: "ground" },
       { x: 190, y: 430, w: 180, h: 20, type: "roof" },
       { x: 470, y: 360, w: 160, h: 20, type: "roof" },
-      { x: 720, y: 320, w: 140, h: 20, type: "sign" },
+      { x: 720, y: 320, w: 140, h: 20, type: "spring" },
       { x: 940, y: 390, w: 150, h: 20, type: "ac" },
       { x: 1180, y: 300, w: 180, h: 20, type: "roof" },
       { x: 1480, y: 246, w: 170, h: 20, type: "roof" },
       { x: 1730, y: 340, w: 160, h: 20, type: "fireescape" },
       { x: 1990, y: 270, w: 190, h: 20, type: "roof" },
-    ],
-    charges: [
-      { x: 250, y: 382 }, { x: 552, y: 314 }, { x: 760, y: 272 }, { x: 1012, y: 340 }, { x: 1540, y: 198 },
+      { x: 2270, y: 410, w: 150, h: 20, type: "ac" },
+      { x: 2460, y: 332, w: 180, h: 20, type: "fireescape" },
+      { x: 2700, y: 254, w: 160, h: 20, type: "roof" },
+      { x: 2920, y: 198, w: 160, h: 20, type: "roof" },
+      { x: 3160, y: 300, w: 180, h: 20, type: "sign" },
+      { x: 3390, y: 236, w: 170, h: 20, type: "roof" },
+      { x: 3620, y: 168, w: 160, h: 20, type: "roof" },
+      { x: 2440, y: 188, w: 120, h: 20, type: "roof" },
+      { x: 2580, y: 150, w: 110, h: 20, type: "roof" },
+      { x: 2720, y: 118, w: 120, h: 20, type: "roof" },
     ],
     civilians: [
       { x: 1240, y: 252, name: "Riley" },
       { x: 2050, y: 222, name: "Mrs. Vega" },
+      { x: 3480, y: 188, name: "Mr. Holloway" },
     ],
     enemies: [
-      { x: 610, y: 486, type: "walker" },
-      { x: 1120, y: 486, type: "walker" },
+      { x: 610, type: "walker" },
+      { x: 1120, type: "walker" },
       { x: 1840, y: 306, type: "drone" },
+      { x: 2360, type: "walker" },
+      { x: 2850, y: 94, type: "drone" },
+      { x: 3340, type: "walker" },
     ],
+    windZones: [{ x: 2660, y: 70, w: 280, h: 210, fx: 48, fy: -110 }],
   },
   {
     id: "train-yard",
     name: "Level 2: Freightline Sprint",
-    chapter: "Story Mode",
-    goal: "Cross the freight district and rescue 2 civilians.",
+    chapter: "Act 1: First Shift",
+    goal: "Use the crane route, beat the enforcer lookout, and rescue 3 civilians.",
     story:
-      "The city rumors start here. If Box Boy can cross the freight rooftops and bring people back, the neighborhood might stop laughing long enough to notice.",
+      "Monarch's freight crews are locking down the district. If Box Boy can cross the crane line and bring people back, the rumor of a real hero stops sounding impossible.",
     background: "freight-dawn",
-    heroTarget: 6,
-    civiliansTarget: 2,
-    endX: 2600,
+    civiliansTarget: 3,
+    endX: 4260,
     platforms: [
-      { x: 0, y: 520, w: 2800, h: 140, type: "ground" },
+      { x: 0, y: 520, w: 4500, h: 140, type: "ground" },
       { x: 160, y: 430, w: 210, h: 20, type: "container" },
       { x: 430, y: 350, w: 190, h: 20, type: "container" },
       { x: 700, y: 280, w: 180, h: 20, type: "crane" },
@@ -103,68 +119,83 @@ const levels = [
       { x: 1560, y: 250, w: 200, h: 20, type: "crane" },
       { x: 1890, y: 350, w: 190, h: 20, type: "container" },
       { x: 2210, y: 280, w: 220, h: 20, type: "train" },
+      { x: 2490, y: 390, w: 180, h: 20, type: "train" },
+      { x: 2740, y: 316, w: 180, h: 20, type: "container" },
+      { x: 3020, y: 240, w: 220, h: 20, type: "crane" },
+      { x: 3340, y: 170, w: 180, h: 20, type: "crane" },
+      { x: 3600, y: 260, w: 180, h: 20, type: "train" },
+      { x: 3890, y: 340, w: 200, h: 20, type: "container" },
+      { x: 3170, y: 122, w: 120, h: 20, type: "container" },
+      { x: 3320, y: 92, w: 110, h: 20, type: "container" },
+      { x: 3470, y: 62, w: 120, h: 20, type: "container" },
     ],
-    charges: [
-      { x: 230, y: 382 }, { x: 500, y: 302 }, { x: 750, y: 230 }, { x: 1100, y: 340 }, { x: 1370, y: 272 }, { x: 2260, y: 230 },
+    movingPlatforms: [
+      { x: 2100, y: 220, w: 120, h: 18, type: "moving", axis: "y", range: 72, speed: 1.5, phase: 0 },
+      { x: 2860, y: 280, w: 120, h: 18, type: "moving", axis: "x", range: 84, speed: 1.2, phase: 1.4 },
     ],
     civilians: [
       { x: 1650, y: 202, name: "Dockworker Lee" },
       { x: 2350, y: 232, name: "Nadia" },
+      { x: 3940, y: 292, name: "Tamsin" },
     ],
     enemies: [
-      { x: 560, y: 486, type: "walker" },
+      { x: 560, type: "walker" },
       { x: 1160, y: 356, type: "drone" },
-      { x: 1750, y: 486, type: "walker" },
+      { x: 1750, type: "walker" },
       { x: 2050, y: 306, type: "drone" },
+      { x: 2660, type: "enforcer" },
+      { x: 3240, y: 114, type: "drone" },
+      { x: 3760, type: "walker" },
     ],
   },
   {
     id: "signal-bridge",
     name: "Boss 1: Signal Bridge",
-    chapter: "Story Mode",
-    goal: "Beat the Signal Warden.",
+    chapter: "Act 1: First Shift",
+    goal: "Reach the locked bridge tower and beat the Signal Warden.",
     story:
-      "A fake hero-killer drone is locking down the bridge and broadcasting that Box Boy is a joke. He takes that personally.",
+      "The Signal Warden is Monarch's first public warning: turn back or get humiliated on live screens across the city. Box Boy takes that personally.",
     background: "bridge-storm",
-    heroTarget: 5,
     civiliansTarget: 1,
-    endX: 1800,
+    endX: 2640,
     boss: {
+      type: "signal",
       name: "Signal Warden",
-      hp: 6,
-      arenaStart: 1240,
-      arenaEnd: 1760,
+      hp: 10,
+      arenaStart: 1700,
+      arenaEnd: 2500,
     },
     platforms: [
-      { x: 0, y: 520, w: 1900, h: 140, type: "ground" },
+      { x: 0, y: 520, w: 2860, h: 140, type: "ground" },
       { x: 240, y: 390, w: 180, h: 20, type: "beam" },
       { x: 540, y: 330, w: 180, h: 20, type: "beam" },
       { x: 840, y: 280, w: 170, h: 20, type: "beam" },
       { x: 1150, y: 330, w: 160, h: 20, type: "beam" },
       { x: 1420, y: 240, w: 160, h: 20, type: "beam" },
-    ],
-    charges: [
-      { x: 300, y: 342 }, { x: 600, y: 282 }, { x: 900, y: 232 }, { x: 1200, y: 282 }, { x: 1490, y: 192 },
+      { x: 1620, y: 360, w: 170, h: 20, type: "beam" },
+      { x: 1840, y: 300, w: 170, h: 20, type: "beam" },
+      { x: 2080, y: 240, w: 160, h: 20, type: "beam" },
+      { x: 2310, y: 320, w: 160, h: 20, type: "beam" },
     ],
     civilians: [{ x: 1320, y: 474, name: "Courier Pru" }],
     enemies: [
-      { x: 680, y: 486, type: "walker" },
+      { x: 680, type: "walker" },
       { x: 980, y: 236, type: "drone" },
+      { x: 1540, type: "walker" },
     ],
   },
   {
     id: "midtown-rise",
     name: "Level 4: Midtown Rise",
-    chapter: "Story Mode",
-    goal: "Climb the district towers and rescue 3 civilians.",
+    chapter: "Act 2: Midtown Pressure",
+    goal: "Climb the district towers, use moving billboards, and rescue 4 civilians.",
     story:
-      "Now people are watching. Box Boy pushes higher into the city, trying to look like he meant to be up there the whole time.",
+      "Now the whole district is watching. Box Boy pushes higher into Midtown because every rooftop cleared gets him one step closer to Monarch's tower.",
     background: "midtown-noon",
-    heroTarget: 7,
-    civiliansTarget: 3,
-    endX: 3000,
+    civiliansTarget: 4,
+    endX: 4680,
     platforms: [
-      { x: 0, y: 520, w: 3200, h: 140, type: "ground" },
+      { x: 0, y: 520, w: 4900, h: 140, type: "ground" },
       { x: 200, y: 430, w: 150, h: 20, type: "roof" },
       { x: 440, y: 370, w: 150, h: 20, type: "roof" },
       { x: 650, y: 310, w: 150, h: 20, type: "roof" },
@@ -176,35 +207,46 @@ const levels = [
       { x: 2230, y: 240, w: 150, h: 20, type: "roof" },
       { x: 2460, y: 170, w: 170, h: 20, type: "roof" },
       { x: 2720, y: 260, w: 190, h: 20, type: "roof" },
+      { x: 3010, y: 340, w: 180, h: 20, type: "roof" },
+      { x: 3260, y: 270, w: 170, h: 20, type: "sign" },
+      { x: 3510, y: 190, w: 160, h: 20, type: "roof" },
+      { x: 3750, y: 250, w: 170, h: 20, type: "roof" },
+      { x: 3980, y: 180, w: 170, h: 20, type: "roof" },
+      { x: 4230, y: 120, w: 160, h: 20, type: "roof" },
+      { x: 4470, y: 220, w: 170, h: 20, type: "roof" },
     ],
-    charges: [
-      { x: 250, y: 382 }, { x: 490, y: 322 }, { x: 700, y: 262 }, { x: 980, y: 202 }, { x: 1500, y: 212 }, { x: 1760, y: 142 }, { x: 2500, y: 122 },
+    movingPlatforms: [
+      { x: 1600, y: 230, w: 108, h: 18, type: "moving", axis: "y", range: 80, speed: 1.7, phase: 0.8 },
+      { x: 3330, y: 142, w: 112, h: 18, type: "moving", axis: "x", range: 94, speed: 1.5, phase: 2.1 },
     ],
     civilians: [
       { x: 1290, y: 282, name: "Theo" },
       { x: 2280, y: 192, name: "Ava" },
       { x: 2780, y: 212, name: "Mr. Ortega" },
+      { x: 4300, y: 72, name: "Selene" },
     ],
     enemies: [
-      { x: 570, y: 486, type: "walker" },
-      { x: 1090, y: 486, type: "walker" },
+      { x: 570, type: "walker" },
+      { x: 1090, type: "walker" },
       { x: 1600, y: 216, type: "drone" },
       { x: 2370, y: 196, type: "drone" },
+      { x: 3140, type: "walker" },
+      { x: 3660, y: 156, type: "drone" },
+      { x: 4380, type: "walker" },
     ],
   },
   {
     id: "skyline-arc",
     name: "Level 5: Skyline Arc",
-    chapter: "Story Mode",
-    goal: "Glide across the skyline and rescue 2 civilians.",
+    chapter: "Act 2: Midtown Pressure",
+    goal: "Ride the wind lanes, beat the rooftop enforcer, and rescue 3 civilians.",
     story:
-      "This is the part where a real superhero would fly. Box Boy cannot fly, but he can absolutely leap, glide, panic, and still make it look intentional.",
+      "This is the part where a real superhero would fly. Box Boy cannot fly, but he can still cross Monarch's windblown skyline one desperate glide at a time.",
     background: "skyline-sunset",
-    heroTarget: 6,
-    civiliansTarget: 2,
-    endX: 2920,
+    civiliansTarget: 3,
+    endX: 4480,
     platforms: [
-      { x: 0, y: 520, w: 3100, h: 140, type: "ground" },
+      { x: 0, y: 520, w: 4700, h: 140, type: "ground" },
       { x: 180, y: 390, w: 150, h: 20, type: "roof" },
       { x: 420, y: 320, w: 130, h: 20, type: "roof" },
       { x: 690, y: 260, w: 150, h: 20, type: "roof" },
@@ -214,33 +256,53 @@ const levels = [
       { x: 2030, y: 260, w: 170, h: 20, type: "roof" },
       { x: 2350, y: 180, w: 170, h: 20, type: "roof" },
       { x: 2640, y: 280, w: 180, h: 20, type: "roof" },
-    ],
-    charges: [
-      { x: 240, y: 342 }, { x: 460, y: 272 }, { x: 750, y: 212 }, { x: 1070, y: 132 }, { x: 1760, y: 152 }, { x: 2410, y: 132 },
+      { x: 2940, y: 220, w: 180, h: 20, type: "roof" },
+      { x: 3220, y: 140, w: 180, h: 20, type: "roof" },
+      { x: 3500, y: 210, w: 170, h: 20, type: "roof" },
+      { x: 3740, y: 130, w: 160, h: 20, type: "roof" },
+      { x: 3980, y: 200, w: 170, h: 20, type: "roof" },
+      { x: 4230, y: 120, w: 180, h: 20, type: "roof" },
+      { x: 3160, y: 80, w: 110, h: 20, type: "spring" },
+      { x: 3310, y: 52, w: 110, h: 20, type: "roof" },
+      { x: 3460, y: 24, w: 120, h: 20, type: "roof" },
     ],
     civilians: [
       { x: 1420, y: 212, name: "Paramedic Sloane" },
       { x: 2720, y: 232, name: "Jay" },
+      { x: 4300, y: 92, name: "Niko" },
     ],
     enemies: [
-      { x: 820, y: 486, type: "walker" },
+      { x: 820, type: "walker" },
       { x: 1550, y: 216, type: "drone" },
-      { x: 2200, y: 486, type: "walker" },
+      { x: 2200, type: "walker" },
+      { x: 3020, type: "enforcer" },
+      { x: 3620, y: 106, type: "drone" },
+      { x: 4170, y: 176, type: "drone" },
+    ],
+    windZones: [
+      { x: 900, y: 80, w: 420, h: 250, fx: 62, fy: -160 },
+      { x: 3180, y: 0, w: 420, h: 180, fx: 76, fy: -120 },
     ],
   },
   {
-    id: "city-hall",
-    name: "Level 6: City Hall Run",
-    chapter: "Story Mode",
-    goal: "Rescue 3 civilians and reach the summit doors.",
+    id: "city-hall-siege",
+    name: "Boss 2: City Hall Siege",
+    chapter: "Act 2: Midtown Pressure",
+    goal: "Break through the plaza lockdown and defeat the Graft King.",
     story:
-      "The final district is locked down. If Box Boy wants the city to believe in him, he has to show up where everyone can see it.",
+      "The Graft King runs Monarch's civic lockdown. Box Boy heads straight for the barricade because every boss under Monarch is one less wall between him and the real target.",
     background: "civic-night",
-    heroTarget: 7,
-    civiliansTarget: 3,
-    endX: 3200,
+    civiliansTarget: 1,
+    endX: 5020,
+    boss: {
+      type: "graft",
+      name: "Graft King",
+      hp: 12,
+      arenaStart: 3460,
+      arenaEnd: 4900,
+    },
     platforms: [
-      { x: 0, y: 520, w: 3400, h: 140, type: "ground" },
+      { x: 0, y: 520, w: 5280, h: 140, type: "ground" },
       { x: 170, y: 430, w: 190, h: 20, type: "steps" },
       { x: 470, y: 360, w: 160, h: 20, type: "steps" },
       { x: 760, y: 290, w: 170, h: 20, type: "steps" },
@@ -251,59 +313,339 @@ const levels = [
       { x: 2280, y: 280, w: 180, h: 20, type: "ledge" },
       { x: 2580, y: 210, w: 180, h: 20, type: "ledge" },
       { x: 2870, y: 150, w: 170, h: 20, type: "ledge" },
+      { x: 3150, y: 260, w: 180, h: 20, type: "ledge" },
+      { x: 3400, y: 190, w: 180, h: 20, type: "ledge" },
+      { x: 3660, y: 120, w: 170, h: 20, type: "ledge" },
+      { x: 3920, y: 220, w: 180, h: 20, type: "ledge" },
+      { x: 4200, y: 150, w: 180, h: 20, type: "ledge" },
+      { x: 4470, y: 90, w: 170, h: 20, type: "ledge" },
+      { x: 4740, y: 170, w: 180, h: 20, type: "ledge" },
     ],
-    charges: [
-      { x: 240, y: 382 }, { x: 520, y: 312 }, { x: 820, y: 242 }, { x: 1150, y: 172 }, { x: 1780, y: 202 }, { x: 2020, y: 132 }, { x: 2930, y: 102 },
+    movingPlatforms: [
+      { x: 3720, y: 330, w: 118, h: 18, type: "moving", axis: "y", range: 150, speed: 2.1, phase: 0.5 },
+      { x: 4320, y: 284, w: 118, h: 18, type: "moving", axis: "y", range: 168, speed: 1.9, phase: 2.4 },
     ],
-    civilians: [
-      { x: 1460, y: 272, name: "Captain Imani" },
-      { x: 2340, y: 232, name: "Lucia" },
-      { x: 2920, y: 102, name: "Mayor's Aide Ben" },
-    ],
+    civilians: [{ x: 2920, y: 102, name: "Mayor's Aide Ben" }],
     enemies: [
-      { x: 660, y: 486, type: "walker" },
-      { x: 1250, y: 486, type: "walker" },
+      { x: 660, type: "walker" },
+      { x: 1250, type: "walker" },
       { x: 1860, y: 206, type: "drone" },
       { x: 2700, y: 156, type: "drone" },
+      { x: 3260, type: "enforcer" },
+    ],
+  },
+  {
+    id: "skycourt-terrace",
+    name: "Level 7: Skycourt Terrace",
+    chapter: "Act 3: Upper City",
+    goal: "Cross the civic rooftops, ride the lift decks, and rescue 4 civilians.",
+    story:
+      "With the plaza open again, Box Boy heads into the upper city. Monarch's rich district looks clean from the street, but the rooftops are all traps and patrol routes.",
+    background: "midtown-noon",
+    civiliansTarget: 4,
+    endX: 5220,
+    platforms: [
+      { x: 0, y: 520, w: 5440, h: 140, type: "ground" },
+      { x: 180, y: 430, w: 170, h: 20, type: "ledge" },
+      { x: 450, y: 350, w: 170, h: 20, type: "ledge" },
+      { x: 730, y: 280, w: 170, h: 20, type: "ledge" },
+      { x: 1060, y: 350, w: 160, h: 20, type: "roof" },
+      { x: 1330, y: 270, w: 170, h: 20, type: "roof" },
+      { x: 1650, y: 200, w: 180, h: 20, type: "roof" },
+      { x: 1960, y: 280, w: 170, h: 20, type: "roof" },
+      { x: 2240, y: 210, w: 180, h: 20, type: "roof" },
+      { x: 2540, y: 140, w: 180, h: 20, type: "roof" },
+      { x: 2890, y: 220, w: 170, h: 20, type: "roof" },
+      { x: 3220, y: 160, w: 180, h: 20, type: "roof" },
+      { x: 3510, y: 260, w: 190, h: 20, type: "roof" },
+      { x: 3830, y: 190, w: 170, h: 20, type: "roof" },
+      { x: 4130, y: 120, w: 170, h: 20, type: "roof" },
+      { x: 4460, y: 180, w: 170, h: 20, type: "roof" },
+      { x: 4750, y: 120, w: 180, h: 20, type: "roof" },
+    ],
+    movingPlatforms: [
+      { x: 930, y: 300, w: 110, h: 18, type: "moving", axis: "y", range: 110, speed: 1.6, phase: 0.2 },
+      { x: 3610, y: 220, w: 110, h: 18, type: "moving", axis: "x", range: 130, speed: 1.8, phase: 1.2 },
+    ],
+    civilians: [
+      { x: 1140, y: 302, name: "Elio" },
+      { x: 2290, y: 162, name: "Carmen" },
+      { x: 3560, y: 212, name: "Mr. Yuan" },
+      { x: 4820, y: 72, name: "Priya" },
+    ],
+    enemies: [
+      { x: 640, type: "walker" },
+      { x: 1500, type: "walker" },
+      { x: 2120, y: 180, type: "drone" },
+      { x: 2980, type: "walker" },
+      { x: 3920, y: 160, type: "drone" },
+      { x: 4610, type: "walker" },
+    ],
+  },
+  {
+    id: "skyrail-chase",
+    name: "Level 8: Skyrail Chase",
+    chapter: "Act 3: Upper City",
+    goal: "Leap between rail cars, use the launch pads, and rescue 3 civilians.",
+    story:
+      "Monarch's crews start moving gear toward the central tower on the skyrail. Box Boy stays on the chase even when the whole route keeps shifting under his feet.",
+    background: "freight-dawn",
+    civiliansTarget: 3,
+    endX: 5480,
+    platforms: [
+      { x: 0, y: 520, w: 5700, h: 140, type: "ground" },
+      { x: 220, y: 430, w: 170, h: 20, type: "train" },
+      { x: 520, y: 370, w: 170, h: 20, type: "train" },
+      { x: 820, y: 300, w: 140, h: 20, type: "spring" },
+      { x: 1110, y: 230, w: 170, h: 20, type: "train" },
+      { x: 1420, y: 330, w: 170, h: 20, type: "container" },
+      { x: 1710, y: 260, w: 170, h: 20, type: "train" },
+      { x: 2040, y: 180, w: 170, h: 20, type: "train" },
+      { x: 2360, y: 260, w: 170, h: 20, type: "container" },
+      { x: 2670, y: 180, w: 170, h: 20, type: "train" },
+      { x: 2980, y: 260, w: 170, h: 20, type: "container" },
+      { x: 3320, y: 190, w: 170, h: 20, type: "train" },
+      { x: 3630, y: 260, w: 170, h: 20, type: "container" },
+      { x: 3940, y: 180, w: 170, h: 20, type: "train" },
+      { x: 4270, y: 110, w: 180, h: 20, type: "train" },
+      { x: 4600, y: 190, w: 170, h: 20, type: "container" },
+      { x: 4920, y: 120, w: 180, h: 20, type: "train" },
+    ],
+    movingPlatforms: [
+      { x: 1500, y: 370, w: 112, h: 18, type: "moving", axis: "x", range: 150, speed: 2.2, phase: 0.1 },
+      { x: 3430, y: 250, w: 112, h: 18, type: "moving", axis: "x", range: 160, speed: 2.4, phase: 1.8 },
+    ],
+    civilians: [
+      { x: 1780, y: 212, name: "Mina" },
+      { x: 3390, y: 142, name: "Rook" },
+      { x: 5000, y: 72, name: "Nurse Ada" },
+    ],
+    enemies: [
+      { x: 690, type: "walker" },
+      { x: 1590, type: "enforcer" },
+      { x: 2460, y: 220, type: "drone" },
+      { x: 3180, type: "walker" },
+      { x: 4100, y: 140, type: "drone" },
+      { x: 4750, type: "walker" },
+    ],
+    windZones: [{ x: 4040, y: 20, w: 550, h: 220, fx: 70, fy: -140 }],
+  },
+  {
+    id: "rivet-rex",
+    name: "Boss 3: Rivet Rex",
+    chapter: "Act 3: Upper City",
+    goal: "Enter the foundry roof and defeat Rivet Rex before the district collapses.",
+    story:
+      "Rivet Rex is Monarch's rooftop bruiser, a charging wrecking-machine turned loose over the foundry. If Box Boy can survive him, the city will know this is not pretend anymore.",
+    background: "bridge-storm",
+    civiliansTarget: 1,
+    endX: 3540,
+    boss: {
+      type: "rivet",
+      name: "Rivet Rex",
+      hp: 13,
+      arenaStart: 2240,
+      arenaEnd: 3420,
+    },
+    platforms: [
+      { x: 0, y: 520, w: 3780, h: 140, type: "ground" },
+      { x: 240, y: 390, w: 180, h: 20, type: "beam" },
+      { x: 570, y: 320, w: 160, h: 20, type: "beam" },
+      { x: 860, y: 250, w: 170, h: 20, type: "beam" },
+      { x: 1180, y: 330, w: 170, h: 20, type: "beam" },
+      { x: 1480, y: 250, w: 170, h: 20, type: "beam" },
+      { x: 1790, y: 180, w: 180, h: 20, type: "beam" },
+      { x: 2070, y: 280, w: 170, h: 20, type: "beam" },
+      { x: 2320, y: 210, w: 170, h: 20, type: "beam" },
+      { x: 2590, y: 140, w: 170, h: 20, type: "beam" },
+      { x: 2860, y: 220, w: 170, h: 20, type: "beam" },
+      { x: 3150, y: 150, w: 170, h: 20, type: "beam" },
+    ],
+    civilians: [{ x: 1580, y: 472, name: "Foreman Jules" }],
+    enemies: [
+      { x: 660, type: "walker" },
+      { x: 1110, y: 300, type: "drone" },
+      { x: 1700, type: "walker" },
+    ],
+  },
+  {
+    id: "neon-warrens",
+    name: "Level 10: Neon Warrens",
+    chapter: "Act 4: Last Push",
+    goal: "Navigate the neon backstreets, take the side vents, and rescue 4 civilians.",
+    story:
+      "The lower skyline is glowing again, but Monarch's crews own every straight road. Box Boy dives into the side routes and vents because the hard way is the only open one.",
+    background: "market-night",
+    civiliansTarget: 4,
+    endX: 5660,
+    platforms: [
+      { x: 0, y: 520, w: 5900, h: 140, type: "ground" },
+      { x: 170, y: 430, w: 170, h: 20, type: "roof" },
+      { x: 410, y: 360, w: 160, h: 20, type: "sign" },
+      { x: 670, y: 300, w: 160, h: 20, type: "roof" },
+      { x: 940, y: 230, w: 170, h: 20, type: "roof" },
+      { x: 1230, y: 310, w: 170, h: 20, type: "ac" },
+      { x: 1510, y: 230, w: 170, h: 20, type: "roof" },
+      { x: 1780, y: 150, w: 170, h: 20, type: "roof" },
+      { x: 2100, y: 240, w: 160, h: 20, type: "roof" },
+      { x: 2390, y: 320, w: 170, h: 20, type: "roof" },
+      { x: 2710, y: 250, w: 170, h: 20, type: "fireescape" },
+      { x: 3000, y: 170, w: 170, h: 20, type: "roof" },
+      { x: 3290, y: 250, w: 170, h: 20, type: "roof" },
+      { x: 3600, y: 180, w: 170, h: 20, type: "roof" },
+      { x: 3920, y: 110, w: 170, h: 20, type: "roof" },
+      { x: 4210, y: 190, w: 170, h: 20, type: "roof" },
+      { x: 4510, y: 120, w: 170, h: 20, type: "roof" },
+      { x: 4820, y: 200, w: 170, h: 20, type: "roof" },
+      { x: 5140, y: 130, w: 170, h: 20, type: "roof" },
+    ],
+    movingPlatforms: [
+      { x: 1120, y: 180, w: 110, h: 18, type: "moving", axis: "y", range: 120, speed: 1.9, phase: 0.8 },
+      { x: 3490, y: 120, w: 110, h: 18, type: "moving", axis: "x", range: 126, speed: 1.4, phase: 2.8 },
+    ],
+    civilians: [
+      { x: 1270, y: 262, name: "Marta" },
+      { x: 2440, y: 272, name: "Wes" },
+      { x: 3960, y: 62, name: "Ivy" },
+      { x: 5200, y: 82, name: "Dax" },
+    ],
+    enemies: [
+      { x: 760, type: "walker" },
+      { x: 1690, y: 190, type: "drone" },
+      { x: 2580, type: "walker" },
+      { x: 3330, type: "enforcer" },
+      { x: 4360, y: 150, type: "drone" },
+      { x: 5010, type: "walker" },
+    ],
+    windZones: [{ x: 2920, y: 70, w: 420, h: 200, fx: 52, fy: -100 }],
+  },
+  {
+    id: "blackout-heights",
+    name: "Level 11: Blackout Heights",
+    chapter: "Act 4: Last Push",
+    goal: "Glide through the blackout towers, beat the heavy guard, and rescue 4 civilians.",
+    story:
+      "The power grid fails again just as Monarch seals the last district. With the skyline dark, Box Boy has to make his own route through the tower blackout.",
+    background: "civic-night",
+    civiliansTarget: 4,
+    endX: 5980,
+    platforms: [
+      { x: 0, y: 520, w: 6200, h: 140, type: "ground" },
+      { x: 220, y: 430, w: 170, h: 20, type: "roof" },
+      { x: 510, y: 350, w: 170, h: 20, type: "roof" },
+      { x: 860, y: 280, w: 170, h: 20, type: "spring" },
+      { x: 1180, y: 190, w: 170, h: 20, type: "roof" },
+      { x: 1490, y: 270, w: 170, h: 20, type: "roof" },
+      { x: 1810, y: 200, w: 180, h: 20, type: "roof" },
+      { x: 2110, y: 280, w: 170, h: 20, type: "roof" },
+      { x: 2460, y: 210, w: 180, h: 20, type: "roof" },
+      { x: 2820, y: 120, w: 180, h: 20, type: "roof" },
+      { x: 3180, y: 220, w: 180, h: 20, type: "roof" },
+      { x: 3500, y: 150, w: 170, h: 20, type: "roof" },
+      { x: 3820, y: 240, w: 170, h: 20, type: "roof" },
+      { x: 4140, y: 160, w: 170, h: 20, type: "roof" },
+      { x: 4480, y: 80, w: 170, h: 20, type: "roof" },
+      { x: 4820, y: 160, w: 170, h: 20, type: "roof" },
+      { x: 5160, y: 100, w: 180, h: 20, type: "roof" },
+      { x: 5480, y: 180, w: 170, h: 20, type: "roof" },
+    ],
+    movingPlatforms: [
+      { x: 1320, y: 290, w: 116, h: 18, type: "moving", axis: "x", range: 140, speed: 1.7, phase: 0.4 },
+      { x: 4650, y: 110, w: 116, h: 18, type: "moving", axis: "y", range: 150, speed: 2.0, phase: 1.7 },
+    ],
+    civilians: [
+      { x: 1220, y: 142, name: "Nell" },
+      { x: 2500, y: 162, name: "Omar" },
+      { x: 4200, y: 112, name: "Syd" },
+      { x: 5540, y: 132, name: "Mara's Brother" },
+    ],
+    enemies: [
+      { x: 760, type: "walker" },
+      { x: 1700, type: "enforcer" },
+      { x: 2660, y: 170, type: "drone" },
+      { x: 3600, type: "walker" },
+      { x: 4540, y: 120, type: "drone" },
+      { x: 5360, type: "walker" },
+    ],
+    windZones: [
+      { x: 760, y: 40, w: 700, h: 260, fx: 82, fy: -180 },
+      { x: 4300, y: 0, w: 820, h: 240, fx: 68, fy: -130 },
     ],
   },
   {
     id: "finale",
-    name: "Final Boss: Vacuum Dragon",
-    chapter: "Story Mode",
-    goal: "Defeat the Vacuum Dragon and prove yourself.",
+    name: "Final Boss: Monarch",
+    chapter: "Act 4: Last Push",
+    goal: "Reach Monarch's rooftop, rescue Mara, and defeat the city's biggest villain.",
     story:
-      "The machine tearing up downtown is loud, mean, and very real. Box Boy walks in anyway, armed with a cape, stubbornness, and gadgets nobody would insure.",
+      "At the top of the skyline, Monarch waits with the Vacuum Dragon war machine and the whole city watching below. This is the proof Box Boy came for.",
     background: "finale-red",
-    heroTarget: 6,
     civiliansTarget: 1,
-    endX: 2200,
+    endX: 3320,
     boss: {
-      name: "Vacuum Dragon",
-      hp: 8,
-      arenaStart: 1380,
-      arenaEnd: 2140,
+      type: "dragon",
+      name: "Monarch",
+      hp: 15,
+      arenaStart: 2180,
+      arenaEnd: 3220,
     },
     platforms: [
-      { x: 0, y: 520, w: 2400, h: 140, type: "ground" },
+      { x: 0, y: 520, w: 3540, h: 140, type: "ground" },
       { x: 250, y: 410, w: 180, h: 20, type: "roof" },
       { x: 550, y: 330, w: 180, h: 20, type: "roof" },
       { x: 860, y: 260, w: 180, h: 20, type: "roof" },
       { x: 1210, y: 310, w: 180, h: 20, type: "roof" },
       { x: 1540, y: 240, w: 180, h: 20, type: "roof" },
       { x: 1820, y: 190, w: 180, h: 20, type: "roof" },
-    ],
-    charges: [
-      { x: 300, y: 362 }, { x: 610, y: 282 }, { x: 920, y: 212 }, { x: 1280, y: 262 }, { x: 1600, y: 192 }, { x: 1890, y: 142 },
+      { x: 2060, y: 280, w: 180, h: 20, type: "roof" },
+      { x: 2320, y: 220, w: 170, h: 20, type: "roof" },
+      { x: 2570, y: 160, w: 170, h: 20, type: "roof" },
+      { x: 2820, y: 230, w: 180, h: 20, type: "roof" },
+      { x: 3060, y: 170, w: 170, h: 20, type: "roof" },
     ],
     civilians: [{ x: 1460, y: 474, name: "Mara" }],
     enemies: [
-      { x: 760, y: 486, type: "walker" },
+      { x: 760, type: "walker" },
       { x: 1100, y: 216, type: "drone" },
       { x: 1730, y: 146, type: "drone" },
+      { x: 2280, type: "walker" },
+      { x: 2760, y: 136, type: "drone" },
     ],
   },
 ];
+
+for (const level of levels) {
+  if (!level.boss) {
+    const extraPlatforms = [];
+    for (const platform of level.platforms) {
+      if ((platform.type === "roof" || platform.type === "ledge" || platform.type === "container") && platform.w >= 150 && platform.y > 140) {
+        extraPlatforms.push({
+          x: platform.x + 26,
+          y: platform.y - 76,
+          w: Math.max(92, Math.min(126, platform.w - 40)),
+          h: 16,
+          type: platform.type === "container" ? "roof" : "sign",
+        });
+      }
+    }
+    level.platforms.push(...extraPlatforms.slice(0, 10));
+
+    const extraEnemies = [];
+    for (const platform of level.platforms) {
+      if ((platform.type === "roof" || platform.type === "ledge" || platform.type === "sign") && platform.y < 420 && platform.w >= 90) {
+        const shouldAdd = (Math.floor(platform.x / 170) % 3) === 1;
+        if (shouldAdd) {
+          extraEnemies.push({
+            x: platform.x + Math.max(12, (platform.w / 2) - 18),
+            y: platform.y - 26,
+            type: platform.y < 220 ? "drone" : "walker",
+          });
+        }
+      }
+    }
+    level.enemies.push(...extraEnemies.slice(0, 12));
+  }
+}
 
 const state = {
   scene: scenes.title,
@@ -315,11 +657,14 @@ const state = {
   player: null,
   enemies: [],
   civilians: [],
+  dynamicPlatforms: [],
+  unlockedSewers: new Set(),
   charges: [],
   projectiles: [],
   boss: null,
   particles: [],
   cameraX: 0,
+  cameraY: 0,
   message: "Press Enter to begin Story Mode.",
   totalRescues: 0,
   totalDefeats: 0,
@@ -383,36 +728,48 @@ function makePlayer() {
     jumpsLeft: 2,
     punchTimer: 0,
     punchCooldown: 0,
+    punchSide: "left",
     walkCycle: 0,
+    supportPlatform: null,
+    sewerCooldown: 0,
+    crouching: false,
   };
 }
 
 function makeEnemy(base) {
+  const isDrone = base.type === "drone";
+  const isEnforcer = base.type === "enforcer";
   return {
     x: base.x,
-    y: base.type === "drone" ? base.y || 280 : 470,
-    w: base.type === "drone" ? 34 : 38,
-    h: base.type === "drone" ? 26 : 36,
+    y: isDrone ? base.y || 280 : isEnforcer ? 454 : 470,
+    w: isDrone ? 34 : isEnforcer ? 52 : 38,
+    h: isDrone ? 26 : isEnforcer ? 52 : 36,
     type: base.type,
-    vx: base.type === "drone" ? 0 : (Math.random() > 0.5 ? 1 : -1) * 70,
-    baseY: base.type === "drone" ? base.y || 280 : 470,
+    vx: isDrone ? 0 : (Math.random() > 0.5 ? 1 : -1) * (isEnforcer ? 52 : 70),
+    baseY: isDrone ? base.y || 280 : isEnforcer ? 454 : 470,
     phase: rand(0, Math.PI * 2),
-    hp: 1,
+    hp: isEnforcer ? 3 : 1,
+    maxHp: isEnforcer ? 3 : 1,
+    cooldown: rand(0.4, 1.2),
   };
 }
 
 function makeBoss(def) {
   return {
+    type: def.type,
     name: def.name,
     x: def.arenaStart + 220,
-    y: def.name === "Vacuum Dragon" ? 390 : 280,
-    w: def.name === "Vacuum Dragon" ? 170 : 120,
-    h: def.name === "Vacuum Dragon" ? 98 : 72,
+    y: def.type === "dragon" ? 390 : def.type === "graft" ? 398 : def.type === "rivet" ? 248 : 280,
+    w: def.type === "dragon" ? 170 : def.type === "graft" ? 124 : def.type === "rivet" ? 142 : 120,
+    h: def.type === "dragon" ? 98 : def.type === "graft" ? 108 : def.type === "rivet" ? 86 : 72,
     hp: def.hp,
     maxHp: def.hp,
     dir: 1,
     cooldown: 0,
     phase: 0,
+    vulnerable: def.type === "signal",
+    stun: 0,
+    attack: "idle",
   };
 }
 
@@ -437,11 +794,20 @@ function resetLevel(index) {
   state.player = makePlayer();
   state.enemies = level.enemies.map(makeEnemy);
   state.civilians = level.civilians.map((civ) => ({ ...civ, rescued: false, w: 24, h: 36 }));
+  state.dynamicPlatforms = (level.movingPlatforms || []).map((platform) => ({
+    ...platform,
+    baseX: platform.x,
+    baseY: platform.y,
+    prevX: platform.x,
+    prevY: platform.y,
+  }));
+  state.unlockedSewers = new Set();
   state.charges = [];
   state.projectiles = [];
   state.boss = level.boss ? makeBoss(level.boss) : null;
   state.particles = [];
   state.cameraX = 0;
+  state.cameraY = 0;
   state.message = level.story;
   state.transitionTimer = 2.8;
   saveProgress();
@@ -456,13 +822,13 @@ function advanceLevel() {
   saveProgress();
   if (state.levelIndex + 1 >= levels.length) {
     setScene(scenes.win);
-    state.message = "The city finally sees him. Box Boy did not get powers. He got proof.";
+    state.message = "Monarch is down. The city finally sees Box Boy for what he is: a real hero who earned it.";
     return;
   }
 
   resetLevel(state.levelIndex + 1);
   setScene(scenes.story);
-  state.storyCard = Math.min(storyBeats.length - 1, Math.floor((state.levelIndex + 1) / 2));
+  state.storyCard = Math.min(storyBeats.length - 1, Math.floor((state.levelIndex + 1) / 3));
 }
 
 function startStoryMode() {
@@ -479,39 +845,151 @@ function getWorldWidth() {
   return state.level.endX + 320;
 }
 
+function getWorldHeight() {
+  return (SEWER_LAYOUTS[state.level.id] ? 980 : HEIGHT) + 80;
+}
+
 function getPlatforms() {
-  return state.level.platforms;
+  return state.level.platforms.concat(state.dynamicPlatforms, getSewerPlatforms());
+}
+
+function getWindZones() {
+  return state.level.windZones || [];
+}
+
+function getManholes() {
+  return MANHOLE_LAYOUTS[state.level.id] || [];
+}
+
+function getSewerPlatforms() {
+  return (SEWER_LAYOUTS[state.level.id] || []).filter((platform) => !platform.requires || state.unlockedSewers?.has(platform.requires));
 }
 
 const HAZARD_LAYOUTS = {
   "alley-run": [
     { x: 820, y: 502, w: 56, h: 18, type: "spikes" },
     { x: 1670, y: 322, w: 48, h: 18, type: "crate" },
+    { x: 2550, y: 102, w: 54, h: 18, type: "crate" },
+    { x: 3280, y: 502, w: 72, h: 18, type: "spikes" },
   ],
   "train-yard": [
     { x: 910, y: 502, w: 64, h: 18, type: "spikes" },
     { x: 1760, y: 222, w: 52, h: 18, type: "crate" },
+    { x: 3060, y: 220, w: 56, h: 18, type: "crate" },
+    { x: 3870, y: 502, w: 84, h: 18, type: "laser" },
   ],
   "signal-bridge": [
     { x: 1280, y: 502, w: 90, h: 18, type: "laser" },
+    { x: 1940, y: 502, w: 90, h: 18, type: "laser" },
   ],
   "midtown-rise": [
     { x: 1540, y: 502, w: 72, h: 18, type: "spikes" },
     { x: 2140, y: 220, w: 56, h: 18, type: "crate" },
+    { x: 3570, y: 170, w: 56, h: 18, type: "crate" },
+    { x: 4080, y: 502, w: 82, h: 18, type: "spikes" },
   ],
   "skyline-arc": [
     { x: 1220, y: 502, w: 72, h: 18, type: "spikes" },
     { x: 2140, y: 502, w: 72, h: 18, type: "spikes" },
+    { x: 3240, y: 34, w: 62, h: 18, type: "crate" },
+    { x: 4060, y: 502, w: 90, h: 18, type: "laser" },
   ],
   "city-hall": [
     { x: 1340, y: 502, w: 78, h: 18, type: "laser" },
     { x: 2480, y: 190, w: 56, h: 18, type: "crate" },
+    { x: 3720, y: 24, w: 52, h: 18, type: "crate" },
+    { x: 4360, y: 502, w: 84, h: 18, type: "spikes" },
+  ],
+  "city-hall-siege": [
+    { x: 1550, y: 502, w: 88, h: 18, type: "laser" },
+    { x: 3160, y: 240, w: 58, h: 18, type: "crate" },
+    { x: 3860, y: 502, w: 90, h: 18, type: "spikes" },
+    { x: 4520, y: 502, w: 90, h: 18, type: "laser" },
+  ],
+  "skycourt-terrace": [
+    { x: 990, y: 502, w: 72, h: 18, type: "spikes" },
+    { x: 2610, y: 120, w: 58, h: 18, type: "crate" },
+    { x: 4080, y: 502, w: 86, h: 18, type: "spikes" },
+  ],
+  "skyrail-chase": [
+    { x: 940, y: 502, w: 78, h: 18, type: "laser" },
+    { x: 2820, y: 160, w: 56, h: 18, type: "crate" },
+    { x: 4440, y: 502, w: 92, h: 18, type: "spikes" },
+  ],
+  "rivet-rex": [
+    { x: 1290, y: 502, w: 88, h: 18, type: "laser" },
+    { x: 2440, y: 190, w: 56, h: 18, type: "crate" },
+    { x: 2990, y: 502, w: 96, h: 18, type: "laser" },
+  ],
+  "neon-warrens": [
+    { x: 1120, y: 502, w: 78, h: 18, type: "spikes" },
+    { x: 2740, y: 230, w: 56, h: 18, type: "crate" },
+    { x: 4660, y: 502, w: 88, h: 18, type: "laser" },
+  ],
+  "blackout-heights": [
+    { x: 980, y: 502, w: 84, h: 18, type: "laser" },
+    { x: 3180, y: 200, w: 56, h: 18, type: "crate" },
+    { x: 5270, y: 502, w: 92, h: 18, type: "spikes" },
   ],
   finale: [
     { x: 1420, y: 502, w: 82, h: 18, type: "spikes" },
     { x: 1760, y: 170, w: 56, h: 18, type: "crate" },
+    { x: 2470, y: 140, w: 60, h: 18, type: "crate" },
+    { x: 2880, y: 502, w: 90, h: 18, type: "laser" },
   ],
 };
+
+const SHORTCUT_SIGNS = {
+  "alley-run": [{ x: 2450, y: 112, label: "Shortcut" }],
+  "train-yard": [{ x: 3150, y: 82, label: "Crane Cut" }],
+  "midtown-rise": [{ x: 3380, y: 80, label: "Upper Route" }],
+  "skyline-arc": [{ x: 3220, y: 12, label: "Glide Cut" }],
+  "city-hall-siege": [{ x: 3660, y: 80, label: "Lift Loop" }],
+  "skycourt-terrace": [{ x: 2540, y: 92, label: "Terrace Cut" }],
+  "skyrail-chase": [{ x: 4240, y: 82, label: "Tailwind" }],
+  "neon-warrens": [{ x: 2980, y: 142, label: "Vent Route" }],
+  "blackout-heights": [{ x: 2820, y: 92, label: "Storm Lane" }],
+};
+
+const MANHOLE_LAYOUTS = {
+  "alley-run": [
+    { x: 580, y: 512, w: 34, h: 12, trap: false },
+    { x: 1490, y: 512, w: 34, h: 12, trap: true, sewerId: "market-sewer-a", exitX: 1550, exitY: 706 },
+    { x: 2860, y: 512, w: 34, h: 12, trap: false },
+  ],
+  "train-yard": [
+    { x: 930, y: 512, w: 34, h: 12, trap: false },
+    { x: 2640, y: 512, w: 34, h: 12, trap: true, sewerId: "yard-sewer-a", exitX: 2710, exitY: 712 },
+    { x: 4010, y: 512, w: 34, h: 12, trap: false },
+  ],
+  "neon-warrens": [
+    { x: 880, y: 512, w: 34, h: 12, trap: false },
+    { x: 3180, y: 512, w: 34, h: 12, trap: true, sewerId: "neon-sewer-a", exitX: 3260, exitY: 708 },
+    { x: 5050, y: 512, w: 34, h: 12, trap: false },
+  ],
+};
+
+const SEWER_LAYOUTS = {
+  "alley-run": [
+    { x: 1440, y: 782, w: 230, h: 18, type: "sewer", requires: "market-sewer-a" },
+    { x: 1730, y: 742, w: 180, h: 18, type: "sewer", requires: "market-sewer-a" },
+    { x: 1980, y: 700, w: 150, h: 18, type: "spring", requires: "market-sewer-a" },
+  ],
+  "train-yard": [
+    { x: 2600, y: 790, w: 240, h: 18, type: "sewer", requires: "yard-sewer-a" },
+    { x: 2900, y: 748, w: 170, h: 18, type: "sewer", requires: "yard-sewer-a" },
+    { x: 3140, y: 706, w: 150, h: 18, type: "spring", requires: "yard-sewer-a" },
+  ],
+  "neon-warrens": [
+    { x: 3220, y: 786, w: 250, h: 18, type: "sewer", requires: "neon-sewer-a" },
+    { x: 3520, y: 742, w: 180, h: 18, type: "sewer", requires: "neon-sewer-a" },
+    { x: 3770, y: 698, w: 150, h: 18, type: "spring", requires: "neon-sewer-a" },
+  ],
+};
+
+function getShortcutSigns() {
+  return SHORTCUT_SIGNS[state.level.id] || [];
+}
 
 function getHazards() {
   return HAZARD_LAYOUTS[state.level.id] || [];
@@ -524,19 +1002,48 @@ function getPriorityText() {
   if (player.rescues < state.level.civiliansTarget) {
     return `Rescue civilians: ${player.rescues}/${state.level.civiliansTarget}`;
   }
+  const enforcer = state.enemies.find((enemy) => enemy.type === "enforcer");
+  if (enforcer) {
+    return "Heavy guard ahead: punch three times or stomp past it.";
+  }
   if (state.boss) {
-    return "Punch the boss up close and avoid its attacks.";
+    if (state.boss.type === "rivet") return "Make Rivet Rex crash into a wall, then punch him while he is stunned.";
+    if (state.boss.type === "graft") return "Bait the Graft King into the arena walls, then punish the opening.";
+    if (state.boss.type === "signal") return "Dodge the signal burst, then punch the Warden while its shield is down.";
+    return "Wait for the Vacuum Dragon to expose itself after an attack, then punch in close.";
   }
   return "Reach the beacon at the end of the level.";
+}
+
+function updateGimmicks(dt) {
+  for (const platform of state.dynamicPlatforms) {
+    platform.prevX = platform.x;
+    platform.prevY = platform.y;
+    platform.phase += dt * platform.speed;
+    if (platform.axis === "x") {
+      platform.x = platform.baseX + Math.sin(platform.phase) * platform.range;
+      platform.y = platform.baseY;
+    } else {
+      platform.x = platform.baseX;
+      platform.y = platform.baseY + Math.sin(platform.phase) * platform.range;
+    }
+
+    if (state.player?.supportPlatform === platform && state.player.onGround) {
+      state.player.x += platform.x - platform.prevX;
+      state.player.y += platform.y - platform.prevY;
+    }
+  }
 }
 
 function updatePlayer(dt) {
   const player = state.player;
   const left = keys.has("ArrowLeft") || keys.has("KeyA");
   const right = keys.has("ArrowRight") || keys.has("KeyD");
+  const crouchHeld = keys.has("ArrowDown") || keys.has("KeyS");
   const move = (right ? 1 : 0) - (left ? 1 : 0);
+  player.crouching = crouchHeld && player.onGround;
 
-  player.vx = move * MOVE_SPEED;
+  player.vx = move * (player.crouching ? CROUCH_SPEED : MOVE_SPEED);
   if (move !== 0) player.facing = Math.sign(move);
   if (Math.abs(player.vx) > 0) player.walkCycle += dt * 10;
 
@@ -551,13 +1058,20 @@ function updatePlayer(dt) {
     player.glideTime = 0;
   }
 
+  for (const zone of getWindZones()) {
+    if (aabb(player.x, player.y, player.w, player.h, zone.x, zone.y, zone.w, zone.h)) {
+      player.vx += zone.fx * dt;
+      player.vy += zone.fy * dt;
+    }
+  }
+
   player.x += player.vx * dt;
   resolveHorizontal(player);
   player.y += player.vy * dt;
   resolveVertical(player);
 
   player.x = clamp(player.x, 0, getWorldWidth() - player.w);
-  if (player.y > 760) {
+  if (player.y > 1080) {
     state.scene = scenes.gameOver;
     state.message = "Box Boy fell out of the route. Press Enter to try the level again.";
   }
@@ -565,6 +1079,7 @@ function updatePlayer(dt) {
   player.invuln = Math.max(0, player.invuln - dt);
   player.punchTimer = Math.max(0, player.punchTimer - dt);
   player.punchCooldown = Math.max(0, player.punchCooldown - dt);
+  player.sewerCooldown = Math.max(0, player.sewerCooldown - dt);
 }
 
 function resolveHorizontal(player) {
@@ -577,13 +1092,23 @@ function resolveHorizontal(player) {
 
 function resolveVertical(player) {
   player.onGround = false;
+  player.supportPlatform = null;
   for (const platform of getPlatforms()) {
     if (!aabb(player.x, player.y, player.w, player.h, platform.x, platform.y, platform.w, platform.h)) continue;
     if (player.vy > 0) {
       player.y = platform.y - player.h;
-      player.vy = 0;
-      player.onGround = true;
-      player.jumpsLeft = 2;
+      if (platform.type === "spring") {
+        player.vy = -910;
+        player.jumpsLeft = 1;
+        player.onGround = false;
+        player.supportPlatform = null;
+        spawnParticles(player.x + player.w / 2, platform.y + 4, "#8ac6ff", 12);
+      } else {
+        player.vy = 0;
+        player.onGround = true;
+        player.jumpsLeft = 2;
+        player.supportPlatform = platform;
+      }
     } else if (player.vy < 0) {
       player.y = platform.y + platform.h;
       player.vy = 0;
@@ -615,12 +1140,13 @@ function damagePlayer(sourceX) {
   }
 }
 
-function startPunch() {
+function startPunch(side) {
   const player = state.player;
   if (player.punchCooldown > 0) return;
   player.punchCooldown = PUNCH_COOLDOWN;
   player.punchTimer = PUNCH_DURATION;
-  state.message = "Box Boy throws a cardboard haymaker.";
+  player.punchSide = side;
+  state.message = `Box Boy throws a ${side} punch.`;
 }
 
 function updateRescuesAndHazards() {
@@ -635,12 +1161,26 @@ function updateRescuesAndHazards() {
       damagePlayer(hazard.x);
     }
   }
+
+  for (const hole of getManholes()) {
+    if (!hole.trap || state.player.sewerCooldown > 0) continue;
+    if (!aabb(state.player.x, state.player.y, state.player.w, state.player.h, hole.x, hole.y - 6, hole.w, hole.h + 14)) continue;
+    if (!state.player.onGround) continue;
+    state.unlockedSewers.add(hole.sewerId);
+    state.player.x = hole.exitX;
+    state.player.y = hole.exitY;
+    state.player.vy = 80;
+    state.player.onGround = false;
+    state.player.sewerCooldown = 0.8;
+    state.message = "A hidden manhole drops Box Boy into a sewer shortcut.";
+    spawnParticles(hole.x + hole.w / 2, hole.y + 6, "#8ac6ff", 18);
+  }
 }
 
 function updateEnemies(dt) {
   for (const enemy of state.enemies) {
     if (enemy.hp <= 0) continue;
-    if (enemy.type === "walker") {
+    if (enemy.type === "walker" || enemy.type === "enforcer") {
       enemy.x += enemy.vx * dt;
       const nextBox = { x: enemy.x, y: enemy.y, w: enemy.w, h: enemy.h };
       let supported = false;
@@ -660,27 +1200,48 @@ function updateEnemies(dt) {
       enemy.y = enemy.baseY + Math.sin(enemy.phase * 1.7) * 18;
     }
 
+    enemy.cooldown -= dt;
+    const dxToPlayer = state.player.x - enemy.x;
+    if (enemy.cooldown <= 0 && Math.abs(dxToPlayer) < 320) {
+      if (enemy.type === "drone") {
+        spawnProjectile(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, clamp(dxToPlayer * 1.15, -240, 240), 10, "#8bd7ff");
+        enemy.cooldown = 1.25;
+      } else if (enemy.type === "walker" && Math.abs(dxToPlayer) > 90) {
+        spawnProjectile(enemy.x + enemy.w / 2, enemy.y + 18, Math.sign(dxToPlayer) * 190, -30, "#ffb37d");
+        enemy.cooldown = 1.9;
+      } else if (enemy.type === "enforcer" && Math.abs(dxToPlayer) > 70) {
+        spawnProjectile(enemy.x + enemy.w / 2, enemy.y + 24, Math.sign(dxToPlayer) * 220, -10, "#ffd07b");
+        enemy.cooldown = 1.1;
+      }
+    }
+
     if (aabb(state.player.x, state.player.y, state.player.w, state.player.h, enemy.x, enemy.y, enemy.w, enemy.h)) {
       const stomping = state.player.vy > 120 && state.player.y + state.player.h - 12 < enemy.y + 10;
       if (stomping) {
-        state.player.vy = -420;
+        state.player.vy = enemy.type === "enforcer" ? -470 : -420;
         enemy.vx *= -1;
         enemy.phase += Math.PI;
-        state.message = "Box Boy stomps off the enemy and bounces upward.";
-        spawnParticles(enemy.x + enemy.w / 2, enemy.y + 4, "#ffe082", 10);
+        state.message = enemy.type === "enforcer" ? "Box Boy bounces off the heavy guard." : "Box Boy stomps off the enemy and bounces upward.";
+        spawnParticles(enemy.x + enemy.w / 2, enemy.y + 4, "#ffe082", enemy.type === "enforcer" ? 16 : 10);
       } else {
         damagePlayer(enemy.x);
       }
     }
 
     if (state.player.punchTimer > 0) {
-      const hitboxX = state.player.facing === 1 ? state.player.x + state.player.w : state.player.x - 26;
+      const hitboxX = state.player.punchSide === "right" ? state.player.x + state.player.w : state.player.x - 26;
       if (aabb(hitboxX, state.player.y + 18, 26, 24, enemy.x, enemy.y, enemy.w, enemy.h)) {
-        enemy.hp = 0;
-        state.totalDefeats += 1;
-        state.message = "Direct punch. Enemy down.";
-        spawnParticles(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, "#ffcf7e", 14);
-        saveProgress();
+        enemy.hp -= 1;
+        state.player.punchTimer = 0;
+        if (enemy.hp <= 0) {
+          state.totalDefeats += 1;
+          state.message = enemy.type === "enforcer" ? "Heavy guard down." : "Direct punch. Enemy down.";
+          spawnParticles(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, "#ffcf7e", enemy.type === "enforcer" ? 22 : 14);
+          saveProgress();
+        } else {
+          state.message = "Solid hit. Keep punching.";
+          spawnParticles(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, "#ffd89b", 10);
+        }
       }
     }
   }
@@ -697,24 +1258,83 @@ function updateBoss(dt) {
   const boss = state.boss;
   boss.cooldown -= dt;
   boss.phase += dt;
+  boss.stun = Math.max(0, boss.stun - dt);
+  const lowHp = boss.hp <= Math.ceil(boss.maxHp * 0.5);
 
-  if (boss.name === "Signal Warden") {
-    boss.x += Math.cos(boss.phase) * 70 * dt;
-    boss.y = 220 + Math.sin(boss.phase * 1.7) * 48;
+  if (boss.type === "signal") {
+    boss.vulnerable = boss.stun > 0;
+    boss.x += Math.cos(boss.phase) * (lowHp ? 110 : 70) * dt;
+    boss.y = 220 + Math.sin(boss.phase * (lowHp ? 2.4 : 1.7)) * (lowHp ? 64 : 48);
     if (boss.cooldown <= 0) {
-      boss.cooldown = 1.2;
+      boss.cooldown = lowHp ? 0.8 : 1.2;
       const dx = (state.player.x - boss.x) * 0.9;
       spawnProjectile(boss.x + boss.w / 2, boss.y + boss.h / 2, clamp(dx, -240, 240), 120, "#8ac6ff");
+      if (lowHp) {
+        spawnProjectile(boss.x + boss.w / 2, boss.y + boss.h / 2, -140, 180, "#b8d9ff");
+        spawnProjectile(boss.x + boss.w / 2, boss.y + boss.h / 2, 140, 180, "#b8d9ff");
+      }
+      boss.stun = 0.9;
     }
+  } else if (boss.type === "graft") {
+    boss.vulnerable = boss.stun > 0;
+    boss.x += boss.dir * (lowHp ? 150 : 98) * dt;
+    if (boss.x < state.level.boss.arenaStart + 30 || boss.x + boss.w > state.level.boss.arenaEnd - 30) {
+      boss.dir *= -1;
+      boss.stun = 1.15;
+      spawnParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, "#ffd39c", 18);
+    }
+    boss.y = 388 + Math.sin(boss.phase * 2.2) * 18;
+    if (boss.cooldown <= 0) {
+      boss.cooldown = lowHp ? 0.75 : 1.15;
+      spawnProjectile(boss.x + 18, boss.y + boss.h - 12, -160, -140, "#ffc16c");
+      spawnProjectile(boss.x + boss.w - 18, boss.y + boss.h - 12, 160, -140, "#ffc16c");
+      if (lowHp) {
+        spawnProjectile(boss.x + boss.w / 2, boss.y + 20, -30, -220, "#ffe5a5");
+      }
+    }
+  } else if (boss.type === "rivet") {
+    if (boss.attack === "charge") {
+      boss.x += boss.dir * (lowHp ? 380 : 300) * dt;
+      if (boss.x < state.level.boss.arenaStart + 16 || boss.x + boss.w > state.level.boss.arenaEnd - 16) {
+        boss.x = clamp(boss.x, state.level.boss.arenaStart + 16, state.level.boss.arenaEnd - boss.w - 16);
+        boss.attack = "stunned";
+        boss.stun = 1.6;
+        boss.vulnerable = true;
+        boss.dir *= -1;
+        spawnParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, "#ffd19f", 24);
+      }
+    } else if (boss.attack === "stunned") {
+      boss.vulnerable = true;
+      if (boss.stun <= 0) {
+        boss.attack = "idle";
+        boss.cooldown = lowHp ? 0.85 : 1.15;
+        boss.vulnerable = false;
+      }
+    } else {
+      boss.vulnerable = false;
+      boss.x += Math.cos(boss.phase * 0.9) * 42 * dt;
+      if (boss.cooldown <= 0) {
+        boss.attack = "charge";
+        boss.dir = state.player.x > boss.x ? 1 : -1;
+        boss.cooldown = lowHp ? 0.7 : 0.95;
+      }
+    }
+    boss.y = 394;
   } else {
-    boss.x += boss.dir * 86 * dt;
+    boss.vulnerable = boss.stun > 0;
+    boss.x += boss.dir * (lowHp ? 130 : 86) * dt;
     if (boss.x < state.level.boss.arenaStart + 40 || boss.x + boss.w > state.level.boss.arenaEnd - 40) {
       boss.dir *= -1;
     }
     if (boss.cooldown <= 0) {
-      boss.cooldown = 1.55;
+      boss.cooldown = lowHp ? 0.95 : 1.55;
       spawnProjectile(boss.x + 30, boss.y + 48, -180, 0, "#ff9f70");
       spawnProjectile(boss.x + 120, boss.y + 48, -90, -60, "#ffcf7e");
+      if (lowHp) {
+        spawnProjectile(boss.x + 70, boss.y + 22, -40, -160, "#ffdcb1");
+        spawnProjectile(boss.x + 150, boss.y + 22, -220, -120, "#ffdcb1");
+      }
+      boss.stun = 1.05;
     }
   }
 
@@ -729,13 +1349,20 @@ function updateBoss(dt) {
   }
 
   if (state.player.punchTimer > 0) {
-    const hitboxX = state.player.facing === 1 ? state.player.x + state.player.w : state.player.x - 28;
+    const hitboxX = state.player.punchSide === "right" ? state.player.x + state.player.w : state.player.x - 28;
     if (aabb(hitboxX, state.player.y + 12, 28, 30, boss.x, boss.y, boss.w, boss.h)) {
-      boss.hp -= 1;
       state.player.punchTimer = 0;
-      state.message = boss.hp <= 0 ? `${boss.name} is finished.` : `${boss.name} reels from the punch.`;
-      spawnParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, "#ff9a6e", 12);
-      if (boss.hp <= 0) saveProgress();
+      if (boss.vulnerable) {
+        boss.hp -= 1;
+        state.message = boss.hp <= 0 ? `${boss.name} is finished.` : `${boss.name} reels from the punch.`;
+        spawnParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, "#ff9a6e", 12);
+        if (boss.hp <= 0) saveProgress();
+      } else {
+        state.message = boss.type === "rivet"
+          ? "Rivet Rex is too wild. Make him crash into a wall."
+          : "No opening yet. Wait for the boss to expose itself.";
+        spawnParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, "#b7c8da", 8);
+      }
     }
   }
 
@@ -779,6 +1406,13 @@ function updateParticles(dt) {
 function updateCamera() {
   const focus = state.player.x + state.player.w / 2 - WIDTH / 2;
   state.cameraX = clamp(focus, 0, Math.max(0, getWorldWidth() - WIDTH));
+  const inSewer = state.player.y > 620;
+  if (inSewer) {
+    const verticalFocus = state.player.y + state.player.h / 2 - HEIGHT / 2;
+    state.cameraY = clamp(verticalFocus, 0, Math.max(0, getWorldHeight() - HEIGHT));
+  } else {
+    state.cameraY = 0;
+  }
 }
 
 function checkLevelCompletion() {
@@ -792,6 +1426,7 @@ function checkLevelCompletion() {
 
 function updateGame(dt) {
   if (state.transitionTimer > 0) state.transitionTimer -= dt;
+  updateGimmicks(dt);
   updatePlayer(dt);
   updateRescuesAndHazards();
   updateEnemies(dt);
@@ -845,6 +1480,10 @@ function worldToScreen(x) {
   return x - state.cameraX;
 }
 
+function worldToScreenY(y) {
+  return y - state.cameraY;
+}
+
 function drawParallax(background) {
   const palettes = {
     "market-night": {
@@ -881,6 +1520,18 @@ function drawParallax(background) {
   ctx.beginPath();
   ctx.arc(WIDTH - 160, 86, 38, 0, Math.PI * 2);
   ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,0.65)";
+  for (let i = 0; i < 7; i += 1) {
+    const starX = (i * 143 + 92) % WIDTH;
+    const starY = 30 + (i % 4) * 38;
+    ctx.fillRect(starX, starY, 4, 4);
+  }
+  ctx.fillStyle = "rgba(255,255,255,0.08)";
+  for (let i = 0; i < 5; i += 1) {
+    const cloudX = ((i * 220) - (state.cameraX * (0.08 + i * 0.01))) % (WIDTH + 220);
+    ctx.fillRect(cloudX - 40, 70 + i * 22, 84, 8);
+    ctx.fillRect(cloudX - 18, 62 + i * 22, 66, 8);
+  }
 
   ctx.fillStyle = "rgba(255,255,255,0.06)";
   for (let gx = 0; gx < WIDTH; gx += 8) ctx.fillRect(gx, 0, 1, HEIGHT);
@@ -900,11 +1551,23 @@ function drawParallax(background) {
       const x = (i * 160) - ((state.cameraX * layer.speed) % 160);
       const y = layer.base - height;
       ctx.fillRect(x, y, width, height);
+      ctx.fillStyle = "rgba(255,255,255,0.08)";
+      ctx.fillRect(x, y + 6, width, 4);
+      ctx.fillRect(x, y + height - 10, width, 4);
       ctx.fillStyle = "rgba(255, 241, 181, 0.18)";
       for (let wy = y + 12; wy < y + height - 10; wy += 18) {
         for (let wx = x + 10; wx < x + width - 12; wx += 18) {
           if (((wx + wy) / 18) % 3 < 1) ctx.fillRect(wx, wy, 8, 10);
         }
+      }
+      ctx.fillStyle = "rgba(0,0,0,0.16)";
+      for (let fy = y + 34; fy < y + height - 14; fy += 58) {
+        ctx.fillRect(x + 12, fy, width - 24, 4);
+      }
+      ctx.fillStyle = "rgba(255,220,214,0.22)";
+      for (let wx = x + 16; wx < x + width - 16; wx += 42) {
+        ctx.fillRect(wx, y + 40, 4, 22);
+        ctx.fillRect(wx + 12, y + 40, 18, 4);
       }
       ctx.fillStyle = layer.detail;
       for (let sy = y + 8; sy < y + height; sy += 16) {
@@ -919,6 +1582,11 @@ function drawParallax(background) {
         ctx.fillRect(x + width - 18, y - 34, 6, 34);
         ctx.fillRect(x + width - 24, y - 30, 18, 4);
       }
+      if (i % 2 === 0) {
+        ctx.fillStyle = "rgba(22,20,26,0.35)";
+        ctx.fillRect(x + 22, y + 62, 30, 6);
+        ctx.fillRect(x + 18, y + 68, 38, 3);
+      }
       ctx.fillStyle = layer.color;
     }
   }
@@ -930,10 +1598,43 @@ function drawParallax(background) {
   ctx.bezierCurveTo(220, 122, 360, 204, 560, 168);
   ctx.bezierCurveTo(720, 140, 820, 190, WIDTH, 152);
   ctx.stroke();
+
+  ctx.fillStyle = "rgba(10,18,32,0.22)";
+  for (let i = -1; i < 7; i += 1) {
+    const x = (i * 170) - ((state.cameraX * 0.9) % 170);
+    ctx.fillRect(x, 430, 20, 110);
+    ctx.fillRect(x + 6, 386, 8, 44);
+    ctx.fillRect(x + 14, 394, 34, 8);
+  }
+
+  ctx.fillStyle = "rgba(18,22,30,0.46)";
+  ctx.fillRect(0, 496, WIDTH, 44);
+  for (let i = -1; i < 8; i += 1) {
+    const x = (i * 132) - ((state.cameraX * 0.95) % 132);
+    ctx.fillStyle = "rgba(235,201,122,0.78)";
+    ctx.fillRect(x + 20, 502, 26, 4);
+    ctx.fillStyle = "rgba(42,49,62,0.85)";
+    ctx.fillRect(x, 486, 88, 8);
+    ctx.fillRect(x + 8, 478, 4, 18);
+    ctx.fillRect(x + 76, 478, 4, 18);
+  }
+}
+
+function drawManhole(hole) {
+  const x = worldToScreen(hole.x);
+  const y = worldToScreenY(hole.y);
+  ctx.fillStyle = "#2c313a";
+  ctx.fillRect(x - 2, y + 7, hole.w + 4, 6);
+  ctx.fillStyle = hole.trap ? "#55657b" : "#6d7886";
+  ctx.fillRect(x, y, hole.w, 9);
+  ctx.fillStyle = "#2d3641";
+  ctx.fillRect(x + 2, y + 1, hole.w - 4, 7);
+  for (let i = 6; i < hole.w - 4; i += 8) ctx.fillRect(x + i, y + 2, 2, 5);
 }
 
 function drawPlatform(platform) {
   const x = worldToScreen(platform.x);
+  const y = worldToScreenY(platform.y);
   const colors = {
     ground: ["#353740", "#1f2026"],
     roof: ["#d8dde8", "#8d96a8"],
@@ -946,221 +1647,365 @@ function drawPlatform(platform) {
     beam: ["#9bc9ff", "#436392"],
     steps: ["#d5d0c3", "#8b7f6a"],
     ledge: ["#c7ceda", "#778093"],
+    moving: ["#ffd678", "#946c22"],
+    spring: ["#8bd8ff", "#2c6e9d"],
+    sewer: ["#5d6e63", "#2f3d35"],
   };
   const [top, bottom] = colors[platform.type] || colors.roof;
   ctx.fillStyle = "rgba(0,0,0,0.16)";
-  ctx.fillRect(x + 6, platform.y + platform.h - 2, platform.w - 8, 12);
+  ctx.fillRect(x + 6, y + platform.h - 2, platform.w - 8, 12);
   ctx.fillStyle = top;
-  ctx.fillRect(x, platform.y, platform.w, platform.h);
+  ctx.fillRect(x, y, platform.w, platform.h);
   ctx.fillStyle = bottom;
-  ctx.fillRect(x, platform.y + platform.h - 6, platform.w, 6);
+  ctx.fillRect(x, y + platform.h - 6, platform.w, 6);
   ctx.fillStyle = "rgba(255,255,255,0.22)";
   for (let px = 4; px < platform.w - 2; px += 16) {
-    ctx.fillRect(x + px, platform.y + 4, 8, 2);
+    ctx.fillRect(x + px, y + 4, 8, 2);
   }
 }
 
 function drawHazard(hazard) {
   const x = worldToScreen(hazard.x);
+  const y = worldToScreenY(hazard.y);
   if (hazard.type === "spikes") {
     ctx.fillStyle = "#a8b4c8";
     for (let i = 0; i < hazard.w; i += 10) {
       ctx.beginPath();
-      ctx.moveTo(x + i, hazard.y + hazard.h);
-      ctx.lineTo(x + i + 5, hazard.y);
-      ctx.lineTo(x + i + 10, hazard.y + hazard.h);
+      ctx.moveTo(x + i, y + hazard.h);
+      ctx.lineTo(x + i + 5, y);
+      ctx.lineTo(x + i + 10, y + hazard.h);
       ctx.closePath();
       ctx.fill();
     }
   } else if (hazard.type === "laser") {
     ctx.fillStyle = "#ff6a76";
-    ctx.fillRect(x, hazard.y + 8, hazard.w, 4);
+    ctx.fillRect(x, y + 8, hazard.w, 4);
     ctx.fillStyle = "#ffd5d9";
-    ctx.fillRect(x, hazard.y + 9, hazard.w, 2);
+    ctx.fillRect(x, y + 9, hazard.w, 2);
   } else {
     ctx.fillStyle = "#8c643f";
-    ctx.fillRect(x, hazard.y, hazard.w, hazard.h);
+    ctx.fillRect(x, y, hazard.w, hazard.h);
     ctx.strokeStyle = "#5a3a20";
     ctx.lineWidth = 2;
-    ctx.strokeRect(x, hazard.y, hazard.w, hazard.h);
+    ctx.strokeRect(x, y, hazard.w, hazard.h);
     ctx.beginPath();
-    ctx.moveTo(x, hazard.y);
-    ctx.lineTo(x + hazard.w, hazard.y + hazard.h);
-    ctx.moveTo(x + hazard.w, hazard.y);
-    ctx.lineTo(x, hazard.y + hazard.h);
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + hazard.w, y + hazard.h);
+    ctx.moveTo(x + hazard.w, y);
+    ctx.lineTo(x, y + hazard.h);
     ctx.stroke();
   }
 }
 
 function drawCivilian(civ) {
   const x = worldToScreen(civ.x);
+  const y = worldToScreenY(civ.y);
   ctx.fillStyle = "rgba(141, 235, 175, 0.18)";
   ctx.beginPath();
-  ctx.arc(x + 13, civ.y + 16, 22, 0, Math.PI * 2);
+  ctx.arc(x + 13, y + 16, 22, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = "#f3f6ff";
-  ctx.fillRect(x + 8, civ.y + 10, 10, 20);
+  ctx.fillRect(x + 8, y + 10, 10, 20);
   ctx.fillStyle = "#e3b282";
   ctx.beginPath();
-  ctx.arc(x + 13, civ.y + 8, 8, 0, Math.PI * 2);
+  ctx.arc(x + 13, y + 8, 8, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = "rgba(131, 231, 173, 0.26)";
   ctx.beginPath();
-  ctx.arc(x + 13, civ.y + 14, 26, 0, Math.PI * 2);
+  ctx.arc(x + 13, y + 14, 26, 0, Math.PI * 2);
   ctx.fill();
+  ctx.fillStyle = "#17345f";
+  ctx.fillRect(x + 5, y + 32, 16, 3);
 }
 
 function drawEnemy(enemy) {
   const x = worldToScreen(enemy.x);
+  const y = worldToScreenY(enemy.y);
+  if (enemy.type === "enforcer") {
+    ctx.fillStyle = "rgba(0,0,0,0.18)";
+    ctx.fillRect(x + 8, y + enemy.h + 6, 34, 6);
+    ctx.fillStyle = "#4d2e35";
+    ctx.fillRect(x + 8, y + 6, 36, 40);
+    ctx.fillStyle = "#7f533f";
+    ctx.fillRect(x + 4, y, 44, 18);
+    ctx.strokeStyle = "#c99763";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x + 4, y, 44, 18);
+    ctx.beginPath();
+    ctx.moveTo(x + 26, y);
+    ctx.lineTo(x + 26, y + 18);
+    ctx.moveTo(x + 4, y + 9);
+    ctx.lineTo(x + 48, y + 9);
+    ctx.stroke();
+    ctx.fillStyle = "#ffcf78";
+    ctx.fillRect(x + 10, y + 22, 32, 6);
+    ctx.fillStyle = "#201218";
+    ctx.fillRect(x + 12, y + 32, 28, 10);
+    ctx.fillStyle = "#6f4932";
+    ctx.fillRect(x, y + 22, 10, 20);
+    ctx.fillRect(x + 42, y + 22, 10, 20);
+    ctx.fillRect(x + 10, y + 46, 10, 12);
+    ctx.fillRect(x + 32, y + 46, 10, 12);
+    ctx.fillStyle = "#ffefbd";
+    for (let i = 0; i < enemy.hp; i += 1) ctx.fillRect(x + 8 + (i * 12), y - 10, 8, 4);
+    return;
+  }
   const palette = enemy.type === "walker"
     ? (Math.floor(enemy.x / 200) % 2 === 0
-      ? { body: "#613543", accent: "#ffdd78", visor: "#2a1018", title: "Bandit" }
-      : { body: "#243055", accent: "#7ee1ff", visor: "#12182e", title: "Henchman" })
-    : { body: "#7cbef2", accent: "#f84f76", visor: "#24486f", title: "Scout Drone" };
+      ? { coat: "#613543", shirt: "#ffdd78", visor: "#2a1018", skin: "#f0c8a1", metal: "#47303a" }
+      : { coat: "#243055", shirt: "#7ee1ff", visor: "#12182e", skin: "#e2b18d", metal: "#243248" })
+    : { shell: "#7cbef2", accent: "#f84f76", visor: "#24486f", light: "#dff4ff" };
   if (enemy.type === "walker") {
     ctx.fillStyle = "rgba(0,0,0,0.16)";
-    ctx.fillRect(x + 6, enemy.y + enemy.h + 6, 24, 6);
-    ctx.fillStyle = palette.body;
-    ctx.fillRect(x + 4, enemy.y, enemy.w - 8, enemy.h);
-    ctx.fillStyle = "#ffd8bf";
-    ctx.fillRect(x + 10, enemy.y - 12, 18, 16);
-    ctx.fillStyle = palette.accent;
-    ctx.fillRect(x + 8, enemy.y + 8, 22, 6);
+    ctx.fillRect(x + 6, y + enemy.h + 6, 24, 6);
+    ctx.fillStyle = palette.skin;
+    ctx.fillRect(x + 11, y - 11, 16, 14);
+    ctx.fillStyle = "#3e2818";
+    ctx.fillRect(x + 9, y - 13, 20, 4);
+    ctx.fillStyle = palette.coat;
+    ctx.fillRect(x + 7, y + 2, 24, 24);
+    ctx.fillStyle = palette.shirt;
+    ctx.fillRect(x + 12, y + 6, 14, 7);
     ctx.fillStyle = palette.visor;
-    ctx.fillRect(x + 8, enemy.y + 18, 22, 10);
-    ctx.fillStyle = "#20121a";
-    ctx.fillRect(x + 8, enemy.y + enemy.h, 7, 10);
-    ctx.fillRect(x + 21, enemy.y + enemy.h, 7, 10);
-    ctx.fillStyle = palette.accent;
-    ctx.fillRect(x + 1, enemy.y + 18, 4, 14);
-    ctx.fillRect(x + enemy.w - 5, enemy.y + 18, 4, 14);
+    ctx.fillRect(x + 9, y + 15, 20, 8);
+    ctx.fillStyle = palette.metal;
+    ctx.fillRect(x + 4, y + 15, 5, 12);
+    ctx.fillRect(x + 29, y + 15, 5, 12);
+    ctx.fillRect(x + 10, y + 26, 6, 11);
+    ctx.fillRect(x + 22, y + 26, 6, 11);
+    ctx.fillStyle = "#2a1a1f";
+    ctx.fillRect(x + 10, y + 37, 7, 9);
+    ctx.fillRect(x + 21, y + 37, 7, 9);
+    ctx.fillStyle = "#a5b9d4";
+    ctx.fillRect(x + enemy.w - 1, y + 18, 8, 4);
+    ctx.fillRect(x + enemy.w + 4, y + 16, 4, 8);
   } else {
     ctx.fillStyle = "rgba(0,0,0,0.14)";
-    ctx.fillRect(x + 6, enemy.y + enemy.h + 4, 24, 5);
-    ctx.fillStyle = palette.body;
-    ctx.beginPath();
-    ctx.roundRect(x, enemy.y, enemy.w, enemy.h, 10);
-    ctx.fill();
+    ctx.fillRect(x + 6, y + enemy.h + 4, 24, 5);
+    ctx.fillStyle = palette.shell;
+    ctx.fillRect(x + 3, y + 4, 28, 16);
+    ctx.fillRect(x + 7, y, 20, 8);
     ctx.fillStyle = palette.visor;
-    ctx.fillRect(x + 7, enemy.y + 8, 20, 10);
+    ctx.fillRect(x + 8, y + 8, 18, 8);
     ctx.fillStyle = palette.accent;
-    ctx.fillRect(x + 4, enemy.y + 4, 6, 18);
-    ctx.fillRect(x + 24, enemy.y + 4, 6, 18);
-    ctx.fillStyle = "#d8f0ff";
-    ctx.fillRect(x + 10, enemy.y + 10, 14, 4);
+    ctx.fillRect(x + 0, y + 7, 6, 12);
+    ctx.fillRect(x + 28, y + 7, 6, 12);
+    ctx.fillRect(x + 10, y + 19, 4, 8);
+    ctx.fillRect(x + 20, y + 19, 4, 8);
+    ctx.fillStyle = palette.light;
+    ctx.fillRect(x + 12, y + 10, 10, 3);
+    ctx.fillRect(x + 15, y + 23, 4, 3);
   }
 }
 
 function drawBoss(boss) {
   const x = worldToScreen(boss.x);
-  if (boss.name === "Vacuum Dragon") {
+  const y = worldToScreenY(boss.y);
+  if (boss.type === "dragon") {
     ctx.fillStyle = "#8a8e9f";
     ctx.beginPath();
-    ctx.roundRect(x, boss.y, boss.w, boss.h, 26);
+    ctx.roundRect(x, y, boss.w, boss.h, 26);
     ctx.fill();
     ctx.strokeStyle = "#5a6070";
     ctx.lineWidth = 8;
     ctx.beginPath();
-    ctx.moveTo(x + boss.w - 16, boss.y + boss.h - 14);
-    ctx.bezierCurveTo(x + boss.w + 60, boss.y + 30, x + boss.w + 100, boss.y + 120, x + boss.w + 132, boss.y + 90);
+    ctx.moveTo(x + boss.w - 16, y + boss.h - 14);
+    ctx.bezierCurveTo(x + boss.w + 60, y + 30, x + boss.w + 100, y + 120, x + boss.w + 132, y + 90);
     ctx.stroke();
     ctx.fillStyle = "#ffcc8c";
-    ctx.fillRect(x + 26, boss.y + 26, 22, 18);
-    ctx.fillRect(x + 72, boss.y + 26, 22, 18);
+    ctx.fillRect(x + 26, y + 26, 22, 18);
+    ctx.fillRect(x + 72, y + 26, 22, 18);
+  } else if (boss.type === "graft") {
+    ctx.fillStyle = "#6c4736";
+    ctx.fillRect(x + 14, y + 14, boss.w - 28, boss.h - 20);
+    ctx.fillStyle = "#bf8752";
+    ctx.fillRect(x, y, boss.w, 30);
+    ctx.strokeStyle = "#e2b076";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(x, y, boss.w, 30);
+    ctx.beginPath();
+    ctx.moveTo(x + boss.w / 2, y);
+    ctx.lineTo(x + boss.w / 2, y + 30);
+    ctx.moveTo(x, y + 15);
+    ctx.lineTo(x + boss.w, y + 15);
+    ctx.stroke();
+    ctx.fillStyle = "#ffcf78";
+    ctx.fillRect(x + 26, y + 44, 26, 10);
+    ctx.fillRect(x + 72, y + 44, 26, 10);
+  } else if (boss.type === "rivet") {
+    ctx.fillStyle = "#7d454f";
+    ctx.fillRect(x + 18, y + 20, 86, 40);
+    ctx.fillStyle = "#a46345";
+    ctx.fillRect(x + 40, y + 10, 58, 24);
+    ctx.fillStyle = "#3c2119";
+    ctx.fillRect(x + 100, y + 20, 30, 18);
+    ctx.fillRect(x + 8, y + 32, 18, 12);
+    ctx.fillStyle = "#d89a64";
+    ctx.fillRect(x + 48, y + 18, 10, 10);
+    ctx.fillRect(x + 80, y + 18, 10, 10);
+    ctx.fillStyle = "#f4cc8f";
+    ctx.fillRect(x + 124, y + 22, 12, 8);
+    ctx.fillStyle = "#2e171b";
+    ctx.fillRect(x + 44, y + 62, 10, 16);
+    ctx.fillRect(x + 82, y + 62, 10, 16);
+    ctx.fillRect(x + 112, y + 58, 10, 14);
+    ctx.fillStyle = "#ffdfaa";
+    ctx.fillRect(x - 10, y + 48, 16, 6);
+    ctx.fillRect(x + boss.w - 6, y + 48, 16, 6);
   } else {
     ctx.fillStyle = "#5d8ad1";
     ctx.beginPath();
-    ctx.roundRect(x, boss.y, boss.w, boss.h, 20);
+    ctx.roundRect(x, y, boss.w, boss.h, 20);
     ctx.fill();
     ctx.fillStyle = "#d8f0ff";
-    ctx.fillRect(x + 18, boss.y + 16, 24, 12);
-    ctx.fillRect(x + 68, boss.y + 16, 24, 12);
+    ctx.fillRect(x + 18, y + 16, 24, 12);
+    ctx.fillRect(x + 68, y + 16, 24, 12);
+  }
+  if (boss.vulnerable) {
+    ctx.fillStyle = "rgba(255,244,170,0.25)";
+    ctx.fillRect(x - 6, y - 6, boss.w + 12, boss.h + 12);
   }
 }
 
 function drawProjectile(projectile) {
   const x = worldToScreen(projectile.x);
+  const y = worldToScreenY(projectile.y);
   ctx.fillStyle = projectile.color;
   ctx.beginPath();
-  ctx.arc(x + projectile.w / 2, projectile.y + projectile.h / 2, projectile.w / 2, 0, Math.PI * 2);
+  ctx.arc(x + projectile.w / 2, y + projectile.h / 2, projectile.w / 2, 0, Math.PI * 2);
   ctx.fill();
+}
+
+function drawWindZone(zone) {
+  const x = worldToScreen(zone.x);
+  const y = worldToScreenY(zone.y);
+  ctx.fillStyle = "rgba(145,216,255,0.08)";
+  ctx.fillRect(x, y, zone.w, zone.h);
+  ctx.fillStyle = "rgba(180,232,255,0.28)";
+  for (let i = 0; i < zone.w; i += 36) {
+    const sway = Math.sin((state.lastTime * 0.005) + i) * 8;
+    ctx.fillRect(x + i, y + 24 + sway, 18, 3);
+    ctx.fillRect(x + i + 8, y + 58 + sway, 18, 3);
+    ctx.fillRect(x + i + 2, y + 92 + sway, 18, 3);
+  }
 }
 
 function drawPlayer() {
   const player = state.player;
   const x = worldToScreen(player.x);
+  const y = worldToScreenY(player.y);
   ctx.save();
   if (player.invuln > 0 && Math.floor(player.invuln * 10) % 2 === 0) ctx.globalAlpha = 0.45;
 
   const moving = Math.abs(player.vx) > 10;
   const gliding = player.glideTime > 0;
-  const legOffset = moving ? Math.sin(player.walkCycle) * 5 : 0;
-  const armOffset = moving ? Math.cos(player.walkCycle) * 4 : 0;
-  const capeReach = gliding ? 42 : moving ? 26 : 10;
-  const capeTop = gliding ? 8 : 16;
-  const capeBottom = gliding ? 30 : 54;
+  const legOffset = moving ? Math.sin(player.walkCycle) * 4 : 0;
+  const armOffset = moving ? Math.cos(player.walkCycle) * 3 : 0;
+  const trailSign = gliding ? -player.facing : moving ? -Math.sign(player.vx) : 0;
+  const capeSpread = gliding ? 46 : moving ? 24 : 8;
+  const capeLift = gliding ? -8 : moving ? -2 : 12;
+  const capeHem = gliding ? 28 : moving ? 50 : 62;
 
   ctx.fillStyle = "rgba(0,0,0,0.18)";
   ctx.beginPath();
-  ctx.ellipse(x + 18, player.y + player.h + 10, 22, 8, 0, 0, Math.PI * 2);
+  ctx.ellipse(x + 20, y + player.h + 10, 24, 8, 0, 0, Math.PI * 2);
   ctx.fill();
+
+  const capePoints = trailSign === 0
+    ? [
+      [x + 12, y + 20],
+      [x + 8, y + 34],
+      [x + 10, y + 58],
+      [x + 18, y + 70],
+      [x + 30, y + 60],
+      [x + 30, y + 30],
+    ]
+    : [
+      [x + 18, y + 20],
+      [x + 18 + (capeSpread * trailSign), y + 18 + capeLift],
+      [x + 8 + (capeSpread * trailSign), y + capeHem],
+      [x + 16, y + 68],
+      [x + 34, y + 60],
+      [x + 32, y + 30],
+    ];
 
   ctx.save();
   ctx.beginPath();
-  ctx.moveTo(x + 18, player.y + 18);
-  if (moving || gliding) {
-    ctx.lineTo(x - (capeReach * player.facing), player.y + capeTop);
-    ctx.lineTo(x - (capeReach * player.facing) + 8 * player.facing, player.y + capeBottom);
-  } else {
-    ctx.lineTo(x - 10, player.y + 34);
-    ctx.lineTo(x + 2, player.y + 62);
-  }
-  ctx.lineTo(x + 28, player.y + 58);
+  ctx.moveTo(capePoints[0][0], capePoints[0][1]);
+  for (let i = 1; i < capePoints.length; i += 1) ctx.lineTo(capePoints[i][0], capePoints[i][1]);
   ctx.closePath();
   ctx.clip();
-  for (let cy = 0; cy < 56; cy += 8) {
-    for (let cx = 0; cx < 56; cx += 8) {
-      ctx.fillStyle = ((cx + cy) / 8) % 2 === 0 ? "#63b7ff" : "#f5fbff";
-      const drawX = player.facing === 1 ? x - cx : x + cx - 34;
-      ctx.fillRect(drawX, player.y + 14 + cy, 8, 8);
+  const minCapeX = Math.min(...capePoints.map((point) => point[0])) - 4;
+  const maxCapeX = Math.max(...capePoints.map((point) => point[0])) + 4;
+  const minCapeY = Math.min(...capePoints.map((point) => point[1])) - 4;
+  const maxCapeY = Math.max(...capePoints.map((point) => point[1])) + 4;
+  for (let py = minCapeY; py < maxCapeY; py += 6) {
+    for (let px = minCapeX; px < maxCapeX; px += 6) {
+      ctx.fillStyle = (((px - minCapeX) / 6) + ((py - minCapeY) / 6)) % 2 === 0 ? "#61b7ff" : "#f7fbff";
+      ctx.fillRect(px, py, 6, 6);
     }
   }
   ctx.restore();
-
-  ctx.fillStyle = "#c6925a";
-  ctx.fillRect(x + 4, player.y, 30, 26);
-  ctx.strokeStyle = "#7d552f";
+  ctx.strokeStyle = "#2f5f8d";
   ctx.lineWidth = 2;
-  ctx.strokeRect(x + 4, player.y, 30, 26);
   ctx.beginPath();
-  ctx.moveTo(x + 19, player.y);
-  ctx.lineTo(x + 19, player.y + 26);
-  ctx.moveTo(x + 4, player.y + 13);
-  ctx.lineTo(x + 34, player.y + 13);
+  ctx.moveTo(capePoints[0][0], capePoints[0][1]);
+  for (let i = 1; i < capePoints.length; i += 1) ctx.lineTo(capePoints[i][0], capePoints[i][1]);
+  ctx.closePath();
   ctx.stroke();
 
-  ctx.fillStyle = "#e6b483";
-  ctx.fillRect(x + 10, player.y + 28, 18, 18);
-  ctx.fillStyle = "#1f2d4d";
-  ctx.fillRect(x + 8, player.y + 46, 22, 24);
+  ctx.fillStyle = "#20293f";
+  ctx.fillRect(x + 11, y + 34, 18, 28);
+  ctx.fillStyle = "#e0b08a";
+  ctx.fillRect(x + 14, y + 24, 12, 10);
+  ctx.fillStyle = "#2f3953";
+  ctx.fillRect(x + 9, y + 60, 10, 20);
+  ctx.fillRect(x + 21, y + 60, 10, 20);
+  ctx.fillStyle = "#4d5c82";
+  ctx.fillRect(x + 9, y + 34, 22, 10);
+  ctx.fillRect(x + 7, y + 44, 26, 8);
+  ctx.fillStyle = "#f0d4bc";
+  ctx.fillRect(x + 3 - armOffset * 0.25, y + 46 + armOffset * 0.15, 6, 11);
+  ctx.fillRect(x + 31 - armOffset * 0.25, y + 46 - armOffset * 0.15, 6, 11);
+  ctx.fillStyle = "#c79663";
+  ctx.fillRect(x - 1 + armOffset * 0.3, y + 44 + armOffset * 0.15, 10, 14);
+  ctx.fillRect(x + 31 + armOffset * 0.3, y + 44 - armOffset * 0.15, 10, 14);
+  ctx.fillRect(x + 7, y + 76 + legOffset, 12, 10);
+  ctx.fillRect(x + 21, y + 76 - legOffset, 12, 10);
+  ctx.fillStyle = "#7f5735";
+  ctx.fillRect(x + 7, y + 86 + legOffset, 12, 8);
+  ctx.fillRect(x + 21, y + 86 - legOffset, 12, 8);
 
-  ctx.fillStyle = "#bc8e58";
-  ctx.fillRect(x + 2 - armOffset * 0.3, player.y + 48 + armOffset * 0.2, 8, 12);
-  ctx.fillRect(x + 30 - armOffset * 0.3, player.y + 48 - armOffset * 0.2, 8, 12);
-  ctx.fillRect(x + 8, player.y + 70 + legOffset, 8, 14);
-  ctx.fillRect(x + 22, player.y + 70 - legOffset, 8, 14);
-  ctx.fillRect(x - 6 + armOffset * 0.4, player.y + 54 + armOffset * 0.2, 12, 12);
-  ctx.fillRect(x + 30 + armOffset * 0.4, player.y + 54 - armOffset * 0.2, 12, 12);
-  ctx.fillRect(x + 4, player.y + 84 + legOffset, 12, 12);
-  ctx.fillRect(x + 20, player.y + 84 - legOffset, 12, 12);
-  ctx.fillStyle = "#e0c59c";
-  ctx.fillRect(x + 7, player.y + 30, 4, 4);
-  ctx.fillRect(x + 27, player.y + 30, 4, 4);
+  ctx.fillStyle = "#c79663";
+  ctx.fillRect(x + 6, y + 8, 28, 24);
+  ctx.strokeStyle = "#7d552f";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x + 6, y + 8, 28, 24);
+  ctx.beginPath();
+  ctx.moveTo(x + 20, y + 8);
+  ctx.lineTo(x + 20, y + 32);
+  ctx.moveTo(x + 6, y + 20);
+  ctx.lineTo(x + 34, y + 20);
+  ctx.stroke();
+  ctx.fillStyle = "#4c2e1a";
+  ctx.fillRect(x + 12, y + 16, 16, 4);
+  ctx.fillStyle = "#f0e2cb";
+  ctx.fillRect(x + 16, y + 34, 8, 4);
+  ctx.fillStyle = "#8d633b";
+  ctx.fillRect(x - 2 + armOffset * 0.3, y + 46 + armOffset * 0.15, 4, 8);
+  ctx.fillRect(x + 38 + armOffset * 0.3, y + 46 - armOffset * 0.15, 4, 8);
+  ctx.fillRect(x + 8, y + 78 + legOffset, 4, 8);
+  ctx.fillRect(x + 28, y + 78 - legOffset, 4, 8);
+  ctx.fillStyle = "#f0e2cb";
+  ctx.fillRect(x + 11, y + 35, 2, 14);
+  ctx.fillRect(x + 27, y + 35, 2, 14);
 
   if (player.punchTimer > 0) {
-    const punchX = player.facing === 1 ? x + 38 : x - 16;
-    ctx.fillStyle = "#e5b384";
-    ctx.fillRect(punchX, player.y + 52, 14, 8);
+    const punchX = player.punchSide === "right" ? x + 37 : x - 11;
+    ctx.fillStyle = "#e0b08a";
+    ctx.fillRect(punchX, y + 46, 8, 6);
+    ctx.fillStyle = "#c79663";
+    ctx.fillRect(player.punchSide === "right" ? x + 33 : x - 7, y + 44, 12, 10);
   }
   ctx.restore();
 }
@@ -1169,19 +2014,31 @@ function drawParticles() {
   for (const particle of state.particles) {
     ctx.globalAlpha = particle.life;
     ctx.fillStyle = particle.color;
-    ctx.fillRect(worldToScreen(particle.x), particle.y, particle.size, particle.size);
+    ctx.fillRect(worldToScreen(particle.x), worldToScreenY(particle.y), particle.size, particle.size);
   }
   ctx.globalAlpha = 1;
 }
 
 function drawEndBeacon() {
   const x = worldToScreen(state.level.endX);
+  const y = worldToScreenY(120);
   ctx.fillStyle = "rgba(255,255,255,0.14)";
-  ctx.fillRect(x - 10, 120, 20, 400);
+  ctx.fillRect(x - 10, y, 20, 400);
   ctx.fillStyle = "#ffd86b";
   ctx.beginPath();
-  ctx.arc(x, 138, 14, 0, Math.PI * 2);
+  ctx.arc(x, y + 18, 14, 0, Math.PI * 2);
   ctx.fill();
+}
+
+function drawShortcutSign(sign) {
+  const x = worldToScreen(sign.x);
+  const y = worldToScreenY(sign.y);
+  drawPanel(x - 40, y, 92, 22, "rgba(255,214,113,0.92)");
+  ctx.fillStyle = "#17345f";
+  ctx.font = "700 11px Trebuchet MS";
+  ctx.textAlign = "center";
+  ctx.fillText(sign.label, x + 6, y + 15);
+  ctx.textAlign = "left";
 }
 
 function drawOnScreenPrompt() {
@@ -1201,10 +2058,10 @@ function drawOnScreenPrompt() {
     ctx.fillText(state.boss.name.toUpperCase(), 644, 40);
   }
 
-  drawPanel(414, 18, 158, 32, "rgba(255, 220, 118, 0.96)");
+  drawPanel(392, 18, 202, 32, "rgba(255, 220, 118, 0.96)");
   ctx.fillStyle = "#17345f";
   ctx.font = "700 14px Trebuchet MS";
-  ctx.fillText("F = PUNCH", 454, 39);
+  ctx.fillText("F = LEFT  G = RIGHT", 410, 39);
 }
 
 function drawObjectiveArrow() {
@@ -1260,8 +2117,11 @@ function drawPanel(x, y, w, h, fill) {
 
 function drawGame() {
   drawParallax(state.level.background);
+  for (const zone of getWindZones()) drawWindZone(zone);
   for (const platform of getPlatforms()) drawPlatform(platform);
+  for (const hole of getManholes()) drawManhole(hole);
   for (const hazard of getHazards()) drawHazard(hazard);
+  for (const sign of getShortcutSigns()) drawShortcutSign(sign);
   drawEndBeacon();
   for (const civ of state.civilians) if (!civ.rescued) drawCivilian(civ);
   for (const enemy of state.enemies) drawEnemy(enemy);
@@ -1305,11 +2165,11 @@ function drawTitle() {
   ctx.font = "800 52px Trebuchet MS";
   ctx.fillText("BOX BOY", 352, 152);
   ctx.font = "800 28px Trebuchet MS";
-  ctx.fillText("Story Mode Platformer", 330, 190);
+  ctx.fillText("Rise Against Monarch", 330, 190);
   ctx.font = "18px Trebuchet MS";
-  drawWrappedText("A 2D city platformer about a powerless hero trying to earn his place.", 188, 242, 598, 24, "#17345f");
-  drawWrappedText("Run, jump, double jump, glide with the cape, rescue civilians, punch enemies, and beat the bosses.", 154, 280, 632, 24, "#17345f");
-  drawWrappedText("Controls: move with WASD or arrows, jump with Space, jump again for a double jump, hold Space to glide, punch with F. Press Escape anytime to open the city map.", 146, 320, 644, 22, "#17345f");
+  drawWrappedText("A story-mode platformer about a powerless hero trying to defeat the biggest villain in the city and prove he belongs in the skyline.", 154, 242, 632, 24, "#17345f");
+  drawWrappedText("Run, jump, double jump, glide with the blanket cape, clear parkour routes, rescue civilians, and fight through Monarch's districts.", 154, 288, 632, 24, "#17345f");
+  drawWrappedText("Controls: move with WASD or arrows, jump with Space, jump again for a double jump, hold Space to glide, punch with F and G. Press Escape anytime to open the city map.", 146, 334, 644, 22, "#17345f");
   drawButton(322, 448, 314, 48, "PRESS ENTER TO START", "700 20px Trebuchet MS");
 }
 
@@ -1338,8 +2198,9 @@ function drawMapScreen() {
   drawWrappedText("Choose a level. Locked stages open after you clear the previous one. Press Enter to play. Press Escape to leave the map.", 92, 128, 780, 22, "#17345f");
 
   const nodes = [
-    { x: 130, y: 300 }, { x: 220, y: 236 }, { x: 330, y: 180 }, { x: 468, y: 222 },
-    { x: 574, y: 162 }, { x: 700, y: 228 }, { x: 802, y: 146 },
+    { x: 112, y: 332 }, { x: 182, y: 282 }, { x: 250, y: 222 }, { x: 326, y: 176 },
+    { x: 398, y: 216 }, { x: 468, y: 270 }, { x: 542, y: 314 }, { x: 614, y: 262 },
+    { x: 682, y: 204 }, { x: 752, y: 164 }, { x: 820, y: 206 }, { x: 872, y: 134 },
   ];
 
   ctx.strokeStyle = "#4b6da5";
@@ -1369,12 +2230,12 @@ function drawMapScreen() {
   }
 
   const current = levels[state.mapSelection];
-  drawPanel(76, 352, 360, 118, "rgba(20,35,61,0.90)");
+  drawPanel(76, 352, 386, 118, "rgba(20,35,61,0.90)");
   ctx.fillStyle = "#fff1b8";
   ctx.font = "700 18px Trebuchet MS";
   ctx.fillText(current.name, 96, 382);
   ctx.font = "14px Trebuchet MS";
-  drawWrappedText(current.goal, 96, 408, 320, 18, "#edf6ff");
+  drawWrappedText(current.goal, 96, 408, 344, 18, "#edf6ff");
   ctx.fillStyle = "#8fd6ff";
   ctx.fillText(state.mapSelection <= state.highestUnlockedLevel ? "Status: Unlocked" : "Status: Locked", 96, 458);
 }
@@ -1436,8 +2297,8 @@ function renderMission() {
   if (state.scene === scenes.title) {
     mission.innerHTML = `
       <h2>Story Mode</h2>
-      <p>This version is now a side-scrolling platformer with city backgrounds, multiple levels, boss fights, and story cards between chapters.</p>
-      <p class="tiny">Jump with <kbd>Space</kbd>. Press <kbd>Space</kbd> again in midair to double jump. Hold <kbd>Space</kbd> while falling to glide. Press <kbd>F</kbd> to punch.</p>
+      <p>This version is now a 12-level side-scrolling platformer with city backgrounds, route gimmicks, heavy guards, boss fights, and story cards between acts.</p>
+      <p class="tiny">Jump with <kbd>Space</kbd>. Press <kbd>Space</kbd> again in midair to double jump. Hold <kbd>Space</kbd> while falling to glide. Press <kbd>F</kbd> for left punch and <kbd>G</kbd> for right punch.</p>
       <div class="legend-grid">
         <div class="legend-chip legend-star">Jump on enemies to bounce</div>
         <div class="legend-chip legend-toy">Green = civilian</div>
@@ -1460,7 +2321,7 @@ function renderMission() {
       ${checklistItem(state.mapSelection <= state.highestUnlockedLevel, `Unlocked`)}
       ${checklistItem(state.mapSelection === state.highestUnlockedLevel, `Furthest available stage`)}
       <p><strong>Status:</strong> ${state.mapSelection <= state.highestUnlockedLevel ? "Ready to play." : "Locked until earlier levels are cleared."}</p>
-      <p class="tiny">Use left/right to move the selection. Press Enter to play the selected unlocked level.</p>
+      <p class="tiny">Use left/right to move the selection. Press Enter to play the selected unlocked level. Bosses sit at 3, 6, 9, and 12.</p>
     `;
     return;
   }
@@ -1478,7 +2339,7 @@ function renderMission() {
     ${state.level.boss ? checklistItem(!state.boss, `Defeat ${state.level.boss.name}`) : ""}
     ${checklistItem(state.player.rescues >= state.level.civiliansTarget && !state.boss, `Reach the end beacon`)}
     <p><strong>Status:</strong> ${state.message}</p>
-    <p class="tiny">Stomp enemies to bounce, punch them with <kbd>F</kbd> to remove them, and keep moving right once the objectives are complete.</p>
+      <p class="tiny">Stomp enemies to bounce, punch them with <kbd>F</kbd> or <kbd>G</kbd>, use spring pads, moving lifts, wind lanes, and hidden manhole sewer shortcuts, and watch for heavy guards that take multiple hits.</p>
   `;
 }
 
@@ -1516,7 +2377,7 @@ window.addEventListener("keydown", (event) => {
       if (state.mapSelection <= state.highestUnlockedLevel) {
         resetLevel(state.mapSelection);
         setScene(scenes.story);
-        state.storyCard = Math.min(storyBeats.length - 1, Math.floor(state.mapSelection / 2));
+        state.storyCard = Math.min(storyBeats.length - 1, Math.floor(state.mapSelection / 3));
       }
     } else if (state.scene === scenes.story) {
       setScene(scenes.playing);
@@ -1551,7 +2412,11 @@ window.addEventListener("keydown", (event) => {
   }
 
   if (event.code === "KeyF") {
-    startPunch();
+    startPunch("left");
+  }
+
+  if (event.code === "KeyG") {
+    startPunch("right");
   }
 });
 

@@ -4,22 +4,24 @@ A browser story-mode 2D platformer about a would-be superhero with no powers, a 
 
 ## Premise
 
-Box Boy is on a mission to prove he can be a hero without superpowers. He runs across city rooftops, glides with his blanket cape, rescues civilians, charges his unreliable gadgets, and fights through a multi-level story mode with boss encounters.
+Box Boy is on a mission to prove he can be a hero without superpowers. He runs across city rooftops, glides with his blanket cape, rescues civilians, punches through Monarch's villain crews, and fights through a story mode that builds toward the city's biggest villain.
 
 ## Controls
 
 - `WASD` / arrow keys: move
 - `Space`: jump, then hold to glide
-- `F`: punch
+- `F`: left punch
+- `G`: right punch
 - `Enter`: start or restart
+- `Escape`: open the city map
 
 ## Current Structure
 
-- Story mode with chapter cards between stages
-- Multiple city platforming levels
-- Detailed parallax skyline backgrounds
-- Boss fights including the Signal Warden and Vacuum Dragon
-- Civilian rescues, punch/stomp combat, and end-of-level beacons
+- 12 story-mode levels across four acts focused on reaching Monarch
+- Boss fights at levels 3, 6, 9, and 12
+- Route gimmicks including moving lifts, spring pads, wind lanes, hidden manhole sewer shortcuts, and shortcuts
+- Heavy guard miniboss-style enemies mixed into regular stages
+- Detailed pixel-style skyline backgrounds, civilian rescues, punch/stomp combat, and end-of-level beacons
 
 ## Run
 
