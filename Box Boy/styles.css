@@ -154,8 +154,7 @@ canvas {
   box-shadow: var(--shadow);
   border: 1px solid rgba(77, 115, 167, 0.38);
   background: linear-gradient(180deg, #eff8ff 0%, #c6dcf5 38%, #98c291 38%, #75a05e 100%);
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
+  image-rendering: auto;
 }
 
 .mission {

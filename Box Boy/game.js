@@ -7,6 +7,15 @@ const mission = document.getElementById("mission");
 const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
 const keys = new Set();
+const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+const audio = {
+  ctx: null,
+  master: null,
+  mode: "quiet",
+  intervalId: null,
+  step: 0,
+};
+const AUTHORED_LEVELS = new Set(["alley-run", "train-yard", "signal-bridge"]);
 
 const GRAVITY = 1800;
 const MOVE_SPEED = 265;
@@ -14,9 +23,12 @@ const CROUCH_SPEED = 108;
 const JUMP_SPEED = 690;
 const GLIDE_GRAVITY = 320;
 const GLIDE_FALL_SPEED = 170;
+const PLAYER_STAND_HEIGHT = 74;
+const PLAYER_CROUCH_HEIGHT = 46;
 const WORLD_FLOOR = 512;
 const PUNCH_DURATION = 0.16;
 const PUNCH_COOLDOWN = 0.24;
+const LASER_CHARGE_TIME = 0.32;
 const SAVE_KEY = "box_boy_story_save_v1";
 
 const scenes = {
@@ -57,20 +69,22 @@ const levels = [
     id: "alley-run",
     name: "Level 1: Lantern Alley",
     chapter: "Act 1: First Shift",
-    goal: "Cross the market rooftops, hit the spring signs, and rescue 3 civilians.",
+    goal: "Clear Lantern Alley, crouch through the duct run, and rescue 4 civilians.",
     story:
       "A blackout hits the Old Market blocks after Monarch's crews move in. Box Boy starts in the alley because if he can save this block, people might finally believe he can reach the villain behind it.",
     background: "market-night",
-    civiliansTarget: 3,
-    endX: 3880,
+    civiliansTarget: 4,
+    outro: "The first block sees him land the rescues in public. The laughs get quieter.",
+    endX: 5520,
     platforms: [
-      { x: 0, y: 520, w: 4100, h: 140, type: "ground" },
+      { x: 0, y: 520, w: 5760, h: 140, type: "ground" },
       { x: 190, y: 430, w: 180, h: 20, type: "roof" },
       { x: 470, y: 360, w: 160, h: 20, type: "roof" },
       { x: 720, y: 320, w: 140, h: 20, type: "spring" },
       { x: 940, y: 390, w: 150, h: 20, type: "ac" },
       { x: 1180, y: 300, w: 180, h: 20, type: "roof" },
-      { x: 1480, y: 246, w: 170, h: 20, type: "roof" },
+      { x: 1420, y: 444, w: 240, h: 18, type: "roof" },
+      { x: 1410, y: 380, w: 256, h: 18, type: "roof" },
       { x: 1730, y: 340, w: 160, h: 20, type: "fireescape" },
       { x: 1990, y: 270, w: 190, h: 20, type: "roof" },
       { x: 2270, y: 410, w: 150, h: 20, type: "ac" },
@@ -80,22 +94,33 @@ const levels = [
       { x: 3160, y: 300, w: 180, h: 20, type: "sign" },
       { x: 3390, y: 236, w: 170, h: 20, type: "roof" },
       { x: 3620, y: 168, w: 160, h: 20, type: "roof" },
+      { x: 3890, y: 252, w: 170, h: 20, type: "roof" },
+      { x: 4160, y: 196, w: 160, h: 20, type: "roof" },
+      { x: 4380, y: 132, w: 170, h: 20, type: "roof" },
+      { x: 4620, y: 214, w: 190, h: 20, type: "roof" },
+      { x: 4870, y: 154, w: 170, h: 20, type: "roof" },
+      { x: 5130, y: 92, w: 180, h: 20, type: "roof" },
       { x: 2440, y: 188, w: 120, h: 20, type: "roof" },
       { x: 2580, y: 150, w: 110, h: 20, type: "roof" },
       { x: 2720, y: 118, w: 120, h: 20, type: "roof" },
     ],
     civilians: [
       { x: 1240, y: 252, name: "Riley" },
-      { x: 2050, y: 222, name: "Mrs. Vega" },
-      { x: 3480, y: 188, name: "Mr. Holloway" },
+      { x: 2140, y: 222, name: "Mrs. Vega" },
+      { x: 3620, y: 120, name: "Mr. Holloway" },
+      { x: 5170, y: 44, name: "Tara" },
     ],
     enemies: [
       { x: 610, type: "walker" },
       { x: 1120, type: "walker" },
+      { x: 1520, y: 418, type: "walker" },
       { x: 1840, y: 306, type: "drone" },
       { x: 2360, type: "walker" },
       { x: 2850, y: 94, type: "drone" },
-      { x: 3340, type: "walker" },
+      { x: 3340, y: 210, type: "walker" },
+      { x: 4010, y: 226, type: "walker" },
+      { x: 4440, y: 108, type: "drone" },
+      { x: 4920, y: 128, type: "walker" },
     ],
     windZones: [{ x: 2660, y: 70, w: 280, h: 210, fx: 48, fy: -110 }],
   },
@@ -103,14 +128,15 @@ const levels = [
     id: "train-yard",
     name: "Level 2: Freightline Sprint",
     chapter: "Act 1: First Shift",
-    goal: "Use the crane route, beat the enforcer lookout, and rescue 3 civilians.",
+    goal: "Cross the freight district, ride the moving crane route, and rescue 4 civilians.",
     story:
       "Monarch's freight crews are locking down the district. If Box Boy can cross the crane line and bring people back, the rumor of a real hero stops sounding impossible.",
     background: "freight-dawn",
-    civiliansTarget: 3,
-    endX: 4260,
+    civiliansTarget: 4,
+    outro: "By the time Box Boy hits the rail tower, workers are pointing up instead of laughing.",
+    endX: 5840,
     platforms: [
-      { x: 0, y: 520, w: 4500, h: 140, type: "ground" },
+      { x: 0, y: 520, w: 6100, h: 140, type: "ground" },
       { x: 160, y: 430, w: 210, h: 20, type: "container" },
       { x: 430, y: 350, w: 190, h: 20, type: "container" },
       { x: 700, y: 280, w: 180, h: 20, type: "crane" },
@@ -125,6 +151,12 @@ const levels = [
       { x: 3340, y: 170, w: 180, h: 20, type: "crane" },
       { x: 3600, y: 260, w: 180, h: 20, type: "train" },
       { x: 3890, y: 340, w: 200, h: 20, type: "container" },
+      { x: 4150, y: 278, w: 180, h: 20, type: "train" },
+      { x: 4420, y: 214, w: 170, h: 20, type: "container" },
+      { x: 4680, y: 154, w: 160, h: 20, type: "crane" },
+      { x: 4950, y: 236, w: 180, h: 20, type: "train" },
+      { x: 5210, y: 176, w: 170, h: 20, type: "container" },
+      { x: 5470, y: 118, w: 180, h: 20, type: "crane" },
       { x: 3170, y: 122, w: 120, h: 20, type: "container" },
       { x: 3320, y: 92, w: 110, h: 20, type: "container" },
       { x: 3470, y: 62, w: 120, h: 20, type: "container" },
@@ -132,11 +164,13 @@ const levels = [
     movingPlatforms: [
       { x: 2100, y: 220, w: 120, h: 18, type: "moving", axis: "y", range: 72, speed: 1.5, phase: 0 },
       { x: 2860, y: 280, w: 120, h: 18, type: "moving", axis: "x", range: 84, speed: 1.2, phase: 1.4 },
+      { x: 4700, y: 250, w: 130, h: 18, type: "moving", axis: "x", range: 118, speed: 1.6, phase: 2.3 },
     ],
     civilians: [
       { x: 1650, y: 202, name: "Dockworker Lee" },
       { x: 2350, y: 232, name: "Nadia" },
       { x: 3940, y: 292, name: "Tamsin" },
+      { x: 5560, y: 70, name: "Jules" },
     ],
     enemies: [
       { x: 560, type: "walker" },
@@ -146,6 +180,9 @@ const levels = [
       { x: 2660, type: "enforcer" },
       { x: 3240, y: 114, type: "drone" },
       { x: 3760, type: "walker" },
+      { x: 4280, y: 252, type: "walker" },
+      { x: 4710, y: 128, type: "drone" },
+      { x: 5250, y: 150, type: "walker" },
     ],
   },
   {
@@ -157,25 +194,28 @@ const levels = [
       "The Signal Warden is Monarch's first public warning: turn back or get humiliated on live screens across the city. Box Boy takes that personally.",
     background: "bridge-storm",
     civiliansTarget: 1,
-    endX: 2640,
+    outro: "The Signal Warden drops out of the bridge lights. For the first time, Monarch loses a piece of the skyline.",
+    endX: 3020,
     boss: {
       type: "signal",
       name: "Signal Warden",
       hp: 10,
-      arenaStart: 1700,
-      arenaEnd: 2500,
+      arenaStart: 1820,
+      arenaEnd: 2880,
     },
     platforms: [
-      { x: 0, y: 520, w: 2860, h: 140, type: "ground" },
+      { x: 0, y: 520, w: 3260, h: 140, type: "ground" },
       { x: 240, y: 390, w: 180, h: 20, type: "beam" },
       { x: 540, y: 330, w: 180, h: 20, type: "beam" },
       { x: 840, y: 280, w: 170, h: 20, type: "beam" },
       { x: 1150, y: 330, w: 160, h: 20, type: "beam" },
       { x: 1420, y: 240, w: 160, h: 20, type: "beam" },
       { x: 1620, y: 360, w: 170, h: 20, type: "beam" },
-      { x: 1840, y: 300, w: 170, h: 20, type: "beam" },
-      { x: 2080, y: 240, w: 160, h: 20, type: "beam" },
-      { x: 2310, y: 320, w: 160, h: 20, type: "beam" },
+      { x: 1860, y: 300, w: 140, h: 20, type: "beam" },
+      { x: 2060, y: 220, w: 120, h: 20, type: "beam" },
+      { x: 2260, y: 320, w: 140, h: 20, type: "beam" },
+      { x: 2460, y: 240, w: 120, h: 20, type: "beam" },
+      { x: 2640, y: 320, w: 140, h: 20, type: "beam" },
     ],
     civilians: [{ x: 1320, y: 474, name: "Courier Pru" }],
     enemies: [
@@ -298,8 +338,8 @@ const levels = [
       type: "graft",
       name: "Graft King",
       hp: 12,
-      arenaStart: 3460,
-      arenaEnd: 4900,
+      arenaStart: 3490,
+      arenaEnd: 4860,
     },
     platforms: [
       { x: 0, y: 520, w: 5280, h: 140, type: "ground" },
@@ -434,9 +474,10 @@ const levels = [
     id: "rivet-rex",
     name: "Boss 3: Rivet Rex",
     chapter: "Act 3: Upper City",
-    goal: "Enter the foundry roof and defeat Rivet Rex before the district collapses.",
+    goal: "Bait Rivet Rex into the foundry walls, punish the stun, and survive the whole roof collapse.",
     story:
       "Rivet Rex is Monarch's rooftop bruiser, a charging wrecking-machine turned loose over the foundry. If Box Boy can survive him, the city will know this is not pretend anymore.",
+    outro: "Rivet Rex folds in a shower of sparks. The upper city finally sees Box Boy beat a monster-sized threat in public.",
     background: "bridge-storm",
     civiliansTarget: 1,
     endX: 3540,
@@ -444,8 +485,8 @@ const levels = [
       type: "rivet",
       name: "Rivet Rex",
       hp: 13,
-      arenaStart: 2240,
-      arenaEnd: 3420,
+      arenaStart: 2140,
+      arenaEnd: 3460,
     },
     platforms: [
       { x: 0, y: 520, w: 3780, h: 140, type: "ground" },
@@ -456,10 +497,13 @@ const levels = [
       { x: 1480, y: 250, w: 170, h: 20, type: "beam" },
       { x: 1790, y: 180, w: 180, h: 20, type: "beam" },
       { x: 2070, y: 280, w: 170, h: 20, type: "beam" },
-      { x: 2320, y: 210, w: 170, h: 20, type: "beam" },
-      { x: 2590, y: 140, w: 170, h: 20, type: "beam" },
-      { x: 2860, y: 220, w: 170, h: 20, type: "beam" },
-      { x: 3150, y: 150, w: 170, h: 20, type: "beam" },
+      { x: 2200, y: 420, w: 180, h: 20, type: "beam" },
+      { x: 2480, y: 338, w: 140, h: 20, type: "beam" },
+      { x: 2720, y: 248, w: 180, h: 20, type: "beam" },
+      { x: 3010, y: 342, w: 140, h: 20, type: "beam" },
+      { x: 3240, y: 420, w: 160, h: 20, type: "beam" },
+      { x: 2140, y: 250, w: 40, h: 270, type: "beam" },
+      { x: 3420, y: 250, w: 40, h: 270, type: "beam" },
     ],
     civilians: [{ x: 1580, y: 472, name: "Foreman Jules" }],
     enemies: [
@@ -578,12 +622,12 @@ const levels = [
     chapter: "Act 4: Last Push",
     goal: "Reach Monarch's rooftop, rescue Mara, and defeat the city's biggest villain.",
     story:
-      "At the top of the skyline, Monarch waits with the Vacuum Dragon war machine and the whole city watching below. This is the proof Box Boy came for.",
+      "At the top of the skyline, Monarch finally steps out in person with the whole city watching below. This is the proof Box Boy came for.",
     background: "finale-red",
     civiliansTarget: 1,
     endX: 3320,
     boss: {
-      type: "dragon",
+      type: "monarch",
       name: "Monarch",
       hp: 15,
       arenaStart: 2180,
@@ -615,7 +659,7 @@ const levels = [
 ];
 
 for (const level of levels) {
-  if (!level.boss) {
+  if (!level.boss && !AUTHORED_LEVELS.has(level.id)) {
     const extraPlatforms = [];
     for (const platform of level.platforms) {
       if ((platform.type === "roof" || platform.type === "ledge" || platform.type === "container") && platform.w >= 150 && platform.y > 140) {
@@ -632,18 +676,22 @@ for (const level of levels) {
 
     const extraEnemies = [];
     for (const platform of level.platforms) {
-      if ((platform.type === "roof" || platform.type === "ledge" || platform.type === "sign") && platform.y < 420 && platform.w >= 90) {
-        const shouldAdd = (Math.floor(platform.x / 170) % 3) === 1;
-        if (shouldAdd) {
+      if ((platform.type === "roof" || platform.type === "ledge" || platform.type === "sign" || platform.type === "container") && platform.y < 420 && platform.w >= 90) {
+        const count = platform.w > 150 ? 2 : 1;
+        for (let i = 0; i < count; i += 1) {
+          const offset = count === 2 ? (i === 0 ? 18 : platform.w - 54) : Math.max(12, (platform.w / 2) - 18);
+          const upperPlatform = platform.y < 240;
           extraEnemies.push({
-            x: platform.x + Math.max(12, (platform.w / 2) - 18),
+            x: platform.x + offset,
             y: platform.y - 26,
-            type: platform.y < 220 ? "drone" : "walker",
+            type: upperPlatform
+              ? (((i + Math.floor(platform.x / 120)) % 2 === 0) ? "walker" : "drone")
+              : "walker",
           });
         }
       }
     }
-    level.enemies.push(...extraEnemies.slice(0, 12));
+    level.enemies.push(...extraEnemies.slice(0, 24));
   }
 }
 
@@ -699,6 +747,204 @@ function saveProgress() {
   localStorage.setItem(SAVE_KEY, JSON.stringify(save));
 }
 
+function initAudio() {
+  if (audio.ctx || !AudioContextClass) return;
+  audio.ctx = new AudioContextClass();
+  audio.master = audio.ctx.createGain();
+  audio.master.gain.value = 0.28;
+  audio.master.connect(audio.ctx.destination);
+  audio.step = 0;
+}
+
+function ensureAudio() {
+  initAudio();
+  if (!audio.ctx) return;
+  const startNow = () => {
+    const desiredMode = getMusicMode();
+    setMusicMode(desiredMode);
+  };
+  if (audio.ctx.state === "suspended") {
+    audio.ctx.resume().then(startNow).catch(() => {});
+  } else {
+    startNow();
+  }
+}
+
+function playTone(freq, time, duration, type, gainValue) {
+  if (!audio.ctx || !audio.master) return;
+  const osc = audio.ctx.createOscillator();
+  const gain = audio.ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, time);
+  gain.gain.setValueAtTime(0.0001, time);
+  gain.gain.linearRampToValueAtTime(gainValue, time + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+  osc.connect(gain);
+  gain.connect(audio.master);
+  osc.start(time);
+  osc.stop(time + duration + 0.03);
+}
+
+function playSfx(config) {
+  if (!audio.ctx || !audio.master) return;
+  const now = audio.ctx.currentTime;
+  const tones = Array.isArray(config) ? config : [config];
+  for (const tone of tones) {
+    playTone(tone.freq, now + (tone.offset || 0), tone.duration, tone.type || "square", tone.gain);
+  }
+}
+
+function noteToFreq(semitone) {
+  return 220 * (2 ** (semitone / 12));
+}
+
+function getMusicMode() {
+  if (!(state.scene === scenes.playing || state.scene === scenes.story || state.scene === scenes.title)) return "quiet";
+  if (state.scene === scenes.title) return "title";
+  if (!state.level) return "city-1";
+  if (state.boss) {
+    if (state.boss.type === "signal") return "boss-signal";
+    if (state.boss.type === "graft") return "boss-graft";
+    if (state.boss.type === "rivet") return "boss-rivet";
+    if (state.boss.type === "monarch") return "boss-monarch";
+  }
+  const chapterIndex = Math.min(3, Math.floor(state.levelIndex / 3));
+  return `city-${chapterIndex + 1}`;
+}
+
+function scheduleMusicStep(mode, time, step) {
+  const tracks = {
+    title: {
+      lead: [7, 10, 12, 15, 12, 10, 7, 5],
+      bass: [0, -5, -2, -7],
+      cadence: 210,
+      bassType: "triangle",
+      leadType: "sawtooth",
+      bassGain: 0.11,
+      leadGain: 0.08,
+    },
+    "city-1": {
+      lead: [0, 3, 5, 7, 10, 7, 5, 3],
+      bass: [0, -5, -2, -7],
+      cadence: 220,
+      bassType: "triangle",
+      leadType: "sawtooth",
+      bassGain: 0.11,
+      leadGain: 0.08,
+    },
+    "city-2": {
+      lead: [2, 5, 7, 9, 7, 5, 4, 0],
+      bass: [-2, -7, -4, -9],
+      cadence: 205,
+      bassType: "triangle",
+      leadType: "square",
+      bassGain: 0.11,
+      leadGain: 0.075,
+    },
+    "city-3": {
+      lead: [5, 7, 10, 12, 10, 7, 5, 3],
+      bass: [0, 3, -2, -4],
+      cadence: 190,
+      bassType: "sine",
+      leadType: "square",
+      bassGain: 0.1,
+      leadGain: 0.085,
+    },
+    "city-4": {
+      lead: [0, 2, 3, 7, 8, 7, 3, 2],
+      bass: [-5, -2, -7, -9],
+      cadence: 180,
+      bassType: "triangle",
+      leadType: "sawtooth",
+      bassGain: 0.12,
+      leadGain: 0.085,
+    },
+    "boss-signal": {
+      lead: [12, 15, 17, 19, 22, 19, 17, 15],
+      bass: [7, 5, 3, 10],
+      cadence: 120,
+      bassType: "triangle",
+      leadType: "square",
+      bassGain: 0.17,
+      leadGain: 0.13,
+    },
+    "boss-graft": {
+      lead: [10, 12, 14, 17, 14, 12, 10, 7],
+      bass: [0, -3, 2, -5],
+      cadence: 132,
+      bassType: "sawtooth",
+      leadType: "square",
+      bassGain: 0.16,
+      leadGain: 0.12,
+    },
+    "boss-rivet": {
+      lead: [5, 8, 10, 12, 15, 12, 10, 8],
+      bass: [-5, -5, 0, -2],
+      cadence: 112,
+      bassType: "triangle",
+      leadType: "sawtooth",
+      bassGain: 0.18,
+      leadGain: 0.12,
+    },
+    "boss-monarch": {
+      lead: [14, 12, 10, 17, 19, 17, 14, 10],
+      bass: [2, -2, -5, 0],
+      cadence: 126,
+      bassType: "sine",
+      leadType: "square",
+      bassGain: 0.18,
+      leadGain: 0.13,
+    },
+  };
+  const track = tracks[mode] || tracks["city-1"];
+  const lead = track.lead;
+  const bass = track.bass;
+  const leadNote = noteToFreq(lead[step % lead.length]);
+  const bassNote = noteToFreq(bass[step % bass.length] - 12);
+  playTone(bassNote, time, mode.startsWith("boss-") ? 0.24 : 0.36, track.bassType, track.bassGain);
+  playTone(noteToFreq((bass[step % bass.length] - 5)), time + 0.02, mode.startsWith("boss-") ? 0.18 : 0.22, "sine", mode.startsWith("boss-") ? 0.06 : 0.04);
+  if (step % 2 === 0) playTone(leadNote, time, mode.startsWith("boss-") ? 0.2 : 0.24, track.leadType, track.leadGain);
+  if (!mode.startsWith("boss-") && step % 4 === 1) playTone(noteToFreq(lead[(step + 2) % lead.length] - 12), time + 0.07, 0.16, "square", 0.035);
+  if (mode.startsWith("boss-") && step % 4 === 2) playTone(noteToFreq(24), time, 0.12, "square", 0.1);
+}
+
+function setMusicMode(mode) {
+  if (!audio.ctx) return;
+  if (audio.mode === mode && audio.intervalId) return;
+  audio.mode = mode;
+  audio.step = 0;
+  if (audio.intervalId) {
+    window.clearInterval(audio.intervalId);
+    audio.intervalId = null;
+  }
+  if (mode === "quiet") return;
+  const cadenceMap = {
+    title: 210,
+    "city-1": 220,
+    "city-2": 205,
+    "city-3": 190,
+    "city-4": 180,
+    "boss-signal": 120,
+    "boss-graft": 132,
+    "boss-rivet": 112,
+    "boss-monarch": 126,
+  };
+  const cadence = cadenceMap[mode] || 220;
+  const tick = () => {
+    if (!audio.ctx || audio.mode === "quiet") return;
+    scheduleMusicStep(audio.mode, audio.ctx.currentTime, audio.step);
+    audio.step += 1;
+  };
+  tick();
+  audio.intervalId = window.setInterval(tick, cadence);
+}
+
+function updateMusic() {
+  if (!audio.ctx) return;
+  const nextMode = getMusicMode();
+  setMusicMode(nextMode);
+}
+
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
@@ -716,7 +962,7 @@ function makePlayer() {
     x: 80,
     y: 440,
     w: 36,
-    h: 74,
+    h: PLAYER_STAND_HEIGHT,
     vx: 0,
     vy: 0,
     facing: 1,
@@ -733,23 +979,47 @@ function makePlayer() {
     supportPlatform: null,
     sewerCooldown: 0,
     crouching: false,
+    punchHeld: null,
+    punchHoldTime: 0,
+    laserFired: false,
   };
+}
+
+function getPlayerHeight(player, crouching = player.crouching) {
+  return crouching ? PLAYER_CROUCH_HEIGHT : PLAYER_STAND_HEIGHT;
+}
+
+function getPlayerBounds(player, crouching = player.crouching) {
+  const height = getPlayerHeight(player, crouching);
+  return {
+    x: player.x,
+    y: player.y + (PLAYER_STAND_HEIGHT - height),
+    w: player.w,
+    h: height,
+  };
+}
+
+function canPlayerStand(player) {
+  const bounds = getPlayerBounds(player, false);
+  return !getPlatforms().some((platform) => aabb(bounds.x, bounds.y, bounds.w, bounds.h, platform.x, platform.y, platform.w, platform.h));
 }
 
 function makeEnemy(base) {
   const isDrone = base.type === "drone";
   const isEnforcer = base.type === "enforcer";
+  const spawnY = base.y ?? (isDrone ? 280 : isEnforcer ? 454 : 470);
+  const hp = isEnforcer ? 4 : 2;
   return {
     x: base.x,
-    y: isDrone ? base.y || 280 : isEnforcer ? 454 : 470,
+    y: spawnY,
     w: isDrone ? 34 : isEnforcer ? 52 : 38,
     h: isDrone ? 26 : isEnforcer ? 52 : 36,
     type: base.type,
     vx: isDrone ? 0 : (Math.random() > 0.5 ? 1 : -1) * (isEnforcer ? 52 : 70),
-    baseY: isDrone ? base.y || 280 : isEnforcer ? 454 : 470,
+    baseY: spawnY,
     phase: rand(0, Math.PI * 2),
-    hp: isEnforcer ? 3 : 1,
-    maxHp: isEnforcer ? 3 : 1,
+    hp,
+    maxHp: hp,
     cooldown: rand(0.4, 1.2),
   };
 }
@@ -759,9 +1029,9 @@ function makeBoss(def) {
     type: def.type,
     name: def.name,
     x: def.arenaStart + 220,
-    y: def.type === "dragon" ? 390 : def.type === "graft" ? 398 : def.type === "rivet" ? 248 : 280,
-    w: def.type === "dragon" ? 170 : def.type === "graft" ? 124 : def.type === "rivet" ? 142 : 120,
-    h: def.type === "dragon" ? 98 : def.type === "graft" ? 108 : def.type === "rivet" ? 86 : 72,
+    y: def.type === "monarch" ? 388 : def.type === "graft" ? 398 : def.type === "rivet" ? 396 : 280,
+    w: def.type === "monarch" ? 126 : def.type === "graft" ? 124 : def.type === "rivet" ? 206 : 120,
+    h: def.type === "monarch" ? 110 : def.type === "graft" ? 108 : def.type === "rivet" ? 122 : 72,
     hp: def.hp,
     maxHp: def.hp,
     dir: 1,
@@ -770,6 +1040,9 @@ function makeBoss(def) {
     vulnerable: def.type === "signal",
     stun: 0,
     attack: "idle",
+    telegraph: 0,
+    slamFlash: 0,
+    chargeTarget: 0,
   };
 }
 
@@ -850,7 +1123,11 @@ function getWorldHeight() {
 }
 
 function getPlatforms() {
-  return state.level.platforms.concat(state.dynamicPlatforms, getSewerPlatforms());
+  return state.level.platforms.concat(
+    state.dynamicPlatforms,
+    getSewerPlatforms(),
+    [{ x: state.level.endX - 120, y: 520, w: 520, h: 140, type: "ground" }],
+  );
 }
 
 function getWindZones() {
@@ -971,19 +1248,22 @@ const MANHOLE_LAYOUTS = {
 
 const SEWER_LAYOUTS = {
   "alley-run": [
-    { x: 1440, y: 782, w: 230, h: 18, type: "sewer", requires: "market-sewer-a" },
-    { x: 1730, y: 742, w: 180, h: 18, type: "sewer", requires: "market-sewer-a" },
-    { x: 1980, y: 700, w: 150, h: 18, type: "spring", requires: "market-sewer-a" },
+    { x: 1440, y: 818, w: 620, h: 20, type: "sewer", requires: "market-sewer-a" },
+    { x: 2090, y: 786, w: 74, h: 18, type: "sewer", requires: "market-sewer-a" },
+    { x: 2150, y: 754, w: 74, h: 18, type: "sewer", requires: "market-sewer-a" },
+    { x: 2210, y: 722, w: 74, h: 18, type: "sewer", requires: "market-sewer-a" },
   ],
   "train-yard": [
-    { x: 2600, y: 790, w: 240, h: 18, type: "sewer", requires: "yard-sewer-a" },
-    { x: 2900, y: 748, w: 170, h: 18, type: "sewer", requires: "yard-sewer-a" },
-    { x: 3140, y: 706, w: 150, h: 18, type: "spring", requires: "yard-sewer-a" },
+    { x: 2600, y: 818, w: 660, h: 20, type: "sewer", requires: "yard-sewer-a" },
+    { x: 3290, y: 786, w: 74, h: 18, type: "sewer", requires: "yard-sewer-a" },
+    { x: 3350, y: 754, w: 74, h: 18, type: "sewer", requires: "yard-sewer-a" },
+    { x: 3410, y: 722, w: 74, h: 18, type: "sewer", requires: "yard-sewer-a" },
   ],
   "neon-warrens": [
-    { x: 3220, y: 786, w: 250, h: 18, type: "sewer", requires: "neon-sewer-a" },
-    { x: 3520, y: 742, w: 180, h: 18, type: "sewer", requires: "neon-sewer-a" },
-    { x: 3770, y: 698, w: 150, h: 18, type: "spring", requires: "neon-sewer-a" },
+    { x: 3220, y: 818, w: 670, h: 20, type: "sewer", requires: "neon-sewer-a" },
+    { x: 3920, y: 786, w: 74, h: 18, type: "sewer", requires: "neon-sewer-a" },
+    { x: 3980, y: 754, w: 74, h: 18, type: "sewer", requires: "neon-sewer-a" },
+    { x: 4040, y: 722, w: 74, h: 18, type: "sewer", requires: "neon-sewer-a" },
   ],
 };
 
@@ -1008,9 +1288,9 @@ function getPriorityText() {
   }
   if (state.boss) {
     if (state.boss.type === "rivet") return "Make Rivet Rex crash into a wall, then punch him while he is stunned.";
-    if (state.boss.type === "graft") return "Bait the Graft King into the arena walls, then punish the opening.";
+    if (state.boss.type === "graft") return "Punch Graft King's missile at the last second to send it back into him.";
     if (state.boss.type === "signal") return "Dodge the signal burst, then punch the Warden while its shield is down.";
-    return "Wait for the Vacuum Dragon to expose itself after an attack, then punch in close.";
+    return "Dodge Monarch's volleys, wait for the opening, then punch in close.";
   }
   return "Reach the beacon at the end of the level.";
 }
@@ -1041,7 +1321,7 @@ function updatePlayer(dt) {
   const right = keys.has("ArrowRight") || keys.has("KeyD");
   const crouchHeld = keys.has("ArrowDown") || keys.has("KeyS");
   const move = (right ? 1 : 0) - (left ? 1 : 0);
-  player.crouching = crouchHeld && player.onGround;
+  player.crouching = (crouchHeld && player.onGround) || (player.crouching && !canPlayerStand(player));
 
   player.vx = move * (player.crouching ? CROUCH_SPEED : MOVE_SPEED);
   if (move !== 0) player.facing = Math.sign(move);
@@ -1080,11 +1360,18 @@ function updatePlayer(dt) {
   player.punchTimer = Math.max(0, player.punchTimer - dt);
   player.punchCooldown = Math.max(0, player.punchCooldown - dt);
   player.sewerCooldown = Math.max(0, player.sewerCooldown - dt);
+  if (player.punchHeld) {
+    player.punchHoldTime += dt;
+    if (!player.laserFired && player.punchHoldTime >= LASER_CHARGE_TIME) {
+      fireHeldLaser(player.punchHeld);
+    }
+  }
 }
 
 function resolveHorizontal(player) {
+  const bounds = getPlayerBounds(player);
   for (const platform of getPlatforms()) {
-    if (!aabb(player.x, player.y, player.w, player.h, platform.x, platform.y, platform.w, platform.h)) continue;
+    if (!aabb(bounds.x, bounds.y, bounds.w, bounds.h, platform.x, platform.y, platform.w, platform.h)) continue;
     if (player.vx > 0) player.x = platform.x - player.w;
     if (player.vx < 0) player.x = platform.x + platform.w;
   }
@@ -1093,8 +1380,9 @@ function resolveHorizontal(player) {
 function resolveVertical(player) {
   player.onGround = false;
   player.supportPlatform = null;
+  const bounds = getPlayerBounds(player);
   for (const platform of getPlatforms()) {
-    if (!aabb(player.x, player.y, player.w, player.h, platform.x, platform.y, platform.w, platform.h)) continue;
+    if (!aabb(bounds.x, bounds.y, bounds.w, bounds.h, platform.x, platform.y, platform.w, platform.h)) continue;
     if (player.vy > 0) {
       player.y = platform.y - player.h;
       if (platform.type === "spring") {
@@ -1110,7 +1398,7 @@ function resolveVertical(player) {
         player.supportPlatform = platform;
       }
     } else if (player.vy < 0) {
-      player.y = platform.y + platform.h;
+      player.y = platform.y + platform.h - (PLAYER_STAND_HEIGHT - getPlayerHeight(player));
       player.vy = 0;
     }
   }
@@ -1121,6 +1409,10 @@ function rescueCivilian(civ) {
   state.player.rescues += 1;
   state.totalRescues += 1;
   state.message = `${civ.name} is safe. The city is starting to notice.`;
+  playSfx([
+    { freq: 392, duration: 0.16, gain: 0.09, type: "triangle" },
+    { freq: 587, duration: 0.2, gain: 0.07, type: "square", offset: 0.05 },
+  ]);
   spawnParticles(civ.x, civ.y, "#8be7b3", 18);
   saveProgress();
 }
@@ -1133,6 +1425,7 @@ function damagePlayer(sourceX) {
   player.vx = sourceX < player.x ? 240 : -240;
   player.vy = -260;
   state.message = "Box Boy gets clipped and stumbles back.";
+  playSfx({ freq: 160, duration: 0.22, gain: 0.08, type: "sawtooth" });
   spawnParticles(player.x + player.w / 2, player.y + player.h / 2, "#ff8f8f", 14);
   if (player.hp <= 0) {
     setScene(scenes.gameOver);
@@ -1147,24 +1440,76 @@ function startPunch(side) {
   player.punchTimer = PUNCH_DURATION;
   player.punchSide = side;
   state.message = `Box Boy throws a ${side} punch.`;
+  playSfx({ freq: side === "right" ? 300 : 250, duration: 0.08, gain: 0.06, type: "square" });
+}
+
+function beginPunchHold(side) {
+  const player = state.player;
+  if (!player || state.scene !== scenes.playing) return;
+  player.punchHeld = side;
+  player.punchHoldTime = 0;
+  player.laserFired = false;
+  startPunch(side);
+}
+
+function endPunchHold(side) {
+  const player = state.player;
+  if (!player || player.punchHeld !== side) return;
+  player.punchHeld = null;
+  player.punchHoldTime = 0;
+  player.laserFired = false;
+}
+
+function getPunchOrigin(player, side) {
+  const armY = player.y + (player.crouching ? 62 : 56);
+  if (side === "right") {
+    return { x: player.x + 53, y: armY };
+  }
+  return { x: player.x - 17, y: armY };
+}
+
+function fireHeldLaser(side) {
+  const player = state.player;
+  if (!player) return;
+  player.laserFired = true;
+  player.punchHeld = null;
+  player.punchHoldTime = 0;
+  player.punchCooldown = 0.42;
+  player.punchTimer = 0;
+  const dir = side === "right" ? 1 : -1;
+  const origin = getPunchOrigin(player, side);
+  spawnProjectile(
+    origin.x,
+    origin.y,
+    dir * 560,
+    0,
+    "#7ee8ff",
+    "player",
+  );
+  state.message = `Box Boy fires a ${side} laser.`;
+  playSfx([
+    { freq: 680, duration: 0.08, gain: 0.08, type: "sawtooth" },
+    { freq: 1020, duration: 0.14, gain: 0.05, type: "square", offset: 0.02 },
+  ]);
 }
 
 function updateRescuesAndHazards() {
+  const playerBounds = getPlayerBounds(state.player);
   for (const civ of state.civilians) {
-    if (!civ.rescued && aabb(state.player.x, state.player.y, state.player.w, state.player.h, civ.x, civ.y, civ.w, civ.h)) {
+    if (!civ.rescued && aabb(playerBounds.x, playerBounds.y, playerBounds.w, playerBounds.h, civ.x, civ.y, civ.w, civ.h)) {
       rescueCivilian(civ);
     }
   }
 
   for (const hazard of getHazards()) {
-    if (aabb(state.player.x, state.player.y, state.player.w, state.player.h, hazard.x, hazard.y, hazard.w, hazard.h)) {
+    if (aabb(playerBounds.x, playerBounds.y, playerBounds.w, playerBounds.h, hazard.x, hazard.y, hazard.w, hazard.h)) {
       damagePlayer(hazard.x);
     }
   }
 
   for (const hole of getManholes()) {
     if (!hole.trap || state.player.sewerCooldown > 0) continue;
-    if (!aabb(state.player.x, state.player.y, state.player.w, state.player.h, hole.x, hole.y - 6, hole.w, hole.h + 14)) continue;
+    if (!aabb(playerBounds.x, playerBounds.y, playerBounds.w, playerBounds.h, hole.x, hole.y - 6, hole.w, hole.h + 14)) continue;
     if (!state.player.onGround) continue;
     state.unlockedSewers.add(hole.sewerId);
     state.player.x = hole.exitX;
@@ -1173,11 +1518,13 @@ function updateRescuesAndHazards() {
     state.player.onGround = false;
     state.player.sewerCooldown = 0.8;
     state.message = "A hidden manhole drops Box Boy into a sewer shortcut.";
+    playSfx([{ freq: 210, duration: 0.08, gain: 0.05, type: "triangle" }, { freq: 120, duration: 0.22, gain: 0.05, type: "sine", offset: 0.05 }]);
     spawnParticles(hole.x + hole.w / 2, hole.y + 6, "#8ac6ff", 18);
   }
 }
 
 function updateEnemies(dt) {
+  const playerBounds = getPlayerBounds(state.player);
   for (const enemy of state.enemies) {
     if (enemy.hp <= 0) continue;
     if (enemy.type === "walker" || enemy.type === "enforcer") {
@@ -1215,31 +1562,50 @@ function updateEnemies(dt) {
       }
     }
 
-    if (aabb(state.player.x, state.player.y, state.player.w, state.player.h, enemy.x, enemy.y, enemy.w, enemy.h)) {
-      const stomping = state.player.vy > 120 && state.player.y + state.player.h - 12 < enemy.y + 10;
+    if (aabb(playerBounds.x, playerBounds.y, playerBounds.w, playerBounds.h, enemy.x, enemy.y, enemy.w, enemy.h)) {
+      const stomping = state.player.vy > 120 && playerBounds.y + playerBounds.h - 12 < enemy.y + 10;
       if (stomping) {
         state.player.vy = enemy.type === "enforcer" ? -470 : -420;
         enemy.vx *= -1;
         enemy.phase += Math.PI;
-        state.message = enemy.type === "enforcer" ? "Box Boy bounces off the heavy guard." : "Box Boy stomps off the enemy and bounces upward.";
-        spawnParticles(enemy.x + enemy.w / 2, enemy.y + 4, "#ffe082", enemy.type === "enforcer" ? 16 : 10);
+        enemy.hp -= 1;
+        if (enemy.hp <= 0) {
+          state.totalDefeats += 1;
+          state.message = enemy.type === "enforcer"
+            ? "Box Boy stomps the heavy guard down and bounces clear."
+            : "Box Boy stomps the enemy and bounces upward.";
+          playSfx([
+            { freq: enemy.type === "enforcer" ? 170 : 210, duration: 0.08, gain: 0.08, type: "square" },
+            { freq: enemy.type === "enforcer" ? 120 : 160, duration: 0.15, gain: 0.06, type: "triangle", offset: 0.02 },
+          ]);
+          spawnParticles(enemy.x + enemy.w / 2, enemy.y + 4, "#ffe082", enemy.type === "enforcer" ? 20 : 14);
+          saveProgress();
+        } else {
+          state.message = enemy.type === "enforcer"
+            ? "Box Boy bounces off the heavy guard and dents the armor."
+            : "Box Boy stomps the enemy and bounces upward.";
+          playSfx({ freq: enemy.type === "enforcer" ? 180 : 220, duration: 0.11, gain: 0.07, type: "triangle" });
+          spawnParticles(enemy.x + enemy.w / 2, enemy.y + 4, "#ffe082", enemy.type === "enforcer" ? 16 : 10);
+        }
       } else {
         damagePlayer(enemy.x);
       }
     }
 
     if (state.player.punchTimer > 0) {
-      const hitboxX = state.player.punchSide === "right" ? state.player.x + state.player.w : state.player.x - 26;
-      if (aabb(hitboxX, state.player.y + 18, 26, 24, enemy.x, enemy.y, enemy.w, enemy.h)) {
+      const hitboxX = state.player.punchSide === "right" ? state.player.x + state.player.w : state.player.x - 38;
+      if (aabb(hitboxX, state.player.y + 16, 38, 26, enemy.x, enemy.y, enemy.w, enemy.h)) {
         enemy.hp -= 1;
         state.player.punchTimer = 0;
         if (enemy.hp <= 0) {
           state.totalDefeats += 1;
           state.message = enemy.type === "enforcer" ? "Heavy guard down." : "Direct punch. Enemy down.";
+          playSfx([{ freq: 180, duration: 0.1, gain: 0.08, type: "square" }, { freq: 120, duration: 0.18, gain: 0.06, type: "triangle", offset: 0.03 }]);
           spawnParticles(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, "#ffcf7e", enemy.type === "enforcer" ? 22 : 14);
           saveProgress();
         } else {
           state.message = "Solid hit. Keep punching.";
+          playSfx({ freq: 240, duration: 0.08, gain: 0.05, type: "square" });
           spawnParticles(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, "#ffd89b", 10);
         }
       }
@@ -1249,8 +1615,11 @@ function updateEnemies(dt) {
   state.enemies = state.enemies.filter((enemy) => enemy.hp > 0);
 }
 
-function spawnProjectile(x, y, vx, vy, color) {
-  state.projectiles.push({ x, y, vx, vy, w: 14, h: 14, color, life: 4 });
+function spawnProjectile(x, y, vx, vy, color, owner = "enemy") {
+  const defaults = owner === "player"
+    ? { w: 24, h: 8, life: 0.9, gravity: true }
+    : { w: 14, h: 14, life: 4, gravity: true };
+  state.projectiles.push({ x, y, vx, vy, color, owner, ...defaults });
 }
 
 function updateBoss(dt) {
@@ -1276,32 +1645,74 @@ function updateBoss(dt) {
       boss.stun = 0.9;
     }
   } else if (boss.type === "graft") {
-    boss.vulnerable = boss.stun > 0;
-    boss.x += boss.dir * (lowHp ? 150 : 98) * dt;
-    if (boss.x < state.level.boss.arenaStart + 30 || boss.x + boss.w > state.level.boss.arenaEnd - 30) {
-      boss.dir *= -1;
-      boss.stun = 1.15;
-      spawnParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, "#ffd39c", 18);
-    }
-    boss.y = 388 + Math.sin(boss.phase * 2.2) * 18;
+    boss.vulnerable = false;
+    const baseY = 384 + Math.sin(boss.phase * 1.5) * 10;
+    const hoverTarget = clamp(state.player.x + 220, state.level.boss.arenaStart + 140, state.level.boss.arenaEnd - boss.w - 90);
+    boss.x += Math.sign(hoverTarget - boss.x) * (lowHp ? 124 : 92) * dt;
+    boss.y = baseY;
     if (boss.cooldown <= 0) {
-      boss.cooldown = lowHp ? 0.75 : 1.15;
-      spawnProjectile(boss.x + 18, boss.y + boss.h - 12, -160, -140, "#ffc16c");
-      spawnProjectile(boss.x + boss.w - 18, boss.y + boss.h - 12, 160, -140, "#ffc16c");
-      if (lowHp) {
-        spawnProjectile(boss.x + boss.w / 2, boss.y + 20, -30, -220, "#ffe5a5");
+      boss.cooldown = lowHp ? 1.05 : 1.35;
+      boss.attack = "telegraph";
+      boss.telegraph = lowHp ? 0.42 : 0.56;
+      playSfx([{ freq: 250, duration: 0.08, gain: 0.06, type: "square" }, { freq: 198, duration: 0.14, gain: 0.05, type: "triangle", offset: 0.03 }]);
+    }
+    if (boss.attack === "telegraph") {
+      boss.telegraph -= dt;
+      if (boss.telegraph <= 0) {
+        boss.attack = "idle";
+        const targetX = state.player.x + state.player.w / 2;
+        const targetY = state.player.y + 26;
+        const originX = boss.x + 18;
+        const originY = boss.y + boss.h - 18;
+        const dx = targetX - originX;
+        const dy = targetY - originY;
+        const length = Math.max(1, Math.hypot(dx, dy));
+        const speed = lowHp ? 260 : 220;
+        const volley = lowHp ? 2 : 1;
+        for (let i = 0; i < volley; i += 1) {
+          state.projectiles.push({
+            x: boss.x + 18 + (i * 48),
+            y: boss.y + boss.h - 18,
+            vx: (dx / length) * speed,
+            vy: (dy / length) * speed + (i === 0 ? -10 : 10),
+            w: 18,
+            h: 18,
+            color: i === 0 ? "#ffc16c" : "#ffe29a",
+            life: 4.2,
+            owner: "boss-missile",
+            gravity: false,
+            reflectable: true,
+            explosive: true,
+          });
+        }
+        playSfx([{ freq: 320, duration: 0.08, gain: 0.07, type: "sawtooth" }, { freq: 460, duration: 0.1, gain: 0.04, type: "square", offset: 0.03 }]);
       }
     }
   } else if (boss.type === "rivet") {
+    boss.slamFlash = Math.max(0, boss.slamFlash - dt);
     if (boss.attack === "charge") {
       boss.x += boss.dir * (lowHp ? 380 : 300) * dt;
-      if (boss.x < state.level.boss.arenaStart + 16 || boss.x + boss.w > state.level.boss.arenaEnd - 16) {
-        boss.x = clamp(boss.x, state.level.boss.arenaStart + 16, state.level.boss.arenaEnd - boss.w - 16);
+      if (boss.x < state.level.boss.arenaStart + 40 || boss.x + boss.w > state.level.boss.arenaEnd - 40) {
+        boss.x = clamp(boss.x, state.level.boss.arenaStart + 40, state.level.boss.arenaEnd - boss.w - 40);
         boss.attack = "stunned";
-        boss.stun = 1.6;
+        boss.stun = lowHp ? 1.55 : 1.9;
         boss.vulnerable = true;
         boss.dir *= -1;
+        boss.slamFlash = 0.22;
+        playSfx([
+          { freq: 110, duration: 0.18, gain: 0.12, type: "sawtooth" },
+          { freq: 74, duration: 0.24, gain: 0.09, type: "triangle", offset: 0.03 },
+        ]);
         spawnParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, "#ffd19f", 24);
+      }
+    } else if (boss.attack === "telegraph") {
+      boss.vulnerable = false;
+      boss.telegraph -= dt;
+      boss.x += Math.sin(boss.phase * 8) * 34 * dt;
+      if (boss.telegraph <= 0) {
+        boss.attack = "charge";
+        boss.dir = boss.chargeTarget > boss.x ? 1 : -1;
+        playSfx([{ freq: 220, duration: 0.09, gain: 0.08, type: "square" }, { freq: 164, duration: 0.14, gain: 0.05, type: "triangle", offset: 0.03 }]);
       }
     } else if (boss.attack === "stunned") {
       boss.vulnerable = true;
@@ -1312,15 +1723,17 @@ function updateBoss(dt) {
       }
     } else {
       boss.vulnerable = false;
-      boss.x += Math.cos(boss.phase * 0.9) * 42 * dt;
+      const targetX = clamp(state.player.x - 40, state.level.boss.arenaStart + 140, state.level.boss.arenaEnd - boss.w - 140);
+      boss.x += Math.sign(targetX - boss.x) * (lowHp ? 120 : 86) * dt;
       if (boss.cooldown <= 0) {
-        boss.attack = "charge";
-        boss.dir = state.player.x > boss.x ? 1 : -1;
-        boss.cooldown = lowHp ? 0.7 : 0.95;
+        boss.attack = "telegraph";
+        boss.chargeTarget = state.player.x + (state.player.w / 2);
+        boss.telegraph = lowHp ? 0.48 : 0.7;
+        boss.cooldown = lowHp ? 0.82 : 1.05;
       }
     }
-    boss.y = 394;
-  } else {
+    boss.y = 396 + Math.sin(boss.phase * (boss.attack === "charge" ? 12 : 4)) * (boss.attack === "charge" ? 2 : 1);
+  } else if (boss.type === "monarch") {
     boss.vulnerable = boss.stun > 0;
     boss.x += boss.dir * (lowHp ? 130 : 86) * dt;
     if (boss.x < state.level.boss.arenaStart + 40 || boss.x + boss.w > state.level.boss.arenaEnd - 40) {
@@ -1336,10 +1749,13 @@ function updateBoss(dt) {
       }
       boss.stun = 1.05;
     }
+  } else {
+    boss.vulnerable = false;
   }
 
-  if (aabb(state.player.x, state.player.y, state.player.w, state.player.h, boss.x, boss.y, boss.w, boss.h)) {
-    const stomping = state.player.vy > 120 && state.player.y + state.player.h - 10 < boss.y + 14;
+  const playerBounds = getPlayerBounds(state.player);
+  if (aabb(playerBounds.x, playerBounds.y, playerBounds.w, playerBounds.h, boss.x, boss.y, boss.w, boss.h)) {
+    const stomping = state.player.vy > 120 && playerBounds.y + playerBounds.h - 10 < boss.y + 14;
     if (stomping) {
       state.player.vy = -430;
       state.message = `${boss.name} shrugs off the stomp, but Box Boy bounces clear.`;
@@ -1349,15 +1765,25 @@ function updateBoss(dt) {
   }
 
   if (state.player.punchTimer > 0) {
-    const hitboxX = state.player.punchSide === "right" ? state.player.x + state.player.w : state.player.x - 28;
-    if (aabb(hitboxX, state.player.y + 12, 28, 30, boss.x, boss.y, boss.w, boss.h)) {
+    const hitboxX = state.player.punchSide === "right" ? state.player.x + state.player.w : state.player.x - 40;
+    const bossHitX = boss.type === "rivet" && boss.vulnerable ? boss.x - 18 : boss.x;
+    const bossHitY = boss.type === "rivet" && boss.vulnerable ? boss.y - 10 : boss.y;
+    const bossHitW = boss.type === "rivet" && boss.vulnerable ? boss.w + 36 : boss.w;
+    const bossHitH = boss.type === "rivet" && boss.vulnerable ? boss.h + 18 : boss.h;
+    if (aabb(hitboxX, playerBounds.y + 6, 40, 32, bossHitX, bossHitY, bossHitW, bossHitH)) {
       state.player.punchTimer = 0;
-      if (boss.vulnerable) {
-        boss.hp -= 1;
-        state.message = boss.hp <= 0 ? `${boss.name} is finished.` : `${boss.name} reels from the punch.`;
-        spawnParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, "#ff9a6e", 12);
-        if (boss.hp <= 0) saveProgress();
-      } else {
+      if (boss.type === "graft") {
+        state.message = "Direct punches will not work. Reflect a missile back at him.";
+        spawnParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, "#b7c8da", 8);
+        return;
+      }
+        if (boss.vulnerable) {
+          boss.hp -= 1;
+          state.message = boss.hp <= 0 ? `${boss.name} is finished.` : `${boss.name} reels from the punch.`;
+          playSfx([{ freq: 210, duration: 0.08, gain: 0.08, type: "square" }, { freq: 150, duration: 0.16, gain: 0.05, type: "triangle", offset: 0.02 }]);
+          spawnParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, "#ff9a6e", 12);
+          if (boss.hp <= 0) saveProgress();
+        } else {
         state.message = boss.type === "rivet"
           ? "Rivet Rex is too wild. Make him crash into a wall."
           : "No opening yet. Wait for the boss to expose itself.";
@@ -1372,20 +1798,94 @@ function updateBoss(dt) {
 }
 
 function updateProjectiles(dt) {
+  const playerBounds = getPlayerBounds(state.player);
   for (const projectile of state.projectiles) {
     projectile.x += projectile.vx * dt;
     projectile.y += projectile.vy * dt;
-    projectile.vy += 240 * dt;
+    if (projectile.gravity !== false && projectile.owner !== "player" && projectile.owner !== "reflected") projectile.vy += 240 * dt;
     projectile.life -= dt;
 
-    if (aabb(state.player.x, state.player.y, state.player.w, state.player.h, projectile.x, projectile.y, projectile.w, projectile.h)) {
+    if (projectile.reflectable && state.player.punchTimer > 0) {
+      const hitboxX = state.player.punchSide === "right" ? state.player.x + state.player.w : state.player.x - 40;
+      const hitboxY = playerBounds.y + 6;
+      if (aabb(hitboxX, hitboxY, 40, 32, projectile.x, projectile.y, projectile.w, projectile.h)) {
+        projectile.owner = "reflected";
+        projectile.reflectable = false;
+        projectile.gravity = false;
+        projectile.color = "#fff2a8";
+        const boss = state.boss;
+        if (boss) {
+          const dx = (boss.x + boss.w / 2) - projectile.x;
+          const dy = (boss.y + boss.h / 2) - projectile.y;
+          const length = Math.max(1, Math.hypot(dx, dy));
+          projectile.vx = (dx / length) * 340;
+          projectile.vy = (dy / length) * 340;
+          state.player.punchTimer = 0;
+          state.message = "Perfect timing. The missile flies back at Graft King.";
+          playSfx([{ freq: 390, duration: 0.08, gain: 0.08, type: "square" }, { freq: 520, duration: 0.12, gain: 0.05, type: "triangle", offset: 0.03 }]);
+        }
+      }
+    }
+
+    if (projectile.owner !== "player" && projectile.owner !== "reflected"
+      && aabb(playerBounds.x, playerBounds.y, playerBounds.w, playerBounds.h, projectile.x, projectile.y, projectile.w, projectile.h)) {
       damagePlayer(projectile.x);
+      if (projectile.owner === "boss-missile") {
+        state.message = "Too late. The missile explodes on Box Boy.";
+        playSfx([{ freq: 92, duration: 0.18, gain: 0.12, type: "sawtooth" }, { freq: 66, duration: 0.26, gain: 0.08, type: "triangle", offset: 0.03 }]);
+        spawnParticles(projectile.x, projectile.y, "#ffb274", 24);
+      }
       projectile.life = 0;
+    }
+
+    if (projectile.owner === "player") {
+      for (const enemy of state.enemies) {
+        if (enemy.hp > 0 && aabb(projectile.x, projectile.y, projectile.w, projectile.h, enemy.x, enemy.y, enemy.w, enemy.h)) {
+          enemy.hp -= 1;
+          projectile.life = 0;
+          if (enemy.hp <= 0) {
+            state.totalDefeats += 1;
+            state.message = "Laser hit. Enemy down.";
+            spawnParticles(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, "#7ee8ff", 16);
+          } else {
+            state.message = "Laser hit. Enemy injured.";
+            spawnParticles(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, "#9cefff", 10);
+          }
+          break;
+        }
+      }
+      if (state.boss && projectile.life > 0 && aabb(projectile.x, projectile.y, projectile.w, projectile.h, state.boss.x, state.boss.y, state.boss.w, state.boss.h)) {
+        if (state.boss.vulnerable) {
+          state.boss.hp -= 1;
+          state.message = `${state.boss.name} gets tagged by the laser.`;
+          playSfx([{ freq: 320, duration: 0.08, gain: 0.06, type: "square" }, { freq: 240, duration: 0.14, gain: 0.05, type: "triangle", offset: 0.02 }]);
+          if (state.boss.hp <= 0) saveProgress();
+        }
+        projectile.life = 0;
+      }
+    }
+
+    if (projectile.owner === "reflected" && state.boss
+      && aabb(projectile.x, projectile.y, projectile.w, projectile.h, state.boss.x, state.boss.y, state.boss.w, state.boss.h)) {
+      state.boss.hp -= 1;
+      state.message = state.boss.hp <= 0
+        ? `${state.boss.name} takes the full blast and goes down.`
+        : `${state.boss.name} gets blown back by his own missile.`;
+      playSfx([{ freq: 180, duration: 0.08, gain: 0.09, type: "square" }, { freq: 110, duration: 0.18, gain: 0.06, type: "triangle", offset: 0.02 }]);
+      spawnParticles(projectile.x, projectile.y, "#ffd39c", 22);
+      projectile.life = 0;
+      if (state.boss.hp <= 0) saveProgress();
     }
 
     for (const platform of getPlatforms()) {
       if (aabb(projectile.x, projectile.y, projectile.w, projectile.h, platform.x, platform.y, platform.w, platform.h)) {
-        projectile.life = 0;
+        if (projectile.owner === "boss-missile" || projectile.owner === "reflected") {
+          spawnParticles(projectile.x, projectile.y, projectile.owner === "reflected" ? "#fff0b2" : "#ffb274", 18);
+          playSfx([{ freq: projectile.owner === "reflected" ? 150 : 96, duration: 0.12, gain: 0.08, type: "sawtooth" }]);
+          projectile.life = 0;
+          continue;
+        }
+        if (projectile.owner !== "player" || platform.type !== "sewer") projectile.life = 0;
       }
     }
   }
@@ -1420,7 +1920,7 @@ function checkLevelCompletion() {
   const readyForExit = player.rescues >= state.level.civiliansTarget && !state.boss;
   if (readyForExit && player.x > state.level.endX) {
     setScene(scenes.levelClear);
-    state.message = `${state.level.name} cleared.`;
+    state.message = state.level.outro || `${state.level.name} cleared.`;
   }
 }
 
@@ -1485,6 +1985,15 @@ function worldToScreenY(y) {
 }
 
 function drawParallax(background) {
+  if (state.player && state.player.y > 620) {
+    ctx.fillStyle = "#050608";
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    for (let i = 0; i < 12; i += 1) {
+      ctx.fillStyle = "rgba(255,255,255,0.025)";
+      ctx.fillRect(0, i * 44, WIDTH, 2);
+    }
+    return;
+  }
   const palettes = {
     "market-night": {
       skyTop: "#10203c", skyBottom: "#2d4f7f", glow: "#ffcf78", far: "#182b46", mid: "#254264", near: "#345a83",
@@ -1618,6 +2127,38 @@ function drawParallax(background) {
     ctx.fillRect(x + 8, 478, 4, 18);
     ctx.fillRect(x + 76, 478, 4, 18);
   }
+
+  if (state.level?.id === "city-hall-siege") {
+    const facadeX = worldToScreen(3220);
+    const entryX = worldToScreen(3450);
+    ctx.fillStyle = "rgba(208,214,229,0.92)";
+    ctx.fillRect(facadeX, 106, 310, 390);
+    ctx.fillStyle = "rgba(127,139,166,0.95)";
+    ctx.fillRect(facadeX + 28, 120, 32, 376);
+    ctx.fillRect(facadeX + 120, 120, 32, 376);
+    ctx.fillRect(facadeX + 214, 120, 32, 376);
+    ctx.fillRect(facadeX + 12, 118, 284, 16);
+    ctx.fillRect(facadeX + 12, 166, 284, 10);
+    ctx.fillStyle = "rgba(52,63,88,0.95)";
+    ctx.fillRect(facadeX + 82, 256, 130, 240);
+    ctx.fillStyle = "rgba(255,232,183,0.22)";
+    ctx.fillRect(facadeX + 98, 272, 98, 180);
+    ctx.fillStyle = "rgba(43,50,67,0.88)";
+    if (entryX < WIDTH) {
+      ctx.fillRect(entryX, 0, WIDTH - entryX, HEIGHT);
+      for (let i = 0; i < 8; i += 1) {
+        const panelX = entryX + 32 + (i * 96);
+        ctx.fillStyle = "rgba(98,108,136,0.52)";
+        ctx.fillRect(panelX, 62, 34, 372);
+        ctx.fillStyle = "rgba(236,214,173,0.18)";
+        ctx.fillRect(panelX + 6, 90, 22, 126);
+      }
+      ctx.fillStyle = "rgba(167,144,103,0.36)";
+      ctx.fillRect(entryX, 438, WIDTH - entryX, 58);
+      ctx.fillStyle = "rgba(204,183,147,0.16)";
+      for (let i = 0; i < WIDTH - entryX; i += 36) ctx.fillRect(entryX + i, 450, 18, 2);
+    }
+  }
 }
 
 function drawManhole(hole) {
@@ -1700,22 +2241,35 @@ function drawHazard(hazard) {
 function drawCivilian(civ) {
   const x = worldToScreen(civ.x);
   const y = worldToScreenY(civ.y);
-  ctx.fillStyle = "rgba(141, 235, 175, 0.18)";
+  const palette = [
+    { shirt: "#d97f7f", pants: "#4f5d7d", hair: "#5d3c2a", skin: "#f0c3a2" },
+    { shirt: "#7ea6d9", pants: "#3f4d61", hair: "#2f2a2c", skin: "#d9ab86" },
+    { shirt: "#8bc18b", pants: "#445144", hair: "#6a5134", skin: "#e7bf9d" },
+    { shirt: "#d9bf7e", pants: "#5d4a3c", hair: "#3f2a22", skin: "#c99673" },
+  ][Math.abs(Math.floor(civ.x / 120)) % 4];
+  ctx.fillStyle = "rgba(141, 235, 175, 0.14)";
   ctx.beginPath();
   ctx.arc(x + 13, y + 16, 22, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = "#f3f6ff";
-  ctx.fillRect(x + 8, y + 10, 10, 20);
-  ctx.fillStyle = "#e3b282";
+  ctx.fillStyle = palette.skin;
   ctx.beginPath();
   ctx.arc(x + 13, y + 8, 8, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = "rgba(131, 231, 173, 0.26)";
-  ctx.beginPath();
-  ctx.arc(x + 13, y + 14, 26, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "#17345f";
-  ctx.fillRect(x + 5, y + 32, 16, 3);
+  ctx.fillStyle = palette.hair;
+  ctx.fillRect(x + 6, y + 2, 14, 5);
+  ctx.fillStyle = palette.shirt;
+  ctx.fillRect(x + 7, y + 16, 12, 16);
+  ctx.fillStyle = palette.pants;
+  ctx.fillRect(x + 8, y + 32, 4, 10);
+  ctx.fillRect(x + 14, y + 32, 4, 10);
+  ctx.fillStyle = palette.skin;
+  ctx.fillRect(x + 3, y + 18, 4, 10);
+  ctx.fillRect(x + 19, y + 18, 4, 10);
+  ctx.fillStyle = "#f6fbff";
+  ctx.fillRect(x + 10, y + 11, 2, 2);
+  ctx.fillRect(x + 15, y + 11, 2, 2);
+  ctx.fillStyle = "rgba(131, 231, 173, 0.18)";
+  ctx.fillRect(x - 2, y + 10, 30, 34);
 }
 
 function drawEnemy(enemy) {
@@ -1801,57 +2355,114 @@ function drawEnemy(enemy) {
 function drawBoss(boss) {
   const x = worldToScreen(boss.x);
   const y = worldToScreenY(boss.y);
-  if (boss.type === "dragon") {
-    ctx.fillStyle = "#8a8e9f";
-    ctx.beginPath();
-    ctx.roundRect(x, y, boss.w, boss.h, 26);
-    ctx.fill();
-    ctx.strokeStyle = "#5a6070";
-    ctx.lineWidth = 8;
-    ctx.beginPath();
-    ctx.moveTo(x + boss.w - 16, y + boss.h - 14);
-    ctx.bezierCurveTo(x + boss.w + 60, y + 30, x + boss.w + 100, y + 120, x + boss.w + 132, y + 90);
-    ctx.stroke();
-    ctx.fillStyle = "#ffcc8c";
-    ctx.fillRect(x + 26, y + 26, 22, 18);
-    ctx.fillRect(x + 72, y + 26, 22, 18);
+  if (boss.type === "monarch") {
+    ctx.fillStyle = "rgba(0,0,0,0.22)";
+    ctx.fillRect(x + 18, y + boss.h + 4, boss.w - 24, 10);
+    ctx.fillStyle = "#20152a";
+    ctx.fillRect(x + 30, y + 30, 52, 44);
+    ctx.fillStyle = "#5a2340";
+    ctx.fillRect(x + 24, y + 18, 64, 22);
+    ctx.fillStyle = "#e6c6aa";
+    ctx.fillRect(x + 42, y + 8, 24, 18);
+    ctx.fillStyle = "#14151f";
+    ctx.fillRect(x + 38, y + 2, 32, 10);
+    ctx.fillStyle = "#8b2f55";
+    ctx.fillRect(x + 20, y + 24, 12, 52);
+    ctx.fillRect(x + 80, y + 24, 12, 52);
+    ctx.fillStyle = "#d9b14f";
+    ctx.fillRect(x + 44, y + 2, 20, 4);
+    ctx.fillRect(x + 38, y + 6, 6, 4);
+    ctx.fillRect(x + 64, y + 6, 6, 4);
+    ctx.fillStyle = "#7de4ff";
+    ctx.fillRect(x + 28, y + 46, 16, 8);
+    ctx.fillRect(x + 68, y + 46, 16, 8);
+    ctx.fillStyle = "#271828";
+    ctx.fillRect(x + 38, y + 74, 12, 28);
+    ctx.fillRect(x + 62, y + 74, 12, 28);
+    ctx.fillStyle = "#ffefbd";
+    ctx.fillRect(x + 8, y + 50, 18, 7);
+    ctx.fillRect(x + boss.w - 26, y + 50, 18, 7);
   } else if (boss.type === "graft") {
-    ctx.fillStyle = "#6c4736";
-    ctx.fillRect(x + 14, y + 14, boss.w - 28, boss.h - 20);
-    ctx.fillStyle = "#bf8752";
-    ctx.fillRect(x, y, boss.w, 30);
-    ctx.strokeStyle = "#e2b076";
-    ctx.lineWidth = 3;
-    ctx.strokeRect(x, y, boss.w, 30);
-    ctx.beginPath();
-    ctx.moveTo(x + boss.w / 2, y);
-    ctx.lineTo(x + boss.w / 2, y + 30);
-    ctx.moveTo(x, y + 15);
-    ctx.lineTo(x + boss.w, y + 15);
-    ctx.stroke();
-    ctx.fillStyle = "#ffcf78";
-    ctx.fillRect(x + 26, y + 44, 26, 10);
-    ctx.fillRect(x + 72, y + 44, 26, 10);
+    ctx.fillStyle = "rgba(0,0,0,0.2)";
+    ctx.fillRect(x + 16, y + boss.h + 6, boss.w - 24, 8);
+    ctx.fillStyle = "#2c3242";
+    ctx.fillRect(x + 34, y + 26, 56, 42);
+    ctx.fillStyle = "#616f86";
+    ctx.fillRect(x + 28, y + 10, 68, 22);
+    ctx.fillStyle = "#cfd6df";
+    ctx.fillRect(x + 46, y + 2, 28, 18);
+    ctx.fillStyle = "#171a24";
+    ctx.fillRect(x + 44, y - 4, 32, 8);
+    ctx.fillStyle = "#f04f66";
+    ctx.fillRect(x + 36, y + 18, 12, 8);
+    ctx.fillRect(x + 74, y + 18, 12, 8);
+    ctx.fillStyle = "#7789a8";
+    ctx.fillRect(x + 16, y + 26, 16, 52);
+    ctx.fillRect(x + 92, y + 26, 16, 52);
+    ctx.fillStyle = boss.attack === "telegraph" ? "#ffd989" : "#ffc965";
+    ctx.fillRect(x + 10, y + 44, 28, 10);
+    ctx.fillRect(x + boss.w - 38, y + 44, 28, 10);
+    ctx.fillStyle = "#a9cfff";
+    ctx.fillRect(x + 48, y + 36, 14, 10);
+    ctx.fillRect(x + 68, y + 36, 14, 10);
+    ctx.fillStyle = "#2a2231";
+    ctx.fillRect(x + 44, y + 68, 12, 28);
+    ctx.fillRect(x + 72, y + 68, 12, 28);
+    ctx.fillStyle = "#9ea9bb";
+    ctx.fillRect(x + 38, y + 78, 10, 24);
+    ctx.fillRect(x + 78, y + 78, 10, 24);
+    if (boss.attack === "telegraph") {
+      ctx.fillStyle = "rgba(255,216,141,0.25)";
+      ctx.fillRect(x - 10, y - 6, boss.w + 20, boss.h + 12);
+    }
   } else if (boss.type === "rivet") {
-    ctx.fillStyle = "#7d454f";
-    ctx.fillRect(x + 18, y + 20, 86, 40);
-    ctx.fillStyle = "#a46345";
-    ctx.fillRect(x + 40, y + 10, 58, 24);
-    ctx.fillStyle = "#3c2119";
-    ctx.fillRect(x + 100, y + 20, 30, 18);
-    ctx.fillRect(x + 8, y + 32, 18, 12);
-    ctx.fillStyle = "#d89a64";
-    ctx.fillRect(x + 48, y + 18, 10, 10);
-    ctx.fillRect(x + 80, y + 18, 10, 10);
-    ctx.fillStyle = "#f4cc8f";
-    ctx.fillRect(x + 124, y + 22, 12, 8);
-    ctx.fillStyle = "#2e171b";
-    ctx.fillRect(x + 44, y + 62, 10, 16);
-    ctx.fillRect(x + 82, y + 62, 10, 16);
-    ctx.fillRect(x + 112, y + 58, 10, 14);
-    ctx.fillStyle = "#ffdfaa";
-    ctx.fillRect(x - 10, y + 48, 16, 6);
-    ctx.fillRect(x + boss.w - 6, y + 48, 16, 6);
+    const bodyFlash = boss.slamFlash > 0 ? "#ffd1a1" : "#84424b";
+    ctx.fillStyle = "rgba(0,0,0,0.22)";
+    ctx.fillRect(x + 40, y + boss.h + 1, boss.w - 70, 12);
+    ctx.fillStyle = bodyFlash;
+    ctx.fillRect(x + 72, y + 34, 74, 34);
+    ctx.fillRect(x + 104, y + 18, 50, 22);
+    ctx.fillStyle = "#6a343c";
+    ctx.fillRect(x + 44, y + 26, 34, 12);
+    ctx.fillRect(x + 144, y + 42, 30, 12);
+    ctx.fillRect(x + 22, y + 18, 24, 10);
+    ctx.fillStyle = "#a86c44";
+    ctx.fillRect(x + 14, y + 22, 28, 14);
+    ctx.fillRect(x + 170, y + 42, 26, 12);
+    ctx.fillRect(x + 56, y + 58, 14, 8);
+    ctx.fillStyle = "#d8a76d";
+    ctx.fillRect(x + 116, y + 24, 32, 10);
+    ctx.fillRect(x + 16, y + 24, 12, 8);
+    ctx.fillStyle = "#332029";
+    ctx.fillRect(x + 176, y + 44, 22, 10);
+    ctx.fillRect(x + 10, y + 22, 8, 6);
+    ctx.fillStyle = "#f6d59c";
+    ctx.fillRect(x + 138, y + 28, 8, 5);
+    ctx.fillStyle = "#ffb454";
+    ctx.fillRect(x + 114, y + 22, 6, 6);
+    ctx.fillRect(x + 128, y + 22, 6, 6);
+    ctx.fillStyle = "#3b1f26";
+    ctx.fillRect(x + 88, y + 68, 18, 46);
+    ctx.fillRect(x + 120, y + 66, 20, 48);
+    ctx.fillRect(x + 66, y + 50, 10, 14);
+    ctx.fillRect(x + 76, y + 50, 8, 12);
+    ctx.fillStyle = "#7b4d31";
+    ctx.fillRect(x + 66, y + 60, 96, 6);
+    ctx.fillRect(x + 38, y + 28, 30, 6);
+    ctx.fillRect(x + 30, y + 20, 18, 5);
+    ctx.fillRect(x + 150, y + 20, 16, 8);
+    ctx.fillRect(x + 166, y + 22, 14, 10);
+    ctx.fillStyle = boss.attack === "telegraph" ? "#ffefb8" : "#d6a370";
+    ctx.fillRect(x + 4, y + 26, 16, 7);
+    ctx.fillRect(x + boss.w - 20, y + 48, 16, 7);
+    ctx.fillStyle = "#d2d8e6";
+    ctx.fillRect(x + 92, y + 36, 2, 30);
+    ctx.fillRect(x + 118, y + 34, 2, 32);
+    ctx.fillRect(x + 146, y + 20, 2, 18);
+    if (boss.attack === "telegraph") {
+      ctx.fillStyle = "rgba(255,224,160,0.35)";
+      ctx.fillRect(x - 14, y + 10, boss.w + 28, boss.h - 12);
+    }
   } else {
     ctx.fillStyle = "#5d8ad1";
     ctx.beginPath();
@@ -1871,9 +2482,43 @@ function drawProjectile(projectile) {
   const x = worldToScreen(projectile.x);
   const y = worldToScreenY(projectile.y);
   ctx.fillStyle = projectile.color;
-  ctx.beginPath();
-  ctx.arc(x + projectile.w / 2, y + projectile.h / 2, projectile.w / 2, 0, Math.PI * 2);
-  ctx.fill();
+  if (projectile.owner === "player") {
+    ctx.fillRect(x, y, projectile.w, projectile.h);
+    ctx.fillStyle = "#eaffff";
+    ctx.fillRect(x, y + 2, projectile.w, 4);
+  } else if (projectile.owner === "boss-missile" || projectile.owner === "reflected") {
+    ctx.fillRect(x + 4, y + 4, projectile.w - 8, projectile.h - 8);
+    ctx.fillStyle = projectile.owner === "reflected" ? "#fffbe0" : "#d7dde8";
+    ctx.fillRect(x + 1, y + 6, 6, projectile.h - 12);
+    ctx.fillStyle = projectile.owner === "reflected" ? "#ffd56e" : "#ff884d";
+    ctx.beginPath();
+    ctx.moveTo(x + projectile.w - 4, y + projectile.h / 2);
+    ctx.lineTo(x + projectile.w + 8, y + 4);
+    ctx.lineTo(x + projectile.w + 8, y + projectile.h - 4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = projectile.owner === "reflected" ? "#fffbe0" : "#ffc965";
+    ctx.fillRect(x + 8, y + 8, projectile.w - 14, 3);
+  } else {
+    ctx.beginPath();
+    ctx.arc(x + projectile.w / 2, y + projectile.h / 2, projectile.w / 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawBossArenaMarkers() {
+  if (!state.level?.boss) return;
+  if (state.level.boss.type === "graft") return;
+  const startX = worldToScreen(state.level.boss.arenaStart);
+  const endX = worldToScreen(state.level.boss.arenaEnd);
+  ctx.fillStyle = "rgba(255,214,125,0.18)";
+  ctx.fillRect(startX - 8, 40, 16, HEIGHT - 84);
+  ctx.fillRect(endX - 8, 40, 16, HEIGHT - 84);
+  ctx.fillStyle = "rgba(255,239,189,0.46)";
+  for (let y = 60; y < HEIGHT - 60; y += 28) {
+    ctx.fillRect(startX - 8, y, 16, 8);
+    ctx.fillRect(endX - 8, y, 16, 8);
+  }
 }
 
 function drawWindZone(zone) {
@@ -1899,12 +2544,17 @@ function drawPlayer() {
 
   const moving = Math.abs(player.vx) > 10;
   const gliding = player.glideTime > 0;
+  const crouching = player.crouching;
   const legOffset = moving ? Math.sin(player.walkCycle) * 4 : 0;
   const armOffset = moving ? Math.cos(player.walkCycle) * 3 : 0;
   const trailSign = gliding ? -player.facing : moving ? -Math.sign(player.vx) : 0;
   const capeSpread = gliding ? 46 : moving ? 24 : 8;
-  const capeLift = gliding ? -8 : moving ? -2 : 12;
-  const capeHem = gliding ? 28 : moving ? 50 : 62;
+  const capeLift = gliding ? -8 : moving ? -2 : crouching ? 12 : 12;
+  const capeHem = gliding ? 28 : moving ? 50 : crouching ? 62 : 62;
+  const torsoY = crouching ? y + 50 : y + 34;
+  const headY = crouching ? y + 40 : y + 24;
+  const legY = crouching ? y + 70 : y + 60;
+  const boxY = crouching ? y + 24 : y + 8;
 
   ctx.fillStyle = "rgba(0,0,0,0.18)";
   ctx.beginPath();
@@ -1924,9 +2574,9 @@ function drawPlayer() {
       [x + 18, y + 20],
       [x + 18 + (capeSpread * trailSign), y + 18 + capeLift],
       [x + 8 + (capeSpread * trailSign), y + capeHem],
-      [x + 16, y + 68],
-      [x + 34, y + 60],
-      [x + 32, y + 30],
+      [x + 16, y + (crouching ? 72 : 68)],
+      [x + 34, y + (crouching ? 64 : 60)],
+      [x + 32, y + (crouching ? 42 : 30)],
     ];
 
   ctx.save();
@@ -1955,57 +2605,57 @@ function drawPlayer() {
   ctx.stroke();
 
   ctx.fillStyle = "#20293f";
-  ctx.fillRect(x + 11, y + 34, 18, 28);
+  ctx.fillRect(x + 11, torsoY, 18, crouching ? 16 : 28);
   ctx.fillStyle = "#e0b08a";
-  ctx.fillRect(x + 14, y + 24, 12, 10);
+  ctx.fillRect(x + 14, headY, 12, 10);
   ctx.fillStyle = "#2f3953";
-  ctx.fillRect(x + 9, y + 60, 10, 20);
-  ctx.fillRect(x + 21, y + 60, 10, 20);
+  ctx.fillRect(x + 9, legY, 10, crouching ? 12 : 20);
+  ctx.fillRect(x + 21, legY, 10, crouching ? 12 : 20);
   ctx.fillStyle = "#4d5c82";
-  ctx.fillRect(x + 9, y + 34, 22, 10);
-  ctx.fillRect(x + 7, y + 44, 26, 8);
+  ctx.fillRect(x + 9, torsoY, 22, 10);
+  ctx.fillRect(x + 7, torsoY + 10, 26, 8);
   ctx.fillStyle = "#f0d4bc";
-  ctx.fillRect(x + 3 - armOffset * 0.25, y + 46 + armOffset * 0.15, 6, 11);
-  ctx.fillRect(x + 31 - armOffset * 0.25, y + 46 - armOffset * 0.15, 6, 11);
+  ctx.fillRect(x + 3 - armOffset * 0.25, torsoY + 12 + armOffset * 0.15, 6, 11);
+  ctx.fillRect(x + 31 - armOffset * 0.25, torsoY + 12 - armOffset * 0.15, 6, 11);
   ctx.fillStyle = "#c79663";
-  ctx.fillRect(x - 1 + armOffset * 0.3, y + 44 + armOffset * 0.15, 10, 14);
-  ctx.fillRect(x + 31 + armOffset * 0.3, y + 44 - armOffset * 0.15, 10, 14);
-  ctx.fillRect(x + 7, y + 76 + legOffset, 12, 10);
-  ctx.fillRect(x + 21, y + 76 - legOffset, 12, 10);
+  ctx.fillRect(x - 1 + armOffset * 0.3, torsoY + 10 + armOffset * 0.15, 10, 14);
+  ctx.fillRect(x + 31 + armOffset * 0.3, torsoY + 10 - armOffset * 0.15, 10, 14);
+  ctx.fillRect(x + 7, y + (crouching ? 82 : 76) + legOffset, 12, 10);
+  ctx.fillRect(x + 21, y + (crouching ? 82 : 76) - legOffset, 12, 10);
   ctx.fillStyle = "#7f5735";
   ctx.fillRect(x + 7, y + 86 + legOffset, 12, 8);
   ctx.fillRect(x + 21, y + 86 - legOffset, 12, 8);
 
   ctx.fillStyle = "#c79663";
-  ctx.fillRect(x + 6, y + 8, 28, 24);
+  ctx.fillRect(x + 6, boxY, 28, 24);
   ctx.strokeStyle = "#7d552f";
   ctx.lineWidth = 2;
-  ctx.strokeRect(x + 6, y + 8, 28, 24);
+  ctx.strokeRect(x + 6, boxY, 28, 24);
   ctx.beginPath();
-  ctx.moveTo(x + 20, y + 8);
-  ctx.lineTo(x + 20, y + 32);
-  ctx.moveTo(x + 6, y + 20);
-  ctx.lineTo(x + 34, y + 20);
+  ctx.moveTo(x + 20, boxY);
+  ctx.lineTo(x + 20, boxY + 24);
+  ctx.moveTo(x + 6, boxY + 12);
+  ctx.lineTo(x + 34, boxY + 12);
   ctx.stroke();
   ctx.fillStyle = "#4c2e1a";
-  ctx.fillRect(x + 12, y + 16, 16, 4);
+  ctx.fillRect(x + 12, boxY + 8, 16, 4);
   ctx.fillStyle = "#f0e2cb";
-  ctx.fillRect(x + 16, y + 34, 8, 4);
+  ctx.fillRect(x + 16, headY + 10, 8, 4);
   ctx.fillStyle = "#8d633b";
-  ctx.fillRect(x - 2 + armOffset * 0.3, y + 46 + armOffset * 0.15, 4, 8);
-  ctx.fillRect(x + 38 + armOffset * 0.3, y + 46 - armOffset * 0.15, 4, 8);
-  ctx.fillRect(x + 8, y + 78 + legOffset, 4, 8);
-  ctx.fillRect(x + 28, y + 78 - legOffset, 4, 8);
+  ctx.fillRect(x - 2 + armOffset * 0.3, torsoY + 12 + armOffset * 0.15, 4, 8);
+  ctx.fillRect(x + 38 + armOffset * 0.3, torsoY + 12 - armOffset * 0.15, 4, 8);
+  ctx.fillRect(x + 8, y + (crouching ? 84 : 78) + legOffset, 4, 8);
+  ctx.fillRect(x + 28, y + (crouching ? 84 : 78) - legOffset, 4, 8);
   ctx.fillStyle = "#f0e2cb";
-  ctx.fillRect(x + 11, y + 35, 2, 14);
-  ctx.fillRect(x + 27, y + 35, 2, 14);
+  ctx.fillRect(x + 11, torsoY + 1, 2, 14);
+  ctx.fillRect(x + 27, torsoY + 1, 2, 14);
 
   if (player.punchTimer > 0) {
-    const punchX = player.punchSide === "right" ? x + 37 : x - 11;
+    const punchX = player.punchSide === "right" ? x + 45 : x - 19;
     ctx.fillStyle = "#e0b08a";
-    ctx.fillRect(punchX, y + 46, 8, 6);
+    ctx.fillRect(punchX, torsoY + 12, 14, 6);
     ctx.fillStyle = "#c79663";
-    ctx.fillRect(player.punchSide === "right" ? x + 33 : x - 7, y + 44, 12, 10);
+    ctx.fillRect(player.punchSide === "right" ? x + 33 : x - 15, torsoY + 10, 20, 10);
   }
   ctx.restore();
 }
@@ -2044,9 +2694,9 @@ function drawShortcutSign(sign) {
 function drawOnScreenPrompt() {
   drawPanel(18, 18, 390, 98, "rgba(255,255,255,0.76)");
   ctx.fillStyle = "#17345f";
-  ctx.font = "700 20px Trebuchet MS";
+  ctx.font = "700 20px Verdana";
   ctx.fillText(state.level.name, 34, 46);
-  ctx.font = "14px Trebuchet MS";
+  ctx.font = "15px Verdana";
   drawWrappedText(getPriorityText(), 34, 72, 340, 16, "#17345f");
 
   if (state.boss) {
@@ -2054,14 +2704,14 @@ function drawOnScreenPrompt() {
     ctx.fillStyle = "#ff936e";
     ctx.fillRect(638, 26, (state.boss.hp / state.boss.maxHp) * 266, 16);
     ctx.fillStyle = "#17345f";
-    ctx.font = "700 12px Trebuchet MS";
+    ctx.font = "700 12px Verdana";
     ctx.fillText(state.boss.name.toUpperCase(), 644, 40);
   }
 
-  drawPanel(392, 18, 202, 32, "rgba(255, 220, 118, 0.96)");
+  drawPanel(372, 18, 258, 32, "rgba(255, 220, 118, 0.96)");
   ctx.fillStyle = "#17345f";
-  ctx.font = "700 14px Trebuchet MS";
-  ctx.fillText("F = LEFT  G = RIGHT", 410, 39);
+  ctx.font = "700 13px Verdana";
+  ctx.fillText("F/G PUNCH   HOLD FOR LASER", 386, 39);
 }
 
 function drawObjectiveArrow() {
@@ -2119,6 +2769,7 @@ function drawGame() {
   drawParallax(state.level.background);
   for (const zone of getWindZones()) drawWindZone(zone);
   for (const platform of getPlatforms()) drawPlatform(platform);
+  drawBossArenaMarkers();
   for (const hole of getManholes()) drawManhole(hole);
   for (const hazard of getHazards()) drawHazard(hazard);
   for (const sign of getShortcutSigns()) drawShortcutSign(sign);
@@ -2147,26 +2798,32 @@ function drawGame() {
 
 function drawStoryCard() {
   drawParallax(levels[Math.min(state.levelIndex, levels.length - 1)].background);
-  drawPanel(112, 78, 736, 340, "rgba(255,255,255,0.82)");
+  drawPanel(88, 54, 784, 388, "rgba(255,255,255,0.92)");
   ctx.fillStyle = "#17345f";
-  ctx.font = "800 42px Trebuchet MS";
-  drawWrappedText(storyBeats[state.storyCard].title, 154, 142, 640, 42, "#17345f");
-  ctx.font = "18px Trebuchet MS";
-  let cy = drawWrappedText(storyBeats[state.storyCard].body, 154, 212, 640, 24, "#17345f");
-  cy += 18;
-  drawWrappedText(state.level.story, 154, cy, 640, 24, "#17345f");
-  drawButton(248, 440, 464, 48, "PRESS ENTER TO PLAY THE NEXT LEVEL", "700 18px Trebuchet MS");
+  ctx.font = "700 16px Trebuchet MS";
+  ctx.fillText(state.level.chapter, 128, 96);
+  ctx.font = "800 38px Verdana";
+  drawWrappedText(storyBeats[state.storyCard].title, 128, 138, 690, 40, "#17345f");
+  ctx.font = "18px Verdana";
+  let cy = drawWrappedText(storyBeats[state.storyCard].body, 128, 198, 690, 28, "#17345f");
+  drawPanel(124, cy + 8, 702, 114, "rgba(19,52,95,0.08)");
+  ctx.font = "700 16px Trebuchet MS";
+  ctx.fillStyle = "#17345f";
+  ctx.fillText(state.level.name, 146, cy + 36);
+  ctx.font = "18px Verdana";
+  cy = drawWrappedText(state.level.story, 146, cy + 64, 664, 26, "#17345f");
+  drawButton(224, 454, 512, 48, "PRESS ENTER TO START THE STAGE", "700 18px Trebuchet MS");
 }
 
 function drawTitle() {
   drawParallax("skyline-sunset");
   drawPanel(138, 84, 694, 336, "rgba(255,255,255,0.82)");
   ctx.fillStyle = "#17345f";
-  ctx.font = "800 52px Trebuchet MS";
+  ctx.font = "800 52px Verdana";
   ctx.fillText("BOX BOY", 352, 152);
-  ctx.font = "800 28px Trebuchet MS";
+  ctx.font = "800 28px Verdana";
   ctx.fillText("Rise Against Monarch", 330, 190);
-  ctx.font = "18px Trebuchet MS";
+  ctx.font = "18px Verdana";
   drawWrappedText("A story-mode platformer about a powerless hero trying to defeat the biggest villain in the city and prove he belongs in the skyline.", 154, 242, 632, 24, "#17345f");
   drawWrappedText("Run, jump, double jump, glide with the blanket cape, clear parkour routes, rescue civilians, and fight through Monarch's districts.", 154, 288, 632, 24, "#17345f");
   drawWrappedText("Controls: move with WASD or arrows, jump with Space, jump again for a double jump, hold Space to glide, punch with F and G. Press Escape anytime to open the city map.", 146, 334, 644, 22, "#17345f");
@@ -2175,26 +2832,38 @@ function drawTitle() {
 
 function drawStatusScreen(title, body) {
   drawParallax("civic-night");
-  drawPanel(190, 140, 580, 240, "rgba(255,247,220,0.94)");
+  ctx.font = "18px Verdana";
+  const bodyHeight = Math.max(24, Math.ceil(ctx.measureText(body).width / 534) * 24);
+  const outroText = state.scene === scenes.levelClear ? (state.level?.outro || "") : "";
+  const outroHeight = outroText ? Math.max(22, Math.ceil(ctx.measureText(outroText).width / 500) * 22) : 0;
+  const outroPanelHeight = outroText ? outroHeight + 32 : 0;
+  const contentHeight = 144 + bodyHeight + (outroText ? outroPanelHeight + 20 : 0) + 88;
+  const panelHeight = Math.max(286, contentHeight);
+  const panelY = Math.max(62, Math.floor((HEIGHT - panelHeight) / 2));
+  drawPanel(160, panelY, 640, panelHeight, "rgba(255,247,220,0.95)");
   ctx.fillStyle = "#17345f";
-  ctx.font = "800 34px Trebuchet MS";
+  ctx.font = "800 34px Verdana";
   ctx.textAlign = "center";
-  ctx.fillText(title, 480, 212);
+  ctx.fillText(title, 480, panelY + 94);
   ctx.textAlign = "left";
-  ctx.font = "18px Trebuchet MS";
-  const cy = drawWrappedText(body, 236, 256, 490, 24, "#17345f");
-  ctx.fillText(`Total rescues: ${state.totalRescues}`, 236, cy + 10);
-  ctx.fillText(`Enemies punched out: ${state.totalDefeats}`, 236, cy + 38);
-  ctx.fillText("Press Enter to continue.", 236, cy + 68);
+  ctx.font = "18px Verdana";
+  let cy = drawWrappedText(body, 214, panelY + 130, 534, 24, "#17345f");
+  if (outroText) {
+    drawPanel(208, cy + 14, 544, outroPanelHeight, "rgba(19,52,95,0.08)");
+    cy = drawWrappedText(outroText, 228, cy + 40, 500, 22, "#17345f");
+  }
+  ctx.fillText(`Total rescues: ${state.totalRescues}`, 214, cy + 18);
+  ctx.fillText(`Enemies defeated: ${state.totalDefeats}`, 214, cy + 46);
+  ctx.fillText("Press Enter to continue.", 214, cy + 78);
 }
 
 function drawMapScreen() {
   drawParallax("civic-night");
   drawPanel(54, 42, 852, 456, "rgba(255,255,255,0.82)");
   ctx.fillStyle = "#17345f";
-  ctx.font = "800 42px Trebuchet MS";
+  ctx.font = "800 42px Verdana";
   ctx.fillText("City Map", 92, 98);
-  ctx.font = "16px Trebuchet MS";
+  ctx.font = "16px Verdana";
   drawWrappedText("Choose a level. Locked stages open after you clear the previous one. Press Enter to play. Press Escape to leave the map.", 92, 128, 780, 22, "#17345f");
 
   const nodes = [
@@ -2298,7 +2967,7 @@ function renderMission() {
     mission.innerHTML = `
       <h2>Story Mode</h2>
       <p>This version is now a 12-level side-scrolling platformer with city backgrounds, route gimmicks, heavy guards, boss fights, and story cards between acts.</p>
-      <p class="tiny">Jump with <kbd>Space</kbd>. Press <kbd>Space</kbd> again in midair to double jump. Hold <kbd>Space</kbd> while falling to glide. Press <kbd>F</kbd> for left punch and <kbd>G</kbd> for right punch.</p>
+      <p class="tiny">Jump with <kbd>Space</kbd>. Press <kbd>Space</kbd> again in midair to double jump. Hold <kbd>Space</kbd> while falling to glide. Tap <kbd>F</kbd> or <kbd>G</kbd> to punch, or hold them to fire a laser.</p>
       <div class="legend-grid">
         <div class="legend-chip legend-star">Jump on enemies to bounce</div>
         <div class="legend-chip legend-toy">Green = civilian</div>
@@ -2339,7 +3008,7 @@ function renderMission() {
     ${state.level.boss ? checklistItem(!state.boss, `Defeat ${state.level.boss.name}`) : ""}
     ${checklistItem(state.player.rescues >= state.level.civiliansTarget && !state.boss, `Reach the end beacon`)}
     <p><strong>Status:</strong> ${state.message}</p>
-      <p class="tiny">Stomp enemies to bounce, punch them with <kbd>F</kbd> or <kbd>G</kbd>, use spring pads, moving lifts, wind lanes, and hidden manhole sewer shortcuts, and watch for heavy guards that take multiple hits.</p>
+      <p class="tiny">Stomp enemies to bounce, tap <kbd>F</kbd>/<kbd>G</kbd> to punch, hold them to fire lasers, use crouch tunnels, moving lifts, wind lanes, and hidden sewer shortcuts, and watch for heavy guards that take multiple hits.</p>
   `;
 }
 
@@ -2347,6 +3016,7 @@ function frame(time) {
   const dt = Math.min(0.033, (time - state.lastTime) / 1000 || 0.016);
   state.lastTime = time;
   if (state.scene === scenes.playing) updateGame(dt);
+  updateMusic();
   renderScene();
   renderHud();
   renderMission();
@@ -2355,6 +3025,7 @@ function frame(time) {
 
 window.addEventListener("keydown", (event) => {
   if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space", "Escape"].includes(event.code)) event.preventDefault();
+  ensureAudio();
   const wasHeld = keys.has(event.code);
   keys.add(event.code);
 
@@ -2411,17 +3082,23 @@ window.addEventListener("keydown", (event) => {
     state.player.jumpsLeft -= 1;
   }
 
-  if (event.code === "KeyF") {
-    startPunch("left");
+  if (event.code === "KeyF" && !wasHeld) {
+    beginPunchHold("left");
   }
 
-  if (event.code === "KeyG") {
-    startPunch("right");
+  if (event.code === "KeyG" && !wasHeld) {
+    beginPunchHold("right");
   }
 });
 
 window.addEventListener("keyup", (event) => {
   keys.delete(event.code);
+  if (event.code === "KeyF") endPunchHold("left");
+  if (event.code === "KeyG") endPunchHold("right");
+});
+
+window.addEventListener("pointerdown", () => {
+  ensureAudio();
 });
 
 loadSave();

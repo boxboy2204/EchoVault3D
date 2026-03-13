@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Echo Vault 3D</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Browser FPS Prototype</p>
+        <h1>Echo Vault 3D</h1>
+        <p class="subtitle">Collect power cores, survive the sentries, and reach the exit before the vault seals.</p>
+      </div>
+      <div class="controls">
+        <span><strong>Move</strong> WASD</span>
+        <span><strong>Look</strong> Mouse X/Y</span>
+        <span><strong>Shoot</strong> Click</span>
+        <span><strong>Pause</strong> Esc</span>
+        <span><strong>Difficulty</strong> 1 / 2 / 3</span>
+      </div>
+    </section>
+
+    <section class="lobby">
+      <div class="menu-actions">
+        <button id="deployBtn" type="button">Deploy</button>
+        <button id="shopBtn" type="button">Gun Shop</button>
+        <button id="mapsBtn" type="button">Maps</button>
+      </div>
+      <section class="loadout-panel" id="loadoutPanel" aria-live="polite"></section>
+    </section>
+
+    <section class="game-panel">
+      <canvas id="game" width="960" height="540" aria-label="Echo Vault 3D game view"></canvas>
+      <div class="hud">
+        <div class="stat">
+          <span class="label">Health</span>
+          <span class="value" id="health">100</span>
+        </div>
+        <div class="stat">
+          <span class="label">Cores</span>
+          <span class="value" id="cores">0 / 4</span>
+        </div>
+        <div class="stat">
+          <span class="label">Ammo</span>
+          <span class="value" id="ammo">12</span>
+        </div>
+        <div class="stat">
+          <span class="label">Time</span>
+          <span class="value" id="time">90.0</span>
+        </div>
+      </div>
+      <div class="prompt" id="prompt">
+        Click the viewport to lock the cursor and enter the vault.
+      </div>
+    </section>
+  </main>
+
+  <script src="./game.js"></script>
+</body>
+</html>
