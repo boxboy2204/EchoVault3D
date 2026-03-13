@@ -1948,7 +1948,7 @@ function frame(now) {
     } else {
       updatePlayer(dt);
       updateEnemies(dt);
-      hud.time.textContent = state.timeLeft.toFixed(1);
+      hud.time.textContent = state.bossArenaActive ? "BOSS" : state.timeLeft.toFixed(1);
       hud.health.textContent = `${Math.max(0, Math.ceil(state.health))}${state.shield > 0 ? ` +${Math.ceil(state.shield)}` : ""}`;
     }
   }

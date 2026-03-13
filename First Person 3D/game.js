@@ -432,7 +432,7 @@ function syncHud() {
   hud.health.textContent = `${Math.max(0, Math.ceil(state.health))}${shieldText}`;
   hud.cores.textContent = `${state.coresCollected} / ${state.totalCores}`;
   hud.ammo.textContent = state.ammo;
-  hud.time.textContent = state.timeLeft.toFixed(1);
+  hud.time.textContent = state.bossArenaActive ? "BOSS" : state.timeLeft.toFixed(1);
   hud.prompt.textContent = state.message;
 }
 
@@ -620,10 +620,25 @@ function activateBossArena() {
   state.projectiles = [];
   state.combatEffects = [];
   state.enemies = [boss];
+  state.pickups = [];
   boss.x = getMapDef().boss.arenaX || 10.5;
   boss.y = getMapDef().boss.arenaY || 4.5;
   boss.patrol = [{ x: 7.5, y: boss.y }, { x: 13.5, y: boss.y }];
   boss.patrolIndex = 1;
+  const arenaSupplies = [
+    { kind: "ammo", x: 3.5, y: 17.2 },
+    { kind: "medkit", x: 5.5, y: 12.5 },
+    { kind: "ammo", x: 7.5, y: 17.1 },
+    { kind: "medkit", x: 8.5, y: 4.6 },
+    { kind: "ammo", x: 10.5, y: 10.4 },
+    { kind: "medkit", x: 12.5, y: 4.6 },
+    { kind: "ammo", x: 13.5, y: 17.1 },
+    { kind: "medkit", x: 15.5, y: 12.5 },
+    { kind: "ammo", x: 17.5, y: 17.2 }
+  ];
+  for (const supply of arenaSupplies) {
+    state.pickups.push({ ...supply, taken: false, arenaOnly: true });
+  }
   state.message = "Arena breach. Boss isolated. Use the cover blocks.";
   syncHud();
 }
@@ -1350,7 +1365,9 @@ function drawEnemy(projected, enemy) {
   const def = ENEMY_DEFS[enemy.type];
   const alpha = Math.max(0.35, 1 - projected.distance / MAX_DEPTH);
   const hitBoost = (enemy.hitFlash || 0) * 0.35;
-  const pose = getEnemyPose(projected, enemy);
+  const bossHeightScale = enemy.type === "frost_tyrant" ? 1.52 : 1;
+  const scaledProjected = bossHeightScale !== 1 ? { ...projected, size: projected.size * bossHeightScale } : projected;
+  const pose = getEnemyPose(scaledProjected, enemy);
   const { bodyW, bodyH, left, groundY, top } = pose;
   const pulse = 0.75 + Math.sin(performance.now() * 0.008 + enemy.x + enemy.y) * 0.25;
 
@@ -1361,7 +1378,7 @@ function drawEnemy(projected, enemy) {
   if (enemy.isBoss) {
     ctx.fillStyle = `rgba(0, 0, 0, ${alpha * 0.26})`;
     ctx.beginPath();
-    ctx.ellipse(projected.screenX, groundY + projected.size * 0.04, bodyW * 0.98, projected.size * 0.1, 0, 0, Math.PI * 2);
+    ctx.ellipse(projected.screenX, groundY + scaledProjected.size * 0.04, bodyW * 0.98, scaledProjected.size * 0.08, 0, 0, Math.PI * 2);
     ctx.fill();
 
     if (enemy.type === "warden") {
@@ -1442,7 +1459,7 @@ function drawEnemy(projected, enemy) {
       ctx.stroke();
     }
 
-    const weakPoints = getBossWeakpointScreenPositions(projected, enemy);
+    const weakPoints = getBossWeakpointScreenPositions(scaledProjected, enemy);
     for (const point of weakPoints) {
       const active = point.active;
       const halo = ctx.createRadialGradient(point.screenX, point.screenY, 0, point.screenX, point.screenY, point.screenRadius * 2.2);
@@ -1459,10 +1476,10 @@ function drawEnemy(projected, enemy) {
     }
 
     ctx.strokeStyle = "rgba(255,255,255,0.82)";
-    ctx.strokeRect(projected.screenX - projected.size * 0.22, top - 18, projected.size * 0.44, 6);
+    ctx.strokeRect(projected.screenX - scaledProjected.size * 0.22, top - 18, scaledProjected.size * 0.44, 6);
     ctx.fillStyle = `rgba(255, 120, 120, 0.85)`;
     const healthRatio = Math.max(0, enemy.health / (enemy.maxHealth || enemy.health));
-    ctx.fillRect(projected.screenX - projected.size * 0.22, top - 18, projected.size * 0.44 * healthRatio, 6);
+    ctx.fillRect(projected.screenX - scaledProjected.size * 0.22, top - 18, scaledProjected.size * 0.44 * healthRatio, 6);
     return;
   }
 
@@ -1910,7 +1927,9 @@ function frame(now) {
   lastFrame = now;
 
   if (state.status === "playing") {
-    state.timeLeft -= dt;
+    if (!state.bossArenaActive) {
+      state.timeLeft -= dt;
+    }
     state.cooldown = Math.max(0, state.cooldown - dt);
     state.hurtFlash = Math.max(0, state.hurtFlash - dt);
     state.muzzleFlash = Math.max(0, state.muzzleFlash - dt);
@@ -1921,7 +1940,7 @@ function frame(now) {
     updateEnemyProjectiles(dt);
     updateCombatEffects(dt);
 
-    if (state.timeLeft <= 0) {
+    if (!state.bossArenaActive && state.timeLeft <= 0) {
       state.timeLeft = 0;
       state.status = "lost";
       state.message = "Vault sealed shut. Press Enter to redeploy.";
@@ -1929,7 +1948,7 @@ function frame(now) {
     } else {
       updatePlayer(dt);
       updateEnemies(dt);
-      hud.time.textContent = state.timeLeft.toFixed(1);
+      hud.time.textContent = state.bossArenaActive ? "BOSS" : state.timeLeft.toFixed(1);
       hud.health.textContent = `${Math.max(0, Math.ceil(state.health))}${state.shield > 0 ? ` +${Math.ceil(state.shield)}` : ""}`;
     }
   }
