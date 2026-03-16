@@ -10,8 +10,8 @@ Box Boy is on a mission to prove he can be a hero without superpowers. He runs a
 
 - `WASD` / arrow keys: move
 - `Space`: jump, then hold to glide
-- `F`: left punch
-- `G`: right punch
+- `J`: left punch
+- `K`: right punch
 - `Enter`: start or restart
 - `Escape`: open the city map
 

@@ -15,7 +15,7 @@ const audio = {
   intervalId: null,
   step: 0,
 };
-const AUTHORED_LEVELS = new Set(["alley-run", "train-yard", "signal-bridge"]);
+const AUTHORED_LEVELS = new Set(["alley-run", "train-yard", "signal-bridge", "midtown-rise", "skyline-arc"]);
 
 const GRAVITY = 1800;
 const MOVE_SPEED = 265;
@@ -228,100 +228,122 @@ const levels = [
     id: "midtown-rise",
     name: "Level 4: Midtown Rise",
     chapter: "Act 2: Midtown Pressure",
-    goal: "Climb the district towers, use moving billboards, and rescue 4 civilians.",
+    goal: "Cross the billboard district, ride the moving signs, crouch through service ducts, and rescue 4 civilians.",
     story:
       "Now the whole district is watching. Box Boy pushes higher into Midtown because every rooftop cleared gets him one step closer to Monarch's tower.",
+    introDialog: "A whole crowd is looking up from Midtown now. If Box Boy can clear the sign district in public, Monarch's people lose the room.",
     background: "midtown-noon",
     civiliansTarget: 4,
-    endX: 4680,
+    outro: "Midtown watches Box Boy string together one real save after another. The city stops treating him like a joke and starts following him block to block.",
+    endX: 6180,
     platforms: [
-      { x: 0, y: 520, w: 4900, h: 140, type: "ground" },
-      { x: 200, y: 430, w: 150, h: 20, type: "roof" },
-      { x: 440, y: 370, w: 150, h: 20, type: "roof" },
-      { x: 650, y: 310, w: 150, h: 20, type: "roof" },
-      { x: 910, y: 250, w: 180, h: 20, type: "roof" },
-      { x: 1220, y: 330, w: 160, h: 20, type: "roof" },
-      { x: 1450, y: 260, w: 170, h: 20, type: "sign" },
-      { x: 1710, y: 190, w: 160, h: 20, type: "roof" },
-      { x: 1990, y: 310, w: 160, h: 20, type: "roof" },
-      { x: 2230, y: 240, w: 150, h: 20, type: "roof" },
-      { x: 2460, y: 170, w: 170, h: 20, type: "roof" },
-      { x: 2720, y: 260, w: 190, h: 20, type: "roof" },
-      { x: 3010, y: 340, w: 180, h: 20, type: "roof" },
-      { x: 3260, y: 270, w: 170, h: 20, type: "sign" },
-      { x: 3510, y: 190, w: 160, h: 20, type: "roof" },
-      { x: 3750, y: 250, w: 170, h: 20, type: "roof" },
-      { x: 3980, y: 180, w: 170, h: 20, type: "roof" },
-      { x: 4230, y: 120, w: 160, h: 20, type: "roof" },
-      { x: 4470, y: 220, w: 170, h: 20, type: "roof" },
+      { x: 0, y: 520, w: 6420, h: 140, type: "ground" },
+      { x: 220, y: 430, w: 170, h: 20, type: "roof" },
+      { x: 470, y: 352, w: 150, h: 20, type: "roof" },
+      { x: 700, y: 282, w: 160, h: 20, type: "roof" },
+      { x: 980, y: 214, w: 180, h: 20, type: "sign" },
+      { x: 1290, y: 340, w: 180, h: 20, type: "roof" },
+      { x: 1540, y: 264, w: 190, h: 20, type: "sign" },
+      { x: 1820, y: 194, w: 170, h: 20, type: "roof" },
+      { x: 2080, y: 444, w: 250, h: 18, type: "roof" },
+      { x: 2080, y: 378, w: 260, h: 18, type: "roof" },
+      { x: 2450, y: 318, w: 170, h: 20, type: "roof" },
+      { x: 2700, y: 244, w: 170, h: 20, type: "sign" },
+      { x: 2970, y: 174, w: 160, h: 20, type: "roof" },
+      { x: 3250, y: 250, w: 180, h: 20, type: "roof" },
+      { x: 3520, y: 182, w: 180, h: 20, type: "roof" },
+      { x: 3820, y: 116, w: 160, h: 20, type: "sign" },
+      { x: 4110, y: 196, w: 180, h: 20, type: "roof" },
+      { x: 4390, y: 130, w: 170, h: 20, type: "roof" },
+      { x: 4680, y: 220, w: 180, h: 20, type: "roof" },
+      { x: 4950, y: 146, w: 170, h: 20, type: "sign" },
+      { x: 5230, y: 82, w: 170, h: 20, type: "roof" },
+      { x: 5520, y: 158, w: 180, h: 20, type: "roof" },
+      { x: 5810, y: 102, w: 180, h: 20, type: "roof" },
     ],
     movingPlatforms: [
-      { x: 1600, y: 230, w: 108, h: 18, type: "moving", axis: "y", range: 80, speed: 1.7, phase: 0.8 },
-      { x: 3330, y: 142, w: 112, h: 18, type: "moving", axis: "x", range: 94, speed: 1.5, phase: 2.1 },
+      { x: 1200, y: 276, w: 136, h: 18, type: "moving", axis: "y", range: 96, speed: 1.4, phase: 0.4 },
+      { x: 3380, y: 210, w: 132, h: 18, type: "moving", axis: "x", range: 118, speed: 1.5, phase: 1.7 },
+      { x: 5060, y: 196, w: 136, h: 18, type: "moving", axis: "y", range: 112, speed: 1.6, phase: 2.2 },
     ],
     civilians: [
-      { x: 1290, y: 282, name: "Theo" },
-      { x: 2280, y: 192, name: "Ava" },
-      { x: 2780, y: 212, name: "Mr. Ortega" },
-      { x: 4300, y: 72, name: "Selene" },
+      { x: 1350, y: 292, name: "Theo" },
+      { x: 2520, y: 270, name: "Ava" },
+      { x: 3860, y: 68, name: "Mr. Ortega" },
+      { x: 5860, y: 54, name: "Selene" },
     ],
     enemies: [
-      { x: 570, type: "walker" },
-      { x: 1090, type: "walker" },
-      { x: 1600, y: 216, type: "drone" },
-      { x: 2370, y: 196, type: "drone" },
-      { x: 3140, type: "walker" },
-      { x: 3660, y: 156, type: "drone" },
-      { x: 4380, type: "walker" },
+      { x: 610, type: "walker" },
+      { x: 1100, y: 186, type: "drone" },
+      { x: 1690, y: 236, type: "walker" },
+      { x: 2580, y: 270, type: "walker" },
+      { x: 3180, y: 146, type: "drone" },
+      { x: 4320, y: 166, type: "walker" },
+      { x: 5120, y: 116, type: "drone" },
+      { x: 5660, y: 110, type: "walker" },
+    ],
+    checkpoints: [
+      { x: 1780, y: 438, label: "Billboard Row" },
+      { x: 3860, y: 438, label: "Service Ducts" },
     ],
   },
   {
     id: "skyline-arc",
     name: "Level 5: Skyline Arc",
     chapter: "Act 2: Midtown Pressure",
-    goal: "Ride the wind lanes, beat the rooftop enforcer, and rescue 3 civilians.",
+    goal: "Cross the skyline gaps, chain wind glides, beat the rooftop enforcer, and rescue 3 civilians.",
     story:
       "This is the part where a real superhero would fly. Box Boy cannot fly, but he can still cross Monarch's windblown skyline one desperate glide at a time.",
+    introDialog: "The rooftops finally open up into full skyline gaps. Box Boy is not flying. He is just refusing to fall.",
     background: "skyline-sunset",
     civiliansTarget: 3,
-    endX: 4480,
+    outro: "By the end of the skyline run, people are cheering from balconies. Box Boy is still improvising, but now the city believes he might really reach Monarch.",
+    endX: 6020,
     platforms: [
-      { x: 0, y: 520, w: 4700, h: 140, type: "ground" },
-      { x: 180, y: 390, w: 150, h: 20, type: "roof" },
-      { x: 420, y: 320, w: 130, h: 20, type: "roof" },
-      { x: 690, y: 260, w: 150, h: 20, type: "roof" },
-      { x: 1010, y: 180, w: 160, h: 20, type: "roof" },
-      { x: 1380, y: 260, w: 170, h: 20, type: "roof" },
-      { x: 1690, y: 200, w: 180, h: 20, type: "roof" },
-      { x: 2030, y: 260, w: 170, h: 20, type: "roof" },
-      { x: 2350, y: 180, w: 170, h: 20, type: "roof" },
-      { x: 2640, y: 280, w: 180, h: 20, type: "roof" },
-      { x: 2940, y: 220, w: 180, h: 20, type: "roof" },
-      { x: 3220, y: 140, w: 180, h: 20, type: "roof" },
-      { x: 3500, y: 210, w: 170, h: 20, type: "roof" },
-      { x: 3740, y: 130, w: 160, h: 20, type: "roof" },
-      { x: 3980, y: 200, w: 170, h: 20, type: "roof" },
-      { x: 4230, y: 120, w: 180, h: 20, type: "roof" },
-      { x: 3160, y: 80, w: 110, h: 20, type: "spring" },
-      { x: 3310, y: 52, w: 110, h: 20, type: "roof" },
-      { x: 3460, y: 24, w: 120, h: 20, type: "roof" },
+      { x: 0, y: 520, w: 6260, h: 140, type: "ground" },
+      { x: 180, y: 390, w: 160, h: 20, type: "roof" },
+      { x: 450, y: 312, w: 130, h: 20, type: "roof" },
+      { x: 720, y: 250, w: 150, h: 20, type: "roof" },
+      { x: 1060, y: 186, w: 170, h: 20, type: "roof" },
+      { x: 1420, y: 300, w: 170, h: 20, type: "roof" },
+      { x: 1760, y: 220, w: 180, h: 20, type: "roof" },
+      { x: 2120, y: 300, w: 180, h: 20, type: "roof" },
+      { x: 2470, y: 204, w: 180, h: 20, type: "roof" },
+      { x: 2820, y: 300, w: 180, h: 20, type: "roof" },
+      { x: 3170, y: 204, w: 180, h: 20, type: "roof" },
+      { x: 3520, y: 110, w: 190, h: 20, type: "roof" },
+      { x: 3860, y: 228, w: 180, h: 20, type: "roof" },
+      { x: 4190, y: 132, w: 170, h: 20, type: "roof" },
+      { x: 4520, y: 220, w: 180, h: 20, type: "roof" },
+      { x: 4860, y: 128, w: 170, h: 20, type: "roof" },
+      { x: 5210, y: 228, w: 180, h: 20, type: "roof" },
+      { x: 5560, y: 134, w: 180, h: 20, type: "roof" },
+      { x: 3380, y: 62, w: 120, h: 20, type: "spring" },
+      { x: 3600, y: 28, w: 110, h: 20, type: "roof" },
+      { x: 3820, y: 8, w: 120, h: 20, type: "roof" },
     ],
     civilians: [
-      { x: 1420, y: 212, name: "Paramedic Sloane" },
-      { x: 2720, y: 232, name: "Jay" },
-      { x: 4300, y: 92, name: "Niko" },
+      { x: 1500, y: 252, name: "Paramedic Sloane" },
+      { x: 3190, y: 156, name: "Jay" },
+      { x: 5640, y: 86, name: "Niko" },
     ],
     enemies: [
-      { x: 820, type: "walker" },
-      { x: 1550, y: 216, type: "drone" },
-      { x: 2200, type: "walker" },
-      { x: 3020, type: "enforcer" },
-      { x: 3620, y: 106, type: "drone" },
-      { x: 4170, y: 176, type: "drone" },
+      { x: 860, type: "walker" },
+      { x: 1660, y: 190, type: "drone" },
+      { x: 2340, type: "walker" },
+      { x: 3300, type: "enforcer" },
+      { x: 4160, y: 108, type: "drone" },
+      { x: 5000, type: "walker" },
+      { x: 5710, y: 104, type: "drone" },
     ],
     windZones: [
-      { x: 900, y: 80, w: 420, h: 250, fx: 62, fy: -160 },
-      { x: 3180, y: 0, w: 420, h: 180, fx: 76, fy: -120 },
+      { x: 860, y: 70, w: 500, h: 280, fx: 62, fy: -160 },
+      { x: 3000, y: 0, w: 620, h: 220, fx: 78, fy: -128 },
+      { x: 4660, y: 30, w: 620, h: 250, fx: 70, fy: -142 },
+    ],
+    checkpoints: [
+      { x: 2040, y: 438, label: "Crosswind Tower" },
+      { x: 4140, y: 438, label: "Glide Span" },
     ],
   },
   {
@@ -331,8 +353,10 @@ const levels = [
     goal: "Break through the plaza lockdown and defeat the Graft King.",
     story:
       "The Graft King runs Monarch's civic lockdown. Box Boy heads straight for the barricade because every boss under Monarch is one less wall between him and the real target.",
+    introDialog: "The plaza is full of barricades outside. Inside City Hall, the Graft King is waiting with missiles already armed.",
     background: "civic-night",
     civiliansTarget: 1,
+    outro: "When the Graft King goes down, City Hall opens back up and the whole district starts saying the same thing: Box Boy might actually pull this off.",
     endX: 5020,
     boss: {
       type: "graft",
@@ -373,6 +397,7 @@ const levels = [
       { x: 2700, y: 156, type: "drone" },
       { x: 3260, type: "enforcer" },
     ],
+    checkpoints: [{ x: 3160, y: 438, label: "City Hall Doors" }],
   },
   {
     id: "skycourt-terrace",
@@ -711,6 +736,8 @@ const state = {
   projectiles: [],
   boss: null,
   particles: [],
+  checkpoints: [],
+  checkpointIndex: -1,
   cameraX: 0,
   cameraY: 0,
   message: "Press Enter to begin Story Mode.",
@@ -731,6 +758,7 @@ function loadSave() {
     state.mapSelection = clamp(save.mapSelection ?? state.levelIndex, 0, levels.length - 1);
     state.totalRescues = Math.max(0, save.totalRescues ?? 0);
     state.totalDefeats = Math.max(0, save.totalDefeats ?? 0);
+    state.checkpointIndex = Math.max(-1, save.checkpointIndex ?? -1);
   } catch {
     localStorage.removeItem(SAVE_KEY);
   }
@@ -743,6 +771,7 @@ function saveProgress() {
     mapSelection: state.mapSelection,
     totalRescues: state.totalRescues,
     totalDefeats: state.totalDefeats,
+    checkpointIndex: state.checkpointIndex,
   };
   localStorage.setItem(SAVE_KEY, JSON.stringify(save));
 }
@@ -1079,11 +1108,39 @@ function resetLevel(index) {
   state.projectiles = [];
   state.boss = level.boss ? makeBoss(level.boss) : null;
   state.particles = [];
+  state.checkpoints = getCheckpoints(level);
+  state.checkpointIndex = -1;
   state.cameraX = 0;
   state.cameraY = 0;
   state.message = level.story;
   state.transitionTimer = 2.8;
   saveProgress();
+}
+
+function getCheckpoints(level) {
+  if (level.checkpoints?.length) return level.checkpoints;
+  if (level.boss) return [{ x: Math.max(420, level.boss.arenaStart - 420), y: 438, label: "Arena Gate" }];
+  return [
+    { x: Math.floor(level.endX * 0.36), y: 438, label: "Checkpoint 1" },
+    { x: Math.floor(level.endX * 0.72), y: 438, label: "Checkpoint 2" },
+  ];
+}
+
+function respawnAtCheckpoint() {
+  const checkpoint = state.checkpoints[state.checkpointIndex];
+  state.player = makePlayer();
+  if (checkpoint) {
+    state.player.x = checkpoint.x;
+    state.player.y = checkpoint.y;
+    state.message = `${checkpoint.label}. Back in the run.`;
+  } else {
+    state.message = "Back at the start. Keep moving.";
+  }
+  state.projectiles = [];
+  state.particles = [];
+  state.cameraX = 0;
+  state.cameraY = 0;
+  state.transitionTimer = 0.8;
 }
 
 function setScene(scene) {
@@ -1520,6 +1577,21 @@ function updateRescuesAndHazards() {
     state.message = "A hidden manhole drops Box Boy into a sewer shortcut.";
     playSfx([{ freq: 210, duration: 0.08, gain: 0.05, type: "triangle" }, { freq: 120, duration: 0.22, gain: 0.05, type: "sine", offset: 0.05 }]);
     spawnParticles(hole.x + hole.w / 2, hole.y + 6, "#8ac6ff", 18);
+  }
+
+  for (let i = 0; i < state.checkpoints.length; i += 1) {
+    const checkpoint = state.checkpoints[i];
+    if (i <= state.checkpointIndex) continue;
+    if (state.player.x + state.player.w / 2 >= checkpoint.x) {
+      state.checkpointIndex = i;
+      state.message = `${checkpoint.label} reached.`;
+      playSfx([
+        { freq: 330, duration: 0.12, gain: 0.07, type: "triangle" },
+        { freq: 494, duration: 0.16, gain: 0.05, type: "square", offset: 0.04 },
+      ]);
+      spawnParticles(checkpoint.x, checkpoint.y - 20, "#ffe082", 16);
+      saveProgress();
+    }
   }
 }
 
@@ -2680,6 +2752,20 @@ function drawEndBeacon() {
   ctx.fill();
 }
 
+function drawCheckpoint(checkpoint, active) {
+  const x = worldToScreen(checkpoint.x);
+  const y = worldToScreenY(checkpoint.y);
+  ctx.fillStyle = active ? "#ffd36c" : "rgba(220,231,255,0.42)";
+  ctx.fillRect(x - 4, y - 44, 8, 48);
+  ctx.fillStyle = active ? "#ffefb8" : "#dce7ff";
+  ctx.beginPath();
+  ctx.moveTo(x + 4, y - 42);
+  ctx.lineTo(x + 28, y - 32);
+  ctx.lineTo(x + 4, y - 20);
+  ctx.closePath();
+  ctx.fill();
+}
+
 function drawShortcutSign(sign) {
   const x = worldToScreen(sign.x);
   const y = worldToScreenY(sign.y);
@@ -2711,7 +2797,7 @@ function drawOnScreenPrompt() {
   drawPanel(372, 18, 258, 32, "rgba(255, 220, 118, 0.96)");
   ctx.fillStyle = "#17345f";
   ctx.font = "700 13px Verdana";
-  ctx.fillText("F/G PUNCH   HOLD FOR LASER", 386, 39);
+  ctx.fillText("J/K PUNCH   HOLD FOR LASER", 386, 39);
 }
 
 function drawObjectiveArrow() {
@@ -2770,6 +2856,7 @@ function drawGame() {
   for (const zone of getWindZones()) drawWindZone(zone);
   for (const platform of getPlatforms()) drawPlatform(platform);
   drawBossArenaMarkers();
+  for (let i = 0; i < state.checkpoints.length; i += 1) drawCheckpoint(state.checkpoints[i], i <= state.checkpointIndex);
   for (const hole of getManholes()) drawManhole(hole);
   for (const hazard of getHazards()) drawHazard(hazard);
   for (const sign of getShortcutSigns()) drawShortcutSign(sign);
@@ -2806,6 +2893,13 @@ function drawStoryCard() {
   drawWrappedText(storyBeats[state.storyCard].title, 128, 138, 690, 40, "#17345f");
   ctx.font = "18px Verdana";
   let cy = drawWrappedText(storyBeats[state.storyCard].body, 128, 198, 690, 28, "#17345f");
+  if (state.level.introDialog) {
+    drawPanel(124, cy + 8, 702, 62, "rgba(20,35,61,0.86)");
+    ctx.fillStyle = "#fff1b8";
+    ctx.font = "700 15px Trebuchet MS";
+    drawWrappedText(state.level.introDialog, 146, cy + 34, 660, 18, "#fff1b8");
+    cy += 82;
+  }
   drawPanel(124, cy + 8, 702, 114, "rgba(19,52,95,0.08)");
   ctx.font = "700 16px Trebuchet MS";
   ctx.fillStyle = "#17345f";
@@ -2826,7 +2920,7 @@ function drawTitle() {
   ctx.font = "18px Verdana";
   drawWrappedText("A story-mode platformer about a powerless hero trying to defeat the biggest villain in the city and prove he belongs in the skyline.", 154, 242, 632, 24, "#17345f");
   drawWrappedText("Run, jump, double jump, glide with the blanket cape, clear parkour routes, rescue civilians, and fight through Monarch's districts.", 154, 288, 632, 24, "#17345f");
-  drawWrappedText("Controls: move with WASD or arrows, jump with Space, jump again for a double jump, hold Space to glide, punch with F and G. Press Escape anytime to open the city map.", 146, 334, 644, 22, "#17345f");
+  drawWrappedText("Controls: move with WASD or arrows, jump with Space, jump again for a double jump, hold Space to glide, punch with J and K. Press Escape anytime to open the city map.", 146, 334, 644, 22, "#17345f");
   drawButton(322, 448, 314, 48, "PRESS ENTER TO START", "700 20px Trebuchet MS");
 }
 
@@ -2859,17 +2953,17 @@ function drawStatusScreen(title, body) {
 
 function drawMapScreen() {
   drawParallax("civic-night");
-  drawPanel(54, 42, 852, 456, "rgba(255,255,255,0.82)");
+  drawPanel(18, 18, 924, 500, "rgba(255,255,255,0.84)");
   ctx.fillStyle = "#17345f";
   ctx.font = "800 42px Verdana";
-  ctx.fillText("City Map", 92, 98);
+  ctx.fillText("City Map", 54, 78);
   ctx.font = "16px Verdana";
-  drawWrappedText("Choose a level. Locked stages open after you clear the previous one. Press Enter to play. Press Escape to leave the map.", 92, 128, 780, 22, "#17345f");
+  drawWrappedText("Choose a level. Locked stages open after you clear the previous one. Press Enter to play. Press Escape to leave the map.", 54, 108, 850, 22, "#17345f");
 
   const nodes = [
-    { x: 112, y: 332 }, { x: 182, y: 282 }, { x: 250, y: 222 }, { x: 326, y: 176 },
-    { x: 398, y: 216 }, { x: 468, y: 270 }, { x: 542, y: 314 }, { x: 614, y: 262 },
-    { x: 682, y: 204 }, { x: 752, y: 164 }, { x: 820, y: 206 }, { x: 872, y: 134 },
+    { x: 108, y: 370 }, { x: 176, y: 322 }, { x: 256, y: 258 }, { x: 344, y: 214 },
+    { x: 432, y: 246 }, { x: 526, y: 304 }, { x: 612, y: 364 }, { x: 700, y: 318 },
+    { x: 786, y: 254 }, { x: 850, y: 198 }, { x: 894, y: 248 }, { x: 918, y: 174 },
   ];
 
   ctx.strokeStyle = "#4b6da5";
@@ -2892,21 +2986,28 @@ function drawMapScreen() {
     ctx.textAlign = "center";
     ctx.fillText(String(i + 1), node.x, node.y + 4);
     ctx.textAlign = "left";
-    drawPanel(node.x - 64, node.y + 28, 156, 54, unlocked ? "rgba(20,35,61,0.88)" : "rgba(70,79,98,0.88)");
-    ctx.fillStyle = "#f4f8ff";
-    ctx.font = "700 12px Trebuchet MS";
-    drawWrappedText(unlocked ? levels[i].name : "LOCKED", node.x - 54, node.y + 48, 136, 15, "#f4f8ff");
+    if (levels[i].boss) {
+      ctx.fillStyle = "#ff9d7a";
+      ctx.fillRect(node.x - 4, node.y - 28, 8, 8);
+      ctx.fillRect(node.x - 10, node.y - 22, 20, 4);
+    }
+    if (selected) {
+      drawPanel(node.x - 54, node.y + 26, 132, 28, unlocked ? "rgba(20,35,61,0.88)" : "rgba(70,79,98,0.88)");
+      ctx.fillStyle = "#f4f8ff";
+      ctx.font = "700 11px Trebuchet MS";
+      drawWrappedText(unlocked ? levels[i].name : "LOCKED", node.x - 42, node.y + 44, 104, 14, "#f4f8ff");
+    }
   }
 
   const current = levels[state.mapSelection];
-  drawPanel(76, 352, 386, 118, "rgba(20,35,61,0.90)");
+  drawPanel(40, 388, 448, 100, "rgba(20,35,61,0.92)");
   ctx.fillStyle = "#fff1b8";
   ctx.font = "700 18px Trebuchet MS";
-  ctx.fillText(current.name, 96, 382);
+  ctx.fillText(current.name, 62, 416);
   ctx.font = "14px Trebuchet MS";
-  drawWrappedText(current.goal, 96, 408, 344, 18, "#edf6ff");
+  drawWrappedText(current.goal, 62, 440, 388, 18, "#edf6ff");
   ctx.fillStyle = "#8fd6ff";
-  ctx.fillText(state.mapSelection <= state.highestUnlockedLevel ? "Status: Unlocked" : "Status: Locked", 96, 458);
+  ctx.fillText(state.mapSelection <= state.highestUnlockedLevel ? "Status: Unlocked" : "Status: Locked", 62, 474);
 }
 
 function renderScene() {
@@ -2967,7 +3068,7 @@ function renderMission() {
     mission.innerHTML = `
       <h2>Story Mode</h2>
       <p>This version is now a 12-level side-scrolling platformer with city backgrounds, route gimmicks, heavy guards, boss fights, and story cards between acts.</p>
-      <p class="tiny">Jump with <kbd>Space</kbd>. Press <kbd>Space</kbd> again in midair to double jump. Hold <kbd>Space</kbd> while falling to glide. Tap <kbd>F</kbd> or <kbd>G</kbd> to punch, or hold them to fire a laser.</p>
+      <p class="tiny">Jump with <kbd>Space</kbd>. Press <kbd>Space</kbd> again in midair to double jump. Hold <kbd>Space</kbd> while falling to glide. Tap <kbd>J</kbd> or <kbd>K</kbd> to punch, or hold them to fire a laser.</p>
       <div class="legend-grid">
         <div class="legend-chip legend-star">Jump on enemies to bounce</div>
         <div class="legend-chip legend-toy">Green = civilian</div>
@@ -3007,8 +3108,9 @@ function renderMission() {
     ${checklistItem(state.player.rescues >= state.level.civiliansTarget, `Civilians rescued: ${state.player.rescues}/${state.level.civiliansTarget}`)}
     ${state.level.boss ? checklistItem(!state.boss, `Defeat ${state.level.boss.name}`) : ""}
     ${checklistItem(state.player.rescues >= state.level.civiliansTarget && !state.boss, `Reach the end beacon`)}
+    ${checklistItem(state.checkpointIndex >= 0, `Checkpoint active: ${state.checkpointIndex >= 0 ? state.checkpoints[state.checkpointIndex].label : "None"}`)}
     <p><strong>Status:</strong> ${state.message}</p>
-      <p class="tiny">Stomp enemies to bounce, tap <kbd>F</kbd>/<kbd>G</kbd> to punch, hold them to fire lasers, use crouch tunnels, moving lifts, wind lanes, and hidden sewer shortcuts, and watch for heavy guards that take multiple hits.</p>
+      <p class="tiny">Stomp enemies to bounce, tap <kbd>J</kbd>/<kbd>K</kbd> to punch, hold them to fire lasers, use checkpoints, crouch tunnels, moving lifts, wind lanes, hidden sewer shortcuts, and watch for heavy guards that take multiple hits.</p>
   `;
 }
 
@@ -3055,7 +3157,7 @@ window.addEventListener("keydown", (event) => {
     } else if (state.scene === scenes.levelClear) {
       advanceLevel();
     } else if (state.scene === scenes.gameOver) {
-      resetLevel(state.levelIndex);
+      respawnAtCheckpoint();
       setScene(scenes.playing);
     } else if (state.scene === scenes.win) {
       setScene(scenes.title);
@@ -3082,19 +3184,19 @@ window.addEventListener("keydown", (event) => {
     state.player.jumpsLeft -= 1;
   }
 
-  if (event.code === "KeyF" && !wasHeld) {
+  if (event.code === "KeyJ" && !wasHeld) {
     beginPunchHold("left");
   }
 
-  if (event.code === "KeyG" && !wasHeld) {
+  if (event.code === "KeyK" && !wasHeld) {
     beginPunchHold("right");
   }
 });
 
 window.addEventListener("keyup", (event) => {
   keys.delete(event.code);
-  if (event.code === "KeyF") endPunchHold("left");
-  if (event.code === "KeyG") endPunchHold("right");
+  if (event.code === "KeyJ") endPunchHold("left");
+  if (event.code === "KeyK") endPunchHold("right");
 });
 
 window.addEventListener("pointerdown", () => {

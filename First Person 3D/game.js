@@ -22,10 +22,14 @@ const HALF_HEIGHT = HEIGHT * 0.5;
 const FOV = Math.PI / 3;
 const MAX_DEPTH = 26;
 const MOVE_SPEED = 2.9;
+const SPRINT_MULT = 1.85;
+const DOUBLE_TAP_MS = 260;
+const SPRINT_TIME = 0.48;
 const TURN_SPEED = 0.0024;
 const PITCH_SPEED = 0.0034;
 const PLAYER_RADIUS = 0.22;
 const wallDepthBuffer = new Array(WIDTH).fill(MAX_DEPTH);
+const wallTopBuffer = new Array(WIDTH).fill(0);
 const keys = new Set();
 
 const audio = { ctx: null };
@@ -128,12 +132,12 @@ const MAPS = {
       x: 16.5,
       y: 17.5,
       arenaX: 10.5,
-      arenaY: 4.5,
+      arenaY: 10.5,
       patrol: [{ x: 13.0, y: 17.5 }, { x: 18.5, y: 17.5 }],
       weakPoints: [
-        { key: "crown", name: "Cryo Crown", dx: 0, dy: 0.12, radius: 0.09, color: "#d4fbff" },
-        { key: "left_joint", name: "Left Joint", dx: -0.2, dy: 0.5, radius: 0.075, color: "#8ee7ff" },
-        { key: "right_joint", name: "Right Joint", dx: 0.2, dy: 0.5, radius: 0.075, color: "#8ee7ff" }
+        { key: "crown", name: "Cryo Crown", dx: 0, dy: 0.05, radius: 0.038, color: "#d4fbff" },
+        { key: "left_joint", name: "Left Joint", dx: -0.16, dy: 0.34, radius: 0.032, color: "#8ee7ff" },
+        { key: "right_joint", name: "Right Joint", dx: 0.16, dy: 0.34, radius: 0.032, color: "#8ee7ff" }
       ]
     },
     layout: [
@@ -241,7 +245,7 @@ const ENEMY_DEFS = {
   brute: { label: "Brute", color: "#ff8f63", speed: 1.02, health: 7, fireRate: 1.5, projectileSpeed: 0, projectileColor: "#ffae75", size: 0.28, range: 1, attack: "punch", hover: false, damage: 24 },
   sniper: { label: "Sniper", color: "#c38fff", speed: 1.18, health: 2, fireRate: 2.8, projectileSpeed: 7.2, projectileColor: "#d8a4ff", size: 0.14, range: 14, attack: "beam", hover: false, damage: 26 },
   warden: { label: "Vault Warden", color: "#ff646f", speed: 0.94, health: 72, fireRate: 1.1, projectileSpeed: 6.4, projectileColor: "#ff7a94", size: 0.56, range: 14, attack: "beam", hover: false, damage: 24 },
-  frost_tyrant: { label: "Frost Tyrant", color: "#8ee7ff", speed: 0.98, health: 68, fireRate: 1.18, projectileSpeed: 5.9, projectileColor: "#aef6ff", size: 0.58, range: 14, attack: "beam", hover: false, damage: 23 },
+  frost_tyrant: { label: "Frost Tyrant", color: "#8ee7ff", speed: 0, health: 92, fireRate: 2.2, projectileSpeed: 3.1, projectileColor: "#aef6ff", size: 1.45, range: 18, attack: "plasma", hover: false, damage: 34 },
   infernal_guard: { label: "Infernal Guard", color: "#ffb06b", speed: 1.02, health: 76, fireRate: 1.05, projectileSpeed: 6.2, projectileColor: "#ffc07e", size: 0.6, range: 14, attack: "beam", hover: false, damage: 26 }
 };
 
@@ -251,6 +255,20 @@ const ARENA_COVER = [
   { x: 15, y: 8, w: 2, h: 3 },
   { x: 9, y: 6, w: 4, h: 2 },
   { x: 9, y: 13, w: 4, h: 2 }
+];
+const ARENA_SUPPLY_POINTS = [
+  { x: 3.5, y: 17.2 },
+  { x: 4.2, y: 10.5 },
+  { x: 5.5, y: 12.5 },
+  { x: 7.5, y: 17.1 },
+  { x: 8.5, y: 4.6 },
+  { x: 8.3, y: 15.6 },
+  { x: 10.5, y: 10.4 },
+  { x: 12.5, y: 4.6 },
+  { x: 12.7, y: 15.6 },
+  { x: 15.5, y: 12.5 },
+  { x: 16.8, y: 10.5 },
+  { x: 17.5, y: 17.2 }
 ];
 
 const baseState = {
@@ -285,6 +303,11 @@ const baseState = {
   ,
   bossDefeated: false,
   bossArenaActive: false,
+  bossCodeProgress: 0,
+  bossBanner: 0,
+  sprintKey: "",
+  sprintTimer: 0,
+  keyTapTimes: { KeyW: 0, KeyA: 0, KeyS: 0, KeyD: 0 },
   combatEffects: [],
   mapProgress: { echo_vault: 0, frost_foundry: 0, ember_bastion: 0 }
 };
@@ -587,6 +610,8 @@ function resetGame() {
       patrol: bossSpawn.patrol,
       patrolIndex: 1,
       hitFlash: 0,
+      beamTelegraph: 0,
+      phase: 1,
       weakPoints: bossSpawn.weakPoints,
       weakPointHealth: Object.fromEntries((bossSpawn.weakPoints || []).map((point) => [point.key, 1]))
     });
@@ -619,6 +644,7 @@ function activateBossArena() {
   state.enemyProjectiles = [];
   state.projectiles = [];
   state.combatEffects = [];
+  state.bossBanner = 2.8;
   state.enemies = [boss];
   state.pickups = [];
   boss.x = getMapDef().boss.arenaX || 10.5;
@@ -632,7 +658,7 @@ function activateBossArena() {
     { kind: "medkit", x: 8.5, y: 4.6 },
     { kind: "ammo", x: 10.5, y: 10.4 },
     { kind: "medkit", x: 12.5, y: 4.6 },
-    { kind: "ammo", x: 13.5, y: 17.1 },
+    { kind: "ammo", x: 12.7, y: 15.6 },
     { kind: "medkit", x: 15.5, y: 12.5 },
     { kind: "ammo", x: 17.5, y: 17.2 }
   ];
@@ -641,6 +667,49 @@ function activateBossArena() {
   }
   state.message = "Arena breach. Boss isolated. Use the cover blocks.";
   syncHud();
+}
+
+function spawnArenaSupply(kind) {
+  const candidates = ARENA_SUPPLY_POINTS.filter((point) => !state.pickups.some((pickup) =>
+    !pickup.taken && Math.hypot(pickup.x - point.x, pickup.y - point.y) < 0.35
+  ) && Math.hypot(state.player.x - point.x, state.player.y - point.y) > 1.2);
+
+  const list = candidates.length > 0 ? candidates : ARENA_SUPPLY_POINTS;
+  const point = list[Math.floor(Math.random() * list.length)];
+  state.pickups.push({ kind, x: point.x, y: point.y, taken: false, arenaOnly: true });
+}
+
+function triggerSecretBossWarp() {
+  if (state.status !== "playing" || state.bossArenaActive || state.bossDefeated) return;
+  for (const pickup of state.pickups) {
+    if (pickup.kind === "core" && !pickup.taken) {
+      pickup.taken = true;
+    }
+  }
+  state.coresCollected = state.totalCores;
+  state.message = "Arena breach. Boss isolated. Use the cover blocks.";
+  activateBossArena();
+}
+
+function advanceBossCode(code) {
+  if (state.status !== "playing") {
+    state.bossCodeProgress = 0;
+    return;
+  }
+
+  const sequence = ["KeyB", "KeyO", "KeyS", "KeyS"];
+  const expected = sequence[state.bossCodeProgress];
+
+  if (code === expected) {
+    state.bossCodeProgress += 1;
+    if (state.bossCodeProgress === sequence.length) {
+      state.bossCodeProgress = 0;
+      triggerSecretBossWarp();
+    }
+    return;
+  }
+
+  state.bossCodeProgress = code === sequence[0] ? 1 : 0;
 }
 
 function doorOpenAmount(x, y) {
@@ -666,6 +735,26 @@ function canOccupy(x, y) {
     [-PLAYER_RADIUS * 0.7, PLAYER_RADIUS * 0.7],
     [PLAYER_RADIUS * 0.7, -PLAYER_RADIUS * 0.7],
     [-PLAYER_RADIUS * 0.7, -PLAYER_RADIUS * 0.7]
+  ];
+
+  for (const [sx, sy] of samples) {
+    if (tileBlocked(x + sx, y + sy)) return false;
+  }
+  return true;
+}
+
+function canEnemyOccupy(enemy, x, y) {
+  const radius = enemy.isBoss ? 0.62 : enemy.type === "brute" ? 0.3 : enemy.type === "drone" ? 0.2 : 0.18;
+  const samples = [
+    [0, 0],
+    [radius, 0],
+    [-radius, 0],
+    [0, radius],
+    [0, -radius],
+    [radius * 0.7, radius * 0.7],
+    [-radius * 0.7, radius * 0.7],
+    [radius * 0.7, -radius * 0.7],
+    [-radius * 0.7, -radius * 0.7]
   ];
 
   for (const [sx, sy] of samples) {
@@ -766,10 +855,12 @@ function applyPickup(pickup) {
   if (pickup.kind === "medkit") {
     state.health = clamp(state.health + 32, 0, 100);
     state.message = "Medkit injected.";
+    if (state.bossArenaActive && pickup.arenaOnly) spawnArenaSupply("medkit");
   }
   if (pickup.kind === "ammo") {
     state.ammo += 8;
     state.message = "Ammo cache collected.";
+    if (state.bossArenaActive && pickup.arenaOnly) spawnArenaSupply("ammo");
   }
   if (pickup.kind === "shield") {
     state.shield = clamp(state.shield + 35, 0, 60);
@@ -804,11 +895,20 @@ function updatePlayer(dt) {
   }
 
   const length = Math.hypot(moveX, moveY) || 1;
-  const moveSpeed = MOVE_SPEED * getMapDef().effects.moveMult;
+  let sprintScale = 1;
+  if (state.sprintTimer > 0 && state.sprintKey && keys.has(state.sprintKey)) {
+    sprintScale = SPRINT_MULT;
+  } else if (state.sprintKey && !keys.has(state.sprintKey)) {
+    state.sprintKey = "";
+    state.sprintTimer = 0;
+  }
+  const moveSpeed = MOVE_SPEED * getMapDef().effects.moveMult * sprintScale;
   movePlayer((moveX / length) * moveSpeed * dt, (moveY / length) * moveSpeed * dt);
   movePlayer(state.slideVX * dt, state.slideVY * dt);
   state.slideVX *= 0.94;
   state.slideVY *= 0.94;
+  state.sprintTimer = Math.max(0, state.sprintTimer - dt);
+  if (state.sprintTimer === 0 && state.sprintKey) state.sprintKey = "";
 
   for (const pickup of state.pickups) {
     if (!pickup.taken && Math.hypot(state.player.x - pickup.x, state.player.y - pickup.y) < 0.46) {
@@ -905,15 +1005,22 @@ function fireEnemyProjectile(enemy) {
   if (enemy.isBoss) {
     if (enemy.type === "warden") {
       shots.push({ angle: angle - 0.14, damageScale: 0.7, life: 2.2 });
-      shots.push({ angle, damageScale: 1, life: 2.6 });
+      shots.push({ angle, damageScale: enemy.phase >= 2 ? 1.2 : 1, life: 2.6 });
       shots.push({ angle: angle + 0.14, damageScale: 0.7, life: 2.2 });
+      if (enemy.phase >= 2) {
+        shots.push({ angle: angle - 0.32, damageScale: 0.55, life: 1.9 });
+        shots.push({ angle: angle + 0.32, damageScale: 0.55, life: 1.9 });
+      }
     } else if (enemy.type === "frost_tyrant") {
-      shots.push({ angle: angle - 0.08, damageScale: 0.95, speedScale: 0.92, life: 2.8, color: "#d7fdff" });
-      shots.push({ angle: angle + 0.08, damageScale: 0.95, speedScale: 0.92, life: 2.8, color: "#d7fdff" });
+      shots.push({ angle, damageScale: enemy.phase >= 2 ? 1.15 : 1, speedScale: 1, life: 4.2, color: "#d7fdff", radiusScale: 2.6 });
     } else if (enemy.type === "infernal_guard") {
       shots.push({ angle, damageScale: 1.05, speedScale: 1, life: 2.5, color: "#ffd29a" });
       shots.push({ angle: angle - 0.24, damageScale: 0.72, speedScale: 0.9, life: 2.1, color: "#ffb06b" });
       shots.push({ angle: angle + 0.24, damageScale: 0.72, speedScale: 0.9, life: 2.1, color: "#ffb06b" });
+      if (enemy.phase >= 2) {
+        shots.push({ angle: angle - 0.45, damageScale: 0.6, speedScale: 0.86, life: 1.8, color: "#ff8f4c" });
+        shots.push({ angle: angle + 0.45, damageScale: 0.6, speedScale: 0.86, life: 1.8, color: "#ff8f4c" });
+      }
     }
   }
 
@@ -926,7 +1033,7 @@ function fireEnemyProjectile(enemy) {
       vx: Math.cos(shot.angle) * def.projectileSpeed * (shot.speedScale || 1),
       vy: Math.sin(shot.angle) * def.projectileSpeed * (shot.speedScale || 1),
       color: shot.color || def.projectileColor,
-      radius: def.size,
+      radius: def.size * (shot.radiusScale || 1),
       kind: def.attack,
       damage: def.damage * (shot.damageScale || 1) * getDifficulty().damage,
       life: shot.life || 2.6
@@ -940,6 +1047,9 @@ function killEnemy(enemy) {
   enemy.dead = true;
   spawnCombatEffect(enemy.x, enemy.y, ENEMY_DEFS[enemy.type].projectileColor, enemy.isBoss ? 1.4 : 0.9, enemy.isBoss ? 0.8 : 0.45);
   if (enemy.isBoss) {
+    for (const point of enemy.weakPoints || []) {
+      spawnCombatEffect(enemy.x + point.dx * 0.9, enemy.y + point.dy * 0.9, point.color, 0.9, 0.55);
+    }
     state.bossDefeated = true;
     state.message = `${ENEMY_DEFS[enemy.type].label} destroyed.`;
     if (state.coresCollected === state.totalCores) {
@@ -954,6 +1064,19 @@ function updateEnemies(dt) {
     if (enemy.health <= 0) continue;
 
     const def = ENEMY_DEFS[enemy.type];
+    if (enemy.isBoss) {
+      const allWeakPointsDown = Object.values(enemy.weakPointHealth || {}).length > 0
+        && Object.values(enemy.weakPointHealth || {}).every((value) => value === 0);
+      const healthRatio = enemy.health / (enemy.maxHealth || enemy.health);
+      const nextPhase = enemy.type === "frost_tyrant"
+        ? (allWeakPointsDown ? 2 : 1)
+        : (healthRatio <= 0.45 ? 2 : 1);
+      if (nextPhase !== enemy.phase) {
+        enemy.phase = nextPhase;
+        state.message = `${def.label} enters phase ${nextPhase}.`;
+        state.bossBanner = 1.5;
+      }
+    }
     const distance = Math.hypot(state.player.x - enemy.x, state.player.y - enemy.y);
     const seesPlayer = distance < 13 && hasLineOfSight(enemy.x, enemy.y, state.player.x, state.player.y);
     let target = enemy.patrol[enemy.patrolIndex];
@@ -962,8 +1085,8 @@ function updateEnemies(dt) {
     if (seesPlayer) {
       target = state.player;
       if (enemy.isBoss) {
-        const idealRange = enemy.type === "frost_tyrant" ? 6.8 : enemy.type === "infernal_guard" ? 5.4 : 6.0;
-        if (distance < idealRange - 0.8) {
+        const idealRange = enemy.type === "frost_tyrant" ? 999 : enemy.type === "infernal_guard" ? 5.4 : 6.0;
+        if (enemy.type !== "frost_tyrant" && distance < idealRange - 0.8) {
           const retreat = Math.atan2(enemy.y - state.player.y, enemy.x - state.player.x);
           target = { x: enemy.x + Math.cos(retreat) * 1.4, y: enemy.y + Math.sin(retreat) * 1.4 };
         } else if (distance < idealRange) {
@@ -979,16 +1102,37 @@ function updateEnemies(dt) {
       target = enemy.patrol[enemy.patrolIndex];
     }
 
-    const angle = Math.atan2(target.y - enemy.y, target.x - enemy.x);
-    const nx = enemy.x + Math.cos(angle) * speed * dt;
-    const ny = enemy.y + Math.sin(angle) * speed * dt;
-    if (!tileBlocked(nx, enemy.y)) enemy.x = nx;
-    if (!tileBlocked(enemy.x, ny)) enemy.y = ny;
+    if (enemy.type !== "frost_tyrant") {
+      const angle = Math.atan2(target.y - enemy.y, target.x - enemy.x);
+      const moveX = Math.cos(angle) * speed * dt;
+      const moveY = Math.sin(angle) * speed * dt;
+      const moveDistance = Math.hypot(moveX, moveY);
+      const steps = Math.max(1, Math.ceil(moveDistance / 0.04));
+      const stepX = moveX / steps;
+      const stepY = moveY / steps;
+      for (let step = 0; step < steps; step += 1) {
+        const nx = enemy.x + stepX;
+        const ny = enemy.y + stepY;
+        if (canEnemyOccupy(enemy, nx, enemy.y)) enemy.x = nx;
+        if (canEnemyOccupy(enemy, enemy.x, ny)) enemy.y = ny;
+      }
+    }
 
     enemy.cooldown = Math.max(0, enemy.cooldown - dt);
-    if (seesPlayer && def.attack !== "punch" && enemyCanUse(enemy, distance) && enemy.cooldown === 0) {
-      enemy.cooldown = def.fireRate;
-      fireEnemyProjectile(enemy);
+    enemy.beamTelegraph = Math.max(0, (enemy.beamTelegraph || 0) - dt);
+    if (seesPlayer && def.attack !== "punch" && enemyCanUse(enemy, distance)) {
+      if (enemy.isBoss) {
+        if (enemy.cooldown === 0 && enemy.beamTelegraph === 0) {
+          enemy.cooldown = def.fireRate + (enemy.phase >= 2 ? 0.2 : 0);
+          enemy.beamTelegraph = enemy.type === "frost_tyrant" ? 0.72 : 0.55;
+        } else if (enemy.beamTelegraph > 0 && enemy.beamTelegraph <= dt) {
+          fireEnemyProjectile(enemy);
+          enemy.beamTelegraph = 0;
+        }
+      } else if (enemy.cooldown === 0) {
+        enemy.cooldown = def.fireRate;
+        fireEnemyProjectile(enemy);
+      }
     }
 
     if (distance < 0.9 && enemy.type === "brute" && enemy.cooldown < def.fireRate - 0.65) {
@@ -1093,7 +1237,7 @@ function shoot() {
       hitCount += 1;
       let weakHit = null;
       if (bestEnemy.isBoss) {
-        const projected = projectSprite(bestEnemy.x, bestEnemy.y, 2.35);
+        const projected = projectSprite(bestEnemy.x, bestEnemy.y, getBossRenderScale(bestEnemy));
         if (projected) {
           const weakPoints = getBossWeakpointScreenPositions(projected, bestEnemy);
           weakHit = weakPoints.find((point) => point.active && Math.hypot(point.screenX - WIDTH / 2, point.screenY - HALF_HEIGHT) < Math.max(point.screenRadius, 18));
@@ -1101,14 +1245,24 @@ function shoot() {
         if (weakHit) {
           damage = Math.ceil(weapon.damage * 2.4);
           bestEnemy.weakPointHealth[weakHit.key] = 0;
+          bestEnemy.hitFlash = 1.4;
+          if (bestEnemy.isBoss) state.bossBanner = 0.7;
           state.message = `${weakHit.name} shattered.`;
+          spawnCombatEffect(bestEnemy.x + weakHit.dx * 0.9, bestEnemy.y + weakHit.dy * 0.9, weakHit.color, 1.2, 0.35);
         } else {
-          damage = Math.max(1, Math.ceil(weapon.damage * 0.35));
-          state.message = "Armor hit. Find a weak point.";
+          if (bestEnemy.type === "frost_tyrant" && bestEnemy.phase === 1) {
+            damage = 0;
+            state.message = "Phase 1: break the weak points first.";
+          } else {
+            damage = Math.max(1, Math.ceil(weapon.damage * 0.55));
+            state.message = bestEnemy.type === "frost_tyrant" ? "Core shell damaged." : "Armor hit. Find a weak point.";
+          }
         }
       }
       bestEnemy.health -= damage;
-      spawnCombatEffect(bestEnemy.x, bestEnemy.y, weakHit ? weakHit.color : ENEMY_DEFS[bestEnemy.type].projectileColor, weakHit ? 0.8 : 0.45, 0.18);
+      if (damage > 0) {
+        spawnCombatEffect(bestEnemy.x, bestEnemy.y, weakHit ? weakHit.color : ENEMY_DEFS[bestEnemy.type].projectileColor, weakHit ? 0.8 : 0.45, 0.18);
+      }
       if (bestEnemy.health <= 0) {
         killEnemy(bestEnemy);
       }
@@ -1146,8 +1300,15 @@ function projectSprite(x, y, scale = 1) {
     distance,
     screenX: (0.5 + angle / FOV) * WIDTH,
     screenY: getHorizon(),
-    size: Math.min(HEIGHT, (420 / Math.max(distance, 0.1)) * scale)
+    size: Math.min(HEIGHT * 2.8, (420 / Math.max(distance, 0.1)) * scale)
   };
+}
+
+function getBossRenderScale(enemy, distance = Math.hypot(enemy.x - state.player.x, enemy.y - state.player.y)) {
+  if (!enemy?.isBoss) return 1;
+  if (enemy.type === "frost_tyrant") return clamp(12.5 - distance * 0.18, 7.2, 11.8);
+  if (enemy.type === "infernal_guard") return 2.35;
+  return 2.15;
 }
 
 function getEnemyPose(projected, enemy) {
@@ -1167,19 +1328,112 @@ function getBossWeakpointScreenPositions(projected, enemy) {
     ...point,
     screenX: projected.screenX + point.dx * projected.size,
     screenY: pose.top + point.dy * projected.size,
-    screenRadius: point.radius * projected.size,
+    screenRadius: point.radius * projected.size * (enemy.type === "frost_tyrant" ? 0.72 : 1),
     active: enemy.weakPointHealth?.[point.key] !== 0
   }));
 }
 
 function spriteHiddenByWall(projected, widthScale = 0.2) {
+  return getVisibleSpriteBands(projected, widthScale).length === 0;
+}
+
+function getVisibleSpriteBands(projected, widthScale = 0.2) {
   const halfWidth = projected.size * widthScale;
   const start = Math.max(0, Math.floor(projected.screenX - halfWidth));
   const end = Math.min(WIDTH - 1, Math.ceil(projected.screenX + halfWidth));
+  const bands = [];
+  let bandStart = null;
   for (let x = start; x <= end; x += 1) {
-    if (projected.distance <= wallDepthBuffer[x] + 0.05) return false;
+    const visible = projected.distance <= wallDepthBuffer[x] + 0.05;
+    if (visible && bandStart === null) {
+      bandStart = x;
+    }
+    if (!visible && bandStart !== null) {
+      bands.push([bandStart, x]);
+      bandStart = null;
+    }
   }
-  return true;
+  if (bandStart !== null) bands.push([bandStart, end + 1]);
+  return bands;
+}
+
+function getBossClipRects(projected, widthScale = 0.42) {
+  const halfWidth = projected.size * widthScale;
+  const start = Math.max(0, Math.floor(projected.screenX - halfWidth));
+  const end = Math.min(WIDTH - 1, Math.ceil(projected.screenX + halfWidth));
+  const rects = [];
+  let activeStart = null;
+  let activeHeight = null;
+
+  for (let x = start; x <= end; x += 1) {
+    const fullyVisible = projected.distance <= wallDepthBuffer[x] + 0.05;
+    const clipHeight = fullyVisible ? HEIGHT : Math.max(0, Math.floor(wallTopBuffer[x]));
+    const heightKey = Math.round(clipHeight);
+
+    if (clipHeight <= 0) {
+      if (activeStart !== null) {
+        rects.push([activeStart, 0, x - activeStart, activeHeight]);
+        activeStart = null;
+        activeHeight = null;
+      }
+      continue;
+    }
+
+    if (activeStart === null) {
+      activeStart = x;
+      activeHeight = heightKey;
+      continue;
+    }
+
+    if (Math.abs(heightKey - activeHeight) > 2) {
+      rects.push([activeStart, 0, x - activeStart, activeHeight]);
+      activeStart = x;
+      activeHeight = heightKey;
+    }
+  }
+
+  if (activeStart !== null) {
+    rects.push([activeStart, 0, end + 1 - activeStart, activeHeight]);
+  }
+  return rects;
+}
+
+function getFrostTyrantClipRects(projected) {
+  const halfWidth = projected.size * 0.28;
+  const start = Math.max(0, Math.floor(projected.screenX - halfWidth));
+  const end = Math.min(WIDTH - 1, Math.ceil(projected.screenX + halfWidth));
+  const rects = [];
+
+  for (const [bandStart, bandEnd] of getVisibleSpriteBands(projected, 0.32)) {
+    rects.push([bandStart, 0, Math.max(1, bandEnd - bandStart), HEIGHT]);
+  }
+
+  let blockedStart = null;
+  let blockedTop = null;
+  for (let x = start; x <= end; x += 1) {
+    const blocked = projected.distance > wallDepthBuffer[x] + 0.05;
+    if (blocked) {
+      const top = Math.max(0, Math.floor(wallTopBuffer[x]));
+      if (blockedStart === null) {
+        blockedStart = x;
+        blockedTop = top;
+      } else {
+        blockedTop = Math.min(blockedTop, top);
+      }
+    }
+
+    const nextBlocked = x < end && projected.distance > wallDepthBuffer[x + 1] + 0.05;
+    if (blockedStart !== null && !nextBlocked) {
+      const clipH = Math.max(0, Math.min(HEIGHT, blockedTop));
+      if (clipH > 0) {
+        rects.push([blockedStart, 0, Math.max(1, x + 1 - blockedStart), clipH]);
+      }
+      blockedStart = null;
+      blockedTop = null;
+    }
+  }
+
+  return rects;
 }
 
 function renderBackground() {
@@ -1272,6 +1526,7 @@ function renderWalls() {
   const horizon = getHorizon();
   const map = getMapDef();
   wallDepthBuffer.fill(MAX_DEPTH);
+  wallTopBuffer.fill(0);
 
   for (let x = 0; x < WIDTH; x += 1) {
     const rayAngle = state.player.angle - FOV / 2 + (x / WIDTH) * FOV;
@@ -1281,6 +1536,7 @@ function renderWalls() {
     const shade = Math.max(0.18, 1 - correctedDepth / MAX_DEPTH);
     const wallTop = horizon - wallHeight / 2;
     wallDepthBuffer[x] = correctedDepth;
+    wallTopBuffer[x] = wallTop;
 
     const tx = hit.cell === "D" ? hit.x - Math.floor(hit.x) : hit.y - Math.floor(hit.y);
     const stripe = Math.floor(tx * 8) % 2;
@@ -1365,7 +1621,7 @@ function drawEnemy(projected, enemy) {
   const def = ENEMY_DEFS[enemy.type];
   const alpha = Math.max(0.35, 1 - projected.distance / MAX_DEPTH);
   const hitBoost = (enemy.hitFlash || 0) * 0.35;
-  const bossHeightScale = enemy.type === "frost_tyrant" ? 1.52 : 1;
+  const bossHeightScale = enemy.type === "frost_tyrant" ? 1.45 : enemy.isBoss ? 1.08 : 1;
   const scaledProjected = bossHeightScale !== 1 ? { ...projected, size: projected.size * bossHeightScale } : projected;
   const pose = getEnemyPose(scaledProjected, enemy);
   const { bodyW, bodyH, left, groundY, top } = pose;
@@ -1376,6 +1632,21 @@ function drawEnemy(projected, enemy) {
   const colorB = parseInt(def.color.slice(5, 7), 16);
 
   if (enemy.isBoss) {
+    if ((enemy.beamTelegraph || 0) > 0) {
+      const t = enemy.beamTelegraph;
+      const telegraphColor = enemy.type === "frost_tyrant" ? "rgba(214, 250, 255, 0.18)" : enemy.type === "infernal_guard" ? "rgba(255, 170, 102, 0.18)" : "rgba(255, 122, 148, 0.18)";
+      ctx.strokeStyle = telegraphColor;
+      ctx.lineWidth = Math.max(2, scaledProjected.size * 0.05);
+      ctx.beginPath();
+      ctx.moveTo(projected.screenX, top + bodyH * 0.16);
+      ctx.lineTo(WIDTH / 2, HALF_HEIGHT);
+      ctx.stroke();
+      ctx.fillStyle = telegraphColor.replace("0.18", `${0.08 + Math.min(0.24, t * 0.22)}`);
+      ctx.beginPath();
+      ctx.arc(WIDTH / 2, HALF_HEIGHT, 12 + t * 18, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
     ctx.fillStyle = `rgba(0, 0, 0, ${alpha * 0.26})`;
     ctx.beginPath();
     ctx.ellipse(projected.screenX, groundY + scaledProjected.size * 0.04, bodyW * 0.98, scaledProjected.size * 0.08, 0, 0, Math.PI * 2);
@@ -1407,30 +1678,88 @@ function drawEnemy(projected, enemy) {
       ctx.lineTo(projected.screenX + bodyW * 0.7, top + bodyH * 0.86);
       ctx.stroke();
     } else if (enemy.type === "frost_tyrant") {
-      ctx.fillStyle = `rgba(16, 28, 40, ${alpha + hitBoost})`;
+      const torsoTop = top + bodyH * 0.18;
+      const torsoH = bodyH * 0.5;
+      const shoulderY = torsoTop + bodyH * 0.06;
+      const headTop = top - bodyH * 0.1;
+      const armY = torsoTop + bodyH * 0.16;
+
+      ctx.fillStyle = `rgba(18, 30, 44, ${alpha + hitBoost})`;
       ctx.beginPath();
-      ctx.moveTo(projected.screenX, top - bodyH * 0.06);
-      ctx.lineTo(projected.screenX + bodyW * 0.24, top + bodyH * 0.16);
-      ctx.lineTo(projected.screenX + bodyW * 0.31, top + bodyH * 0.54);
-      ctx.lineTo(projected.screenX, top + bodyH * 0.74);
-      ctx.lineTo(projected.screenX - bodyW * 0.31, top + bodyH * 0.54);
-      ctx.lineTo(projected.screenX - bodyW * 0.24, top + bodyH * 0.16);
+      ctx.moveTo(projected.screenX - bodyW * 0.22, torsoTop);
+      ctx.lineTo(projected.screenX + bodyW * 0.22, torsoTop);
+      ctx.lineTo(projected.screenX + bodyW * 0.16, torsoTop + torsoH);
+      ctx.lineTo(projected.screenX - bodyW * 0.16, torsoTop + torsoH);
       ctx.closePath();
       ctx.fill();
-      ctx.fillStyle = `rgba(72, 118, 138, ${alpha})`;
-      ctx.fillRect(projected.screenX - bodyW * 0.48, top + bodyH * 0.24, bodyW * 0.16, bodyH * 0.28);
-      ctx.fillRect(projected.screenX + bodyW * 0.32, top + bodyH * 0.24, bodyW * 0.16, bodyH * 0.28);
+
+      ctx.fillStyle = `rgba(78, 112, 140, ${alpha})`;
+      ctx.fillRect(projected.screenX - bodyW * 0.48, armY, bodyW * 0.18, bodyH * 0.3);
+      ctx.fillRect(projected.screenX + bodyW * 0.3, armY, bodyW * 0.18, bodyH * 0.3);
+      ctx.fillRect(projected.screenX - bodyW * 0.18, torsoTop + torsoH, bodyW * 0.11, bodyH * 0.28);
+      ctx.fillRect(projected.screenX + bodyW * 0.07, torsoTop + torsoH, bodyW * 0.11, bodyH * 0.28);
+
+      ctx.fillStyle = `rgba(28, 42, 58, ${alpha})`;
+      ctx.beginPath();
+      ctx.moveTo(projected.screenX, headTop);
+      ctx.lineTo(projected.screenX + bodyW * 0.16, top + bodyH * 0.04);
+      ctx.lineTo(projected.screenX + bodyW * 0.1, top + bodyH * 0.18);
+      ctx.lineTo(projected.screenX - bodyW * 0.1, top + bodyH * 0.18);
+      ctx.lineTo(projected.screenX - bodyW * 0.16, top + bodyH * 0.04);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = `rgba(96, 146, 178, ${alpha})`;
+      ctx.beginPath();
+      ctx.moveTo(projected.screenX - bodyW * 0.4, shoulderY);
+      ctx.lineTo(projected.screenX - bodyW * 0.2, torsoTop);
+      ctx.lineTo(projected.screenX - bodyW * 0.1, shoulderY + bodyH * 0.08);
+      ctx.lineTo(projected.screenX - bodyW * 0.24, shoulderY + bodyH * 0.16);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(projected.screenX + bodyW * 0.4, shoulderY);
+      ctx.lineTo(projected.screenX + bodyW * 0.2, torsoTop);
+      ctx.lineTo(projected.screenX + bodyW * 0.1, shoulderY + bodyH * 0.08);
+      ctx.lineTo(projected.screenX + bodyW * 0.24, shoulderY + bodyH * 0.16);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = `rgba(214, 246, 255, ${alpha * 0.92})`;
+      const spikes = [
+        [-0.34, -0.26, -0.26, -0.02],
+        [-0.18, -0.38, -0.11, -0.08],
+        [0, -0.48, 0, -0.1],
+        [0.18, -0.38, 0.11, -0.08],
+        [0.34, -0.26, 0.26, -0.02]
+      ];
+      for (const [sx, sy, bx, by] of spikes) {
+        ctx.beginPath();
+        ctx.moveTo(projected.screenX + bodyW * bx, top + bodyH * by);
+        ctx.lineTo(projected.screenX + bodyW * sx, top + bodyH * sy);
+        ctx.lineTo(projected.screenX + bodyW * (bx * 0.7), top + bodyH * (by + 0.08));
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      ctx.fillStyle = `rgba(110, 225, 255, ${alpha * pulse})`;
+      ctx.beginPath();
+      ctx.arc(projected.screenX, torsoTop + torsoH * 0.42, scaledProjected.size * 0.06, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillRect(projected.screenX - bodyW * 0.12, torsoTop + torsoH * 0.16, bodyW * 0.24, bodyH * 0.06);
+      ctx.fillRect(projected.screenX - bodyW * 0.06, top + bodyH * 0.08, bodyW * 0.12, bodyH * 0.04);
+
       ctx.strokeStyle = `rgba(214, 250, 255, ${alpha * 0.82})`;
       ctx.lineWidth = 4;
       ctx.beginPath();
-      ctx.moveTo(projected.screenX - bodyW * 0.24, top + bodyH * 0.7);
-      ctx.lineTo(projected.screenX - bodyW * 0.16, groundY);
-      ctx.moveTo(projected.screenX + bodyW * 0.24, top + bodyH * 0.7);
-      ctx.lineTo(projected.screenX + bodyW * 0.16, groundY);
-      ctx.moveTo(projected.screenX - bodyW * 0.1, top + bodyH * 0.62);
-      ctx.lineTo(projected.screenX - bodyW * 0.36, top + bodyH * 0.92);
-      ctx.moveTo(projected.screenX + bodyW * 0.1, top + bodyH * 0.62);
-      ctx.lineTo(projected.screenX + bodyW * 0.36, top + bodyH * 0.92);
+      ctx.moveTo(projected.screenX - bodyW * 0.12, top + bodyH * 0.1);
+      ctx.lineTo(projected.screenX - bodyW * 0.04, top + bodyH * 0.13);
+      ctx.moveTo(projected.screenX + bodyW * 0.12, top + bodyH * 0.1);
+      ctx.lineTo(projected.screenX + bodyW * 0.04, top + bodyH * 0.13);
+      ctx.moveTo(projected.screenX - bodyW * 0.14, torsoTop + torsoH);
+      ctx.lineTo(projected.screenX - bodyW * 0.18, groundY);
+      ctx.moveTo(projected.screenX + bodyW * 0.14, torsoTop + torsoH);
+      ctx.lineTo(projected.screenX + bodyW * 0.18, groundY);
       ctx.stroke();
     } else {
       ctx.fillStyle = `rgba(34, 20, 14, ${alpha + hitBoost})`;
@@ -1462,17 +1791,45 @@ function drawEnemy(projected, enemy) {
     const weakPoints = getBossWeakpointScreenPositions(scaledProjected, enemy);
     for (const point of weakPoints) {
       const active = point.active;
-      const halo = ctx.createRadialGradient(point.screenX, point.screenY, 0, point.screenX, point.screenY, point.screenRadius * 2.2);
-      halo.addColorStop(0, `${point.color}${active ? "ff" : "44"}`);
-      halo.addColorStop(1, `${point.color}00`);
-      ctx.fillStyle = halo;
-      ctx.beginPath();
-      ctx.arc(point.screenX, point.screenY, point.screenRadius * 2.2, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = active ? point.color : "rgba(90,90,90,0.75)";
-      ctx.beginPath();
-      ctx.arc(point.screenX, point.screenY, point.screenRadius, 0, Math.PI * 2);
-      ctx.fill();
+      if (enemy.type === "frost_tyrant") {
+        const halo = ctx.createRadialGradient(point.screenX, point.screenY, 0, point.screenX, point.screenY, point.screenRadius * 1.6);
+        halo.addColorStop(0, `${point.color}${active ? "cc" : "33"}`);
+        halo.addColorStop(1, `${point.color}00`);
+        ctx.fillStyle = halo;
+        ctx.beginPath();
+        ctx.arc(point.screenX, point.screenY, point.screenRadius * 1.6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = active ? point.color : "rgba(90,90,90,0.72)";
+        ctx.beginPath();
+        ctx.moveTo(point.screenX, point.screenY - point.screenRadius);
+        ctx.lineTo(point.screenX + point.screenRadius * 0.72, point.screenY);
+        ctx.lineTo(point.screenX, point.screenY + point.screenRadius);
+        ctx.lineTo(point.screenX - point.screenRadius * 0.72, point.screenY);
+        ctx.closePath();
+        ctx.fill();
+      } else {
+        const halo = ctx.createRadialGradient(point.screenX, point.screenY, 0, point.screenX, point.screenY, point.screenRadius * 2.2);
+        halo.addColorStop(0, `${point.color}${active ? "ff" : "44"}`);
+        halo.addColorStop(1, `${point.color}00`);
+        ctx.fillStyle = halo;
+        ctx.beginPath();
+        ctx.arc(point.screenX, point.screenY, point.screenRadius * 2.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = active ? point.color : "rgba(90,90,90,0.75)";
+        ctx.beginPath();
+        ctx.arc(point.screenX, point.screenY, point.screenRadius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      if (!active) {
+        ctx.strokeStyle = "rgba(255,255,255,0.65)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(point.screenX - point.screenRadius, point.screenY - point.screenRadius);
+        ctx.lineTo(point.screenX + point.screenRadius, point.screenY + point.screenRadius);
+        ctx.moveTo(point.screenX + point.screenRadius, point.screenY - point.screenRadius);
+        ctx.lineTo(point.screenX - point.screenRadius, point.screenY + point.screenRadius);
+        ctx.stroke();
+      }
     }
 
     ctx.strokeStyle = "rgba(255,255,255,0.82)";
@@ -1626,7 +1983,7 @@ function renderSprites() {
     if (!pickup.taken) sprites.push({ kind: "pickup", pickup, x: pickup.x, y: pickup.y, scale: 0.7 });
   }
   for (const enemy of state.enemies) {
-    if (enemy.health > 0) sprites.push({ kind: "enemy", enemy, x: enemy.x, y: enemy.y, scale: enemy.isBoss ? 1.95 : enemy.type === "brute" ? 1.28 : 1 });
+    if (enemy.health > 0) sprites.push({ kind: "enemy", enemy, x: enemy.x, y: enemy.y, scale: enemy.isBoss ? getBossRenderScale(enemy) : enemy.type === "brute" ? 1.28 : 1 });
   }
   for (const projectile of state.enemyProjectiles) {
     sprites.push({ kind: "enemyProjectile", projectile, x: projectile.x, y: projectile.y, scale: 0.55 });
@@ -1637,11 +1994,22 @@ function renderSprites() {
   for (const sprite of sprites) {
     const projected = projectSprite(sprite.x, sprite.y, sprite.scale);
     if (!projected) continue;
-    if (spriteHiddenByWall(projected, sprite.kind === "enemyProjectile" ? 0.12 : 0.22)) continue;
+    const widthScale = sprite.kind === "enemyProjectile" ? 0.12 : sprite.kind === "enemy" && sprite.enemy.isBoss ? 0.42 : 0.22;
+    const clipRects = sprite.kind === "enemy" && sprite.enemy.type === "frost_tyrant"
+      ? getFrostTyrantClipRects(projected)
+      : getVisibleSpriteBands(projected, widthScale).map(([bandStart, bandEnd]) => [bandStart, 0, Math.max(1, bandEnd - bandStart), HEIGHT]);
+    if (clipRects.length === 0) continue;
 
+    ctx.save();
+    ctx.beginPath();
+    for (const [clipX, clipY, clipW, clipH] of clipRects) {
+      ctx.rect(clipX, clipY, clipW, clipH);
+    }
+    ctx.clip();
     if (sprite.kind === "pickup") drawPickup(projected, sprite.pickup);
     if (sprite.kind === "enemy") drawEnemy(projected, sprite.enemy);
     if (sprite.kind === "enemyProjectile") drawEnemyProjectile(projected, sprite.projectile);
+    ctx.restore();
   }
 }
 
@@ -1680,6 +2048,43 @@ function renderCombatEffects() {
     ctx.arc(projected.screenX, centerY, projected.size * 0.3, 0, Math.PI * 2);
     ctx.fill();
   }
+}
+
+function renderBossHud() {
+  if (!state.bossArenaActive || state.status !== "playing") return;
+  const boss = state.enemies.find((enemy) => enemy.isBoss && enemy.health > 0);
+  if (!boss) return;
+
+  const weakPoints = boss.weakPoints || [];
+  const panelW = 260;
+  const panelH = 90 + weakPoints.length * 18;
+  const panelX = 22;
+  const panelY = 22;
+
+  ctx.fillStyle = "rgba(5, 9, 14, 0.82)";
+  ctx.fillRect(panelX, panelY, panelW, panelH);
+  ctx.strokeStyle = "rgba(149, 255, 214, 0.18)";
+  ctx.strokeRect(panelX, panelY, panelW, panelH);
+  ctx.textAlign = "left";
+  ctx.fillStyle = "#edf7f3";
+  ctx.font = "700 18px Trebuchet MS";
+  ctx.fillText(ENEMY_DEFS[boss.type].label, panelX + 12, panelY + 24);
+  ctx.fillStyle = "#9ab8b0";
+  ctx.font = "13px Trebuchet MS";
+  ctx.fillText(`Phase ${boss.phase || 1}`, panelX + 12, panelY + 43);
+
+  ctx.strokeStyle = "rgba(255,255,255,0.72)";
+  ctx.strokeRect(panelX + 12, panelY + 54, panelW - 24, 10);
+  ctx.fillStyle = "rgba(255, 110, 110, 0.92)";
+  ctx.fillRect(panelX + 12, panelY + 54, (panelW - 24) * Math.max(0, boss.health / (boss.maxHealth || boss.health)), 10);
+
+  weakPoints.forEach((point, index) => {
+    const active = boss.weakPointHealth?.[point.key] !== 0;
+    ctx.fillStyle = active ? point.color : "rgba(110, 116, 126, 0.85)";
+    ctx.fillRect(panelX + 12, panelY + 76 + index * 18, 10, 10);
+    ctx.fillStyle = active ? "#edf7f3" : "#7a8793";
+    ctx.fillText(`${point.name}: ${active ? "ACTIVE" : "BROKEN"}`, panelX + 28, panelY + 85 + index * 18);
+  });
 }
 
 function renderMinimap() {
@@ -1867,6 +2272,19 @@ function renderOverlay() {
       ctx.fillStyle = `rgba(255, 122, 68, ${pulse * 0.06})`;
       ctx.fillRect(0, 0, WIDTH, HEIGHT);
     }
+
+    if (state.bossBanner > 0) {
+      const alpha = Math.min(1, state.bossBanner);
+      ctx.fillStyle = `rgba(3, 7, 12, ${alpha * 0.72})`;
+      ctx.fillRect(WIDTH * 0.26, 34, WIDTH * 0.48, 56);
+      ctx.strokeStyle = `rgba(149, 255, 214, ${alpha * 0.35})`;
+      ctx.strokeRect(WIDTH * 0.26, 34, WIDTH * 0.48, 56);
+      ctx.textAlign = "center";
+      ctx.fillStyle = `rgba(237, 247, 243, ${alpha})`;
+      ctx.font = "700 24px Trebuchet MS";
+      const boss = state.enemies.find((enemy) => enemy.isBoss && enemy.health > 0);
+      ctx.fillText(boss ? `${ENEMY_DEFS[boss.type].label} - Phase ${boss.phase || 1}` : "Boss Fight", WIDTH / 2, 69);
+    }
   }
 
   if (state.status === "title" || state.status === "paused" || state.status === "won" || state.status === "lost") {
@@ -1912,6 +2330,7 @@ function render() {
   renderWalls();
   renderHazards();
   renderSprites();
+  renderBossHud();
   renderCrosshair();
   renderProjectiles();
   renderCombatEffects();
@@ -1931,6 +2350,7 @@ function frame(now) {
       state.timeLeft -= dt;
     }
     state.cooldown = Math.max(0, state.cooldown - dt);
+    state.bossBanner = Math.max(0, state.bossBanner - dt);
     state.hurtFlash = Math.max(0, state.hurtFlash - dt);
     state.muzzleFlash = Math.max(0, state.muzzleFlash - dt);
     state.recoil = Math.max(0, state.recoil - dt * 6);
@@ -1998,6 +2418,16 @@ function handleGunAction(gunKey) {
 
 document.addEventListener("keydown", (event) => {
   keys.add(event.code);
+  if (event.code === "KeyW" || event.code === "KeyA" || event.code === "KeyS" || event.code === "KeyD") {
+    const now = performance.now();
+    const lastTap = state.keyTapTimes[event.code] || 0;
+    if (now - lastTap <= DOUBLE_TAP_MS) {
+      state.sprintKey = event.code;
+      state.sprintTimer = SPRINT_TIME;
+    }
+    state.keyTapTimes[event.code] = now;
+  }
+  advanceBossCode(event.code);
   if (event.code === "Enter" && state.status !== "playing") {
     resetGame();
     updateActionButtons();
@@ -2026,6 +2456,10 @@ document.addEventListener("keydown", (event) => {
 
 document.addEventListener("keyup", (event) => {
   keys.delete(event.code);
+  if (state.sprintKey === event.code) {
+    state.sprintKey = "";
+    state.sprintTimer = 0;
+  }
 });
 
 canvas.addEventListener("click", () => {
