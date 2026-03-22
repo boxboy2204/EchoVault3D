@@ -2455,6 +2455,9 @@ function drawCivilian(civ) {
   ctx.beginPath();
   ctx.arc(x + 13, y + 16, 22, 0, Math.PI * 2);
   ctx.fill();
+  ctx.fillStyle = "#233248";
+  ctx.fillRect(x + 5, y + 1, 16, 1);
+  ctx.fillRect(x + 2, y + 18, 22, 1);
   ctx.fillStyle = palette.skin;
   ctx.beginPath();
   ctx.arc(x + 13, y + 8, 8, 0, Math.PI * 2);
@@ -2516,6 +2519,8 @@ function drawEnemy(enemy) {
   if (enemy.type === "walker") {
     ctx.fillStyle = "rgba(0,0,0,0.16)";
     ctx.fillRect(x + 6, y + enemy.h + 6, 24, 6);
+    ctx.fillStyle = "#172235";
+    ctx.fillRect(x + 8, y - 13, 22, 1);
     ctx.fillStyle = palette.skin;
     ctx.fillRect(x + 11, y - 11, 16, 14);
     ctx.fillStyle = "#3e2818";
@@ -2540,6 +2545,8 @@ function drawEnemy(enemy) {
   } else {
     ctx.fillStyle = "rgba(0,0,0,0.14)";
     ctx.fillRect(x + 6, y + enemy.h + 4, 24, 5);
+    ctx.fillStyle = "#183553";
+    ctx.fillRect(x + 6, y + 3, 22, 1);
     ctx.fillStyle = palette.shell;
     ctx.fillRect(x + 3, y + 4, 28, 16);
     ctx.fillRect(x + 7, y, 20, 8);
@@ -2586,6 +2593,10 @@ function drawBoss(boss) {
     ctx.fillStyle = "#ffefbd";
     ctx.fillRect(x + 8, y + 50, 18, 7);
     ctx.fillRect(x + boss.w - 26, y + 50, 18, 7);
+    if (boss.attack === "telegraph") {
+      ctx.fillStyle = "rgba(255,218,146,0.28)";
+      ctx.fillRect(x - 10, y - 12, boss.w + 20, boss.h + 20);
+    }
   } else if (boss.type === "graft") {
     ctx.fillStyle = "rgba(0,0,0,0.2)";
     ctx.fillRect(x + 16, y + boss.h + 6, boss.w - 24, 8);
@@ -2666,6 +2677,22 @@ function drawBoss(boss) {
     if (boss.attack === "telegraph") {
       ctx.fillStyle = "rgba(255,224,160,0.35)";
       ctx.fillRect(x - 14, y + 10, boss.w + 28, boss.h - 12);
+    }
+  } else if (boss.type === "signal") {
+    ctx.fillStyle = "rgba(0,0,0,0.18)";
+    ctx.fillRect(x + 12, y + boss.h + 4, boss.w - 24, 8);
+    ctx.fillStyle = boss.attack === "telegraph" ? "#cde3ff" : "#5d8ad1";
+    ctx.beginPath();
+    ctx.roundRect(x, y, boss.w, boss.h, 20);
+    ctx.fill();
+    ctx.fillStyle = "#d8f0ff";
+    ctx.fillRect(x + 18, y + 16, 24, 12);
+    ctx.fillRect(x + 68, y + 16, 24, 12);
+    ctx.fillStyle = "#9ed3ff";
+    ctx.fillRect(x + 14, y + 42, boss.w - 28, 8);
+    if (boss.attack === "telegraph") {
+      ctx.fillStyle = "rgba(184,217,255,0.26)";
+      ctx.fillRect(x - 14, y - 10, boss.w + 28, boss.h + 16);
     }
   } else {
     ctx.fillStyle = "#5d8ad1";
@@ -3108,6 +3135,7 @@ function drawMapScreen() {
   for (let i = 0; i < levels.length; i += 1) {
     const node = nodes[i];
     const unlocked = i <= state.highestUnlockedLevel;
+    const completed = i < state.highestUnlockedLevel;
     const selected = i === state.mapSelection;
     ctx.fillStyle = unlocked ? (selected ? "#ffd86b" : "#7ec3ff") : "#8190a6";
     ctx.beginPath();
@@ -3122,6 +3150,17 @@ function drawMapScreen() {
       ctx.fillStyle = "#ff9d7a";
       ctx.fillRect(node.x - 4, node.y - 28, 8, 8);
       ctx.fillRect(node.x - 10, node.y - 22, 20, 4);
+    }
+    if (completed) {
+      ctx.fillStyle = "#90ebaf";
+      ctx.beginPath();
+      ctx.arc(node.x + 18, node.y - 14, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#17345f";
+      ctx.font = "700 11px Trebuchet MS";
+      ctx.textAlign = "center";
+      ctx.fillText("✓", node.x + 18, node.y - 10);
+      ctx.textAlign = "left";
     }
     if (selected) {
       drawPanel(node.x - 54, node.y + 26, 132, 28, unlocked ? "rgba(20,35,61,0.88)" : "rgba(70,79,98,0.88)");
@@ -3139,7 +3178,10 @@ function drawMapScreen() {
   ctx.font = "14px Trebuchet MS";
   drawWrappedText(current.goal, 62, 440, 388, 18, "#edf6ff");
   ctx.fillStyle = "#8fd6ff";
-  ctx.fillText(state.mapSelection <= state.highestUnlockedLevel ? "Status: Unlocked" : "Status: Locked", 62, 474);
+  const statusText = state.mapSelection < state.highestUnlockedLevel
+    ? "Status: Cleared"
+    : (state.mapSelection <= state.highestUnlockedLevel ? "Status: Unlocked" : "Status: Locked");
+  ctx.fillText(statusText, 62, 474);
 }
 
 function renderScene() {

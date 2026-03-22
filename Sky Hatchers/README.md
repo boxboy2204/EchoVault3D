@@ -1,6 +1,6 @@
 # Sky Hatchers 3D
 
-A browser game prototype about exploring a mythical sanctuary in third person, collecting eggs and growth items, customizing a ranger, hatching birds with rarity progression, and training those birds in aerial XP runs.
+A browser game prototype about exploring a mythical sanctuary in third person, collecting eggs and growth items, customizing a ranger, hatching birds with rarity progression, and training those birds in aerial XP runs. The renderer now uses a local copy of `three.js` in the browser.
 
 ## Loop
 
@@ -29,3 +29,5 @@ python3 -m http.server 8000
 ```
 
 Then open [http://localhost:8000](http://localhost:8000).
+
+The project now includes a vendored `three.module.js` file, so the renderer does not depend on a CDN at runtime.

@@ -1,5 +1,6 @@
+import * as THREE from "./three.module.js";
+
 const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
 
 const ui = {
   sceneStat: document.getElementById("sceneStat"),
@@ -20,33 +21,33 @@ const ui = {
   packSelect: document.getElementById("packSelect"),
 };
 
-const WIDTH = canvas.width;
-const HEIGHT = canvas.height;
-const FOV = 860;
-const WORLD_RADIUS = 34;
-const MOVE_SPEED = 8.8;
-const TURN_SPEED = 1.7;
 const keys = new Set();
+const WORLD_RADIUS = 92;
+const MOVE_SPEED = 18;
+const INTERACT_DISTANCE = 7.5;
+const CAMERA_DISTANCE = 14;
+const CAMERA_HEIGHT = 7;
+const CAMERA_LOOK_HEIGHT = 3;
 
 const CHARACTER_COLORS = {
   hair: { ember: "#7a3928", midnight: "#1d2438", mint: "#60a899" },
-  jacket: { gold: "#d7a33b", teal: "#2a8891", rose: "#bc6170" },
+  jacket: { gold: "#c99834", teal: "#2b7f88", rose: "#b46577" },
   pack: { tan: "#8f6c43", navy: "#33506b", forest: "#446c48" },
 };
 
 const SPECIES = [
-  { id: "sunflare", name: "Sunflare", rarity: "common", unlockLevel: 0, color: "#f59b2e", accent: "#ffe59f", perk: "Flame-feather dashes score extra XP.", base: { speed: 1.05, lift: 0.95, growth: 1.02 }, look: "flame" },
-  { id: "stormwing", name: "Stormwing", rarity: "common", unlockLevel: 0, color: "#c4cdd8", accent: "#ffffff", perk: "Gray-white wings hold altitude through gusts.", base: { speed: 0.98, lift: 1.12, growth: 0.96 }, look: "storm" },
-  { id: "bloomtail", name: "Bloomtail", rarity: "common", unlockLevel: 0, color: "#7fd57d", accent: "#ff9bc6", perk: "Flower-bright feathers pull stars and grow fast.", base: { speed: 0.94, lift: 0.98, growth: 1.14 }, look: "bloom" },
-  { id: "embercrest", name: "Embercrest", rarity: "uncommon", unlockLevel: 6, color: "#d66131", accent: "#ffd06f", perk: "Molten crest boosts launch speed.", base: { speed: 1.12, lift: 0.92, growth: 1.02 }, look: "crest" },
-  { id: "mistfinch", name: "Mistfinch", rarity: "uncommon", unlockLevel: 6, color: "#80c9da", accent: "#dff8ff", perk: "Mist feathers recover flight energy faster.", base: { speed: 0.99, lift: 1.08, growth: 1.02 }, look: "mist" },
-  { id: "thornbeak", name: "Thornbeak", rarity: "uncommon", unlockLevel: 6, color: "#6f9a45", accent: "#d3f79c", perk: "Forest plumage stacks strong growth gains.", base: { speed: 0.92, lift: 0.95, growth: 1.18 }, look: "thorn" },
-  { id: "glimmerowl", name: "Glimmerowl", rarity: "rare", unlockLevel: 14, color: "#7f78de", accent: "#fff1be", perk: "Moon-dusted wings widen ring pickups.", base: { speed: 1.06, lift: 1.06, growth: 1.08 }, look: "glimmer" },
-  { id: "tempestkite", name: "Tempest Kite", rarity: "rare", unlockLevel: 14, color: "#5681d8", accent: "#f4fbff", perk: "Storm fins turn gusts into bigger score bursts.", base: { speed: 1.14, lift: 1.12, growth: 0.98 }, look: "tempest" },
-  { id: "rosephoenix", name: "Rose Phoenix", rarity: "rare", unlockLevel: 14, color: "#ff6986", accent: "#ffd4e0", perk: "Floral fire plumage grants passive flight XP.", base: { speed: 1.05, lift: 0.98, growth: 1.18 }, look: "phoenix" },
-  { id: "auroraseraph", name: "Aurora Seraph", rarity: "epic", unlockLevel: 24, color: "#63d7ff", accent: "#ffe47d", perk: "Aurora ribbons widen rings and accelerate growth.", base: { speed: 1.14, lift: 1.14, growth: 1.2 }, look: "aurora" },
-  { id: "titanroc", name: "Titan Roc", rarity: "epic", unlockLevel: 24, color: "#c47b38", accent: "#fff2bd", perk: "Massive feathers push speed and size higher.", base: { speed: 1.16, lift: 1.02, growth: 1.18 }, look: "roc" },
-  { id: "verdantseraph", name: "Verdant Seraph", rarity: "epic", unlockLevel: 24, color: "#59be72", accent: "#f0a9ff", perk: "Sacred bloom-feathers amplify item bonuses.", base: { speed: 1.02, lift: 1.08, growth: 1.24 }, look: "seraph" },
+  { id: "sunflare", name: "Sunflare", rarity: "common", unlockLevel: 0, color: "#f29a2f", accent: "#ffe39b", perk: "Flame-feather dashes score extra XP.", base: { speed: 1.05, lift: 0.95, growth: 1.02 }, look: "flame" },
+  { id: "stormwing", name: "Stormwing", rarity: "common", unlockLevel: 0, color: "#bfc7cf", accent: "#ffffff", perk: "Gray-white wings hold altitude through gusts.", base: { speed: 0.98, lift: 1.12, growth: 0.96 }, look: "storm" },
+  { id: "bloomtail", name: "Bloomtail", rarity: "common", unlockLevel: 0, color: "#72c86d", accent: "#f097bb", perk: "Flower-bright feathers pull stars and grow fast.", base: { speed: 0.94, lift: 0.98, growth: 1.14 }, look: "bloom" },
+  { id: "embercrest", name: "Embercrest", rarity: "uncommon", unlockLevel: 6, color: "#cd632f", accent: "#ffd06f", perk: "Molten crest boosts launch speed.", base: { speed: 1.12, lift: 0.92, growth: 1.02 }, look: "crest" },
+  { id: "mistfinch", name: "Mistfinch", rarity: "uncommon", unlockLevel: 6, color: "#7fbdd2", accent: "#dff8ff", perk: "Mist feathers recover flight energy faster.", base: { speed: 0.99, lift: 1.08, growth: 1.02 }, look: "mist" },
+  { id: "thornbeak", name: "Thornbeak", rarity: "uncommon", unlockLevel: 6, color: "#698f42", accent: "#d3f79c", perk: "Forest plumage stacks strong growth gains.", base: { speed: 0.92, lift: 0.95, growth: 1.18 }, look: "thorn" },
+  { id: "glimmerowl", name: "Glimmerowl", rarity: "rare", unlockLevel: 14, color: "#7066d2", accent: "#fff1be", perk: "Moon-dusted wings widen ring pickups.", base: { speed: 1.06, lift: 1.06, growth: 1.08 }, look: "glimmer" },
+  { id: "tempestkite", name: "Tempest Kite", rarity: "rare", unlockLevel: 14, color: "#547bd0", accent: "#f4fbff", perk: "Storm fins turn gusts into bigger score bursts.", base: { speed: 1.14, lift: 1.12, growth: 0.98 }, look: "tempest" },
+  { id: "rosephoenix", name: "Rose Phoenix", rarity: "rare", unlockLevel: 14, color: "#f06182", accent: "#ffd4e0", perk: "Floral fire plumage grants passive flight XP.", base: { speed: 1.05, lift: 0.98, growth: 1.18 }, look: "phoenix" },
+  { id: "auroraseraph", name: "Aurora Seraph", rarity: "epic", unlockLevel: 24, color: "#61d0f6", accent: "#ffe47d", perk: "Aurora ribbons widen rings and accelerate growth.", base: { speed: 1.14, lift: 1.14, growth: 1.2 }, look: "aurora" },
+  { id: "titanroc", name: "Titan Roc", rarity: "epic", unlockLevel: 24, color: "#b67939", accent: "#fff2bd", perk: "Massive feathers push speed and size higher.", base: { speed: 1.16, lift: 1.02, growth: 1.18 }, look: "roc" },
+  { id: "verdantseraph", name: "Verdant Seraph", rarity: "epic", unlockLevel: 24, color: "#4fb06c", accent: "#f0a9ff", perk: "Sacred bloom-feathers amplify item bonuses.", base: { speed: 1.02, lift: 1.08, growth: 1.24 }, look: "seraph" },
 ];
 
 const ITEM_DEFS = [
@@ -59,37 +60,82 @@ const ITEM_DEFS = [
 
 const LANDMARKS = {
   nest: { x: 0, z: 0, label: "Star Nest", type: "nest", color: "#f3c97c" },
-  perch: { x: 13, z: -8, label: "Sky Perch", type: "perch", color: "#bceeff" },
-  tailor: { x: -12, z: 9, label: "Wanderer's Camp", type: "tailor", color: "#f1a0ac" },
+  perch: { x: 22, z: -18, label: "Sky Perch", type: "perch", color: "#bceeff" },
+  tailor: { x: -20, z: 16, label: "Wanderer's Camp", type: "tailor", color: "#f1a0ac" },
 };
 
 const FORAGE_SPOTS = [
-  { x: -19, z: -21 }, { x: -12, z: -16 }, { x: -4, z: -23 }, { x: 5, z: -20 }, { x: 12, z: -18 }, { x: 20, z: -12 },
-  { x: 24, z: -3 }, { x: 22, z: 8 }, { x: 15, z: 16 }, { x: 7, z: 22 }, { x: -3, z: 24 }, { x: -11, z: 19 },
-  { x: -20, z: 12 }, { x: -23, z: 2 }, { x: -18, z: -6 }, { x: -8, z: 11 }, { x: 4, z: 12 }, { x: 9, z: 3 },
+  { x: -42, z: -44 }, { x: -31, z: -37 }, { x: -15, z: -49 }, { x: 3, z: -42 }, { x: 22, z: -38 }, { x: 38, z: -25 },
+  { x: 49, z: -8 }, { x: 43, z: 13 }, { x: 30, z: 28 }, { x: 13, z: 43 }, { x: -8, z: 48 }, { x: -26, z: 39 },
+  { x: -42, z: 24 }, { x: -48, z: 5 }, { x: -36, z: -15 }, { x: -18, z: 24 }, { x: 10, z: 19 }, { x: 18, z: 5 },
 ];
 
-const TREES = createDecor(42, 1.8, 3.4, 3.8, "tree");
-const CRYSTALS = createDecor(12, 1, 1.8, 1.2, "crystal");
-const FIREFLIES = new Array(34).fill(null).map((_, index) => ({
-  seed: index * 0.77 + 1,
-  radius: 12 + index % 11,
-  height: 1.4 + (index % 7) * 0.16,
-}));
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x9fc9e8);
+scene.fog = new THREE.FogExp2(0xb7d0e2, 0.0085);
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(canvas.clientWidth || canvas.width, canvas.clientHeight || canvas.height, false);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+const camera = new THREE.PerspectiveCamera(58, canvas.clientWidth / canvas.clientHeight, 0.1, 500);
+scene.add(camera);
+
+const hemi = new THREE.HemisphereLight(0xd7efff, 0x455f3d, 1.55);
+scene.add(hemi);
+
+const sun = new THREE.DirectionalLight(0xfff0cf, 2.2);
+sun.position.set(70, 95, 45);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.left = -90;
+sun.shadow.camera.right = 90;
+sun.shadow.camera.top = 90;
+sun.shadow.camera.bottom = -90;
+sun.shadow.bias = -0.00012;
+scene.add(sun);
+
+const worldRoot = new THREE.Group();
+scene.add(worldRoot);
+
+const interactables = [];
+const animalMeshes = [];
+const grassMaterials = [];
+const grassBlades = [];
+const flightObjects = [];
+
+const raycaster = new THREE.Raycaster();
+const down = new THREE.Vector3(0, -1, 0);
+
+let terrainMesh = null;
+let terrainGeometry = null;
+let terrainPositions = null;
+let playerMesh = null;
+let backpackMesh = null;
+let companionMesh = null;
+let currentCompanionBirdId = null;
+let nestMesh = null;
+let perchMesh = null;
+let campMesh = null;
 
 function createState() {
-  const current = {
+  return {
     scene: "land",
     time: 0,
     pointerLocked: false,
-    prompt: "Click the viewport to lock the mouse, then explore the sanctuary for eggs.",
+    prompt: "Click the game view to lock the mouse and explore the sanctuary.",
     message: "This is a mythical bird sanctuary. Wander, collect eggs, and build your flock.",
     player: {
       x: 0,
-      z: 18,
+      z: 24,
+      y: 0,
       yaw: Math.PI,
-      pitch: -0.14,
       bob: 0,
+      moveBlend: 0,
     },
     character: { hair: "ember", jacket: "gold", pack: "tan" },
     backpack: [],
@@ -101,11 +147,52 @@ function createState() {
     spawnCooldown: 0,
     flight: null,
   };
-  seedWorld(current);
-  return current;
 }
 
 let state = createState();
+
+function noiseHeight(x, z) {
+  return (
+    Math.sin(x * 0.06) * 3.6 +
+    Math.cos(z * 0.05) * 2.8 +
+    Math.sin((x + z) * 0.035) * 5.2 +
+    Math.cos((x - z) * 0.025) * 2.2
+  );
+}
+
+function getTerrainHeight(x, z) {
+  return noiseHeight(x, z);
+}
+
+function clearWorld() {
+  while (worldRoot.children.length) {
+    const child = worldRoot.children.pop();
+    disposeHierarchy(child);
+  }
+  interactables.length = 0;
+  animalMeshes.length = 0;
+  grassBlades.length = 0;
+  grassMaterials.length = 0;
+  flightObjects.length = 0;
+  terrainMesh = null;
+  terrainGeometry = null;
+  terrainPositions = null;
+  playerMesh = null;
+  backpackMesh = null;
+  companionMesh = null;
+  currentCompanionBirdId = null;
+  nestMesh = null;
+  perchMesh = null;
+  campMesh = null;
+}
+
+function disposeHierarchy(object) {
+  object.traverse((child) => {
+    if (child.geometry) child.geometry.dispose();
+    if (Array.isArray(child.material)) child.material.forEach((mat) => mat.dispose());
+    else if (child.material) child.material.dispose();
+  });
+}
 
 function seedWorld(sourceState) {
   sourceState.worldEntities = [];
@@ -184,136 +271,12 @@ function makeItemEntity(sourceState, spot) {
   };
 }
 
-function terrainHeight(x, z) {
-  return Math.sin(x * 0.16) * 0.75 + Math.cos(z * 0.14) * 0.65 + Math.sin((x + z) * 0.07) * 0.45;
-}
-
-function clampPlayerToWorld() {
-  const radius = Math.hypot(state.player.x, state.player.z);
-  if (radius > WORLD_RADIUS) {
-    const scale = WORLD_RADIUS / radius;
-    state.player.x *= scale;
-    state.player.z *= scale;
-  }
-}
-
-function update(dt) {
-  state.time += dt;
-  if (keys.has("KeyR")) {
-    resetGame();
-    keys.delete("KeyR");
-    return;
-  }
-
-  if (state.scene === "land") updateLand(dt);
-  else updateFlight(dt);
-
+function resetGame() {
+  state = createState();
+  seedWorld(state);
+  rebuildWorld();
+  syncCustomizationUI();
   refreshUI();
-}
-
-function updateLand(dt) {
-  const sprint = keys.has("ShiftLeft") || keys.has("ShiftRight");
-  const speed = MOVE_SPEED * (sprint ? 1.42 : 1);
-  let moveX = 0;
-  let moveZ = 0;
-
-  if (keys.has("KeyW")) moveZ += 1;
-  if (keys.has("KeyS")) moveZ -= 1;
-  if (keys.has("KeyA")) moveX -= 1;
-  if (keys.has("KeyD")) moveX += 1;
-
-  if (!state.pointerLocked) {
-    if (keys.has("KeyQ") || keys.has("ArrowLeft")) state.player.yaw -= TURN_SPEED * dt;
-    if (keys.has("ArrowRight")) state.player.yaw += TURN_SPEED * dt;
-  }
-
-  if (moveX || moveZ) {
-    const angle = state.player.yaw;
-    const forwardX = Math.sin(angle);
-    const forwardZ = Math.cos(angle);
-    const rightX = Math.cos(angle);
-    const rightZ = -Math.sin(angle);
-    state.player.x += (forwardX * moveZ + rightX * moveX) * speed * dt;
-    state.player.z += (forwardZ * moveZ + rightZ * moveX) * speed * dt;
-    state.player.bob += dt * speed * 0.8;
-  }
-  clampPlayerToWorld();
-
-  if (keys.has("KeyE")) {
-    interactNearby();
-    keys.delete("KeyE");
-  }
-
-  for (let i = 0; i < 6; i += 1) {
-    if (keys.has(`Digit${i + 1}`)) {
-      selectBird(i);
-      keys.delete(`Digit${i + 1}`);
-    }
-  }
-
-  if (keys.has("Space")) {
-    if (selectedBird()) startFlight();
-    keys.delete("Space");
-  }
-
-  state.spawnCooldown -= dt;
-  ensureWorldSpawns();
-}
-
-function interactNearby() {
-  const nearby = nearestWorldObject();
-  if (!nearby) {
-    state.message = "Nothing close enough to interact with.";
-    return;
-  }
-
-  if (nearby.kind === "egg") collectEgg(nearby.entity);
-  else if (nearby.kind === "item") collectItem(nearby.entity);
-  else if (nearby.kind === "nest") hatchSelectedEgg();
-  else if (nearby.kind === "perch") startFlight();
-  else if (nearby.kind === "tailor") state.message = "Use the ranger panel on the right to customize your explorer.";
-}
-
-function nearestWorldObject() {
-  let best = null;
-  for (const entity of state.worldEntities) {
-    const dist = distance2D(state.player.x, state.player.z, entity.x, entity.z);
-    if (dist < 3 && (!best || dist < best.distance)) {
-      best = { kind: entity.type, entity, distance: dist };
-    }
-  }
-  for (const landmark of Object.values(LANDMARKS)) {
-    const dist = distance2D(state.player.x, state.player.z, landmark.x, landmark.z);
-    if (dist < 3.8 && (!best || dist < best.distance)) {
-      best = { kind: landmark.type, entity: landmark, distance: dist };
-    }
-  }
-  return best;
-}
-
-function collectEgg(entity) {
-  if (state.backpack.length >= 10) {
-    state.message = "Backpack full. Hatch eggs or use items before gathering more.";
-    return;
-  }
-  state.backpack.push({ type: "egg", speciesId: entity.speciesId, rarity: entity.rarity, label: entity.label });
-  state.worldEntities = state.worldEntities.filter((entry) => entry.id !== entity.id);
-  state.selectedBagIndex = state.backpack.length - 1;
-  state.prompt = "Egg stored. Use the Hatch button or return to the Star Nest.";
-  state.message = `${entity.label} added to your backpack.`;
-}
-
-function collectItem(entity) {
-  if (state.backpack.length >= 10) {
-    state.message = "Backpack full. Use an item or hatch an egg first.";
-    return;
-  }
-  const def = ITEM_DEFS.find((item) => item.id === entity.itemId);
-  state.backpack.push({ type: "item", itemId: def.id, label: def.name });
-  state.worldEntities = state.worldEntities.filter((entry) => entry.id !== entity.id);
-  state.selectedBagIndex = state.backpack.length - 1;
-  state.prompt = "Growth item stored. Use it on your selected bird from the side panel.";
-  state.message = `${def.name} added to your backpack.`;
 }
 
 function selectedBird() {
@@ -324,6 +287,21 @@ function selectBird(index) {
   if (index >= state.birds.length) return;
   state.selectedBirdIndex = index;
   state.message = `${state.birds[index].name} selected.`;
+  updateCompanionBird();
+}
+
+function gainBirdXp(bird, amount) {
+  bird.xp += amount;
+  while (bird.xp >= bird.xpToNext) {
+    bird.xp -= bird.xpToNext;
+    bird.level += 1;
+    bird.size = +(bird.size + 0.08).toFixed(2);
+    bird.speed = +(bird.speed + 0.04).toFixed(2);
+    bird.lift = +(bird.lift + 0.05).toFixed(2);
+    bird.growth = +(bird.growth + 0.06).toFixed(2);
+    bird.xpToNext = Math.round(bird.xpToNext * 1.28);
+    state.message = `${bird.name} reached level ${bird.level} and grew larger.`;
+  }
 }
 
 function hatchSelectedEgg() {
@@ -353,6 +331,7 @@ function hatchSelectedEgg() {
   state.selectedBagIndex = clamp(state.selectedBagIndex, 0, Math.max(state.backpack.length - 1, 0));
   state.prompt = `${bird.name} hatched. Launch it into training to earn XP and reveal rarer eggs.`;
   state.message = `${bird.name} hatched successfully.`;
+  updateCompanionBird();
 }
 
 function useSelectedItem() {
@@ -374,159 +353,527 @@ function useSelectedItem() {
   state.backpack.splice(state.selectedBagIndex, 1);
   state.selectedBagIndex = clamp(state.selectedBagIndex, 0, Math.max(state.backpack.length - 1, 0));
   state.message = `${def.name} used on ${bird.name}.`;
+  updateCompanionBird();
 }
 
-function gainBirdXp(bird, amount) {
-  bird.xp += amount;
-  while (bird.xp >= bird.xpToNext) {
-    bird.xp -= bird.xpToNext;
-    bird.level += 1;
-    bird.size = +(bird.size + 0.08).toFixed(2);
-    bird.speed = +(bird.speed + 0.04).toFixed(2);
-    bird.lift = +(bird.lift + 0.05).toFixed(2);
-    bird.growth = +(bird.growth + 0.06).toFixed(2);
-    bird.xpToNext = Math.round(bird.xpToNext * 1.28);
-    state.message = `${bird.name} reached level ${bird.level} and grew larger.`;
+function createTerrain() {
+  const size = WORLD_RADIUS * 2.25;
+  const segments = 180;
+  const geometry = new THREE.PlaneGeometry(size, size, segments, segments);
+  geometry.rotateX(-Math.PI / 2);
+  const positions = geometry.attributes.position;
+  const colors = [];
+
+  for (let i = 0; i < positions.count; i += 1) {
+    const x = positions.getX(i);
+    const z = positions.getZ(i);
+    const y = getTerrainHeight(x, z);
+    positions.setY(i, y);
+
+    const moisture = 0.5 + Math.sin(x * 0.08 + z * 0.03) * 0.25;
+    const slopeTint = 0.4 + y * 0.03;
+    const color = new THREE.Color().setHSL(0.26 - slopeTint * 0.02, 0.42, 0.26 + moisture * 0.12);
+    if (y > 5) color.offsetHSL(0, -0.08, 0.08);
+    colors.push(color.r, color.g, color.b);
+  }
+
+  geometry.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+  geometry.computeVertexNormals();
+  const material = new THREE.MeshStandardMaterial({
+    vertexColors: true,
+    roughness: 1,
+    metalness: 0,
+  });
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.receiveShadow = true;
+  mesh.castShadow = false;
+  worldRoot.add(mesh);
+
+  terrainMesh = mesh;
+  terrainGeometry = geometry;
+  terrainPositions = positions;
+
+  createGrassTufts();
+  createCliffs();
+  createWaterPlane();
+}
+
+function createGrassTufts() {
+  const bladeGeo = new THREE.PlaneGeometry(0.38, 2.6, 1, 4);
+  bladeGeo.translate(0, 1.3, 0);
+  for (let i = 0; i < 1200; i += 1) {
+    const radius = Math.sqrt(Math.random()) * (WORLD_RADIUS - 4);
+    const angle = Math.random() * Math.PI * 2;
+    const x = Math.cos(angle) * radius;
+    const z = Math.sin(angle) * radius;
+    const y = getTerrainHeight(x, z);
+    const mat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color().setHSL(0.25 + Math.random() * 0.03, 0.45, 0.24 + Math.random() * 0.08),
+      side: THREE.DoubleSide,
+      roughness: 1,
+    });
+    const blade = new THREE.Mesh(bladeGeo, mat);
+    blade.position.set(x, y, z);
+    blade.rotation.y = Math.random() * Math.PI * 2;
+    blade.rotation.z = (Math.random() - 0.5) * 0.18;
+    blade.castShadow = false;
+    blade.receiveShadow = false;
+    blade.userData.sway = Math.random() * Math.PI * 2;
+    grassBlades.push(blade);
+    grassMaterials.push(mat);
+    worldRoot.add(blade);
   }
 }
 
-function startFlight() {
+function createWaterPlane() {
+  const water = new THREE.Mesh(
+    new THREE.CircleGeometry(16, 32),
+    new THREE.MeshStandardMaterial({
+      color: 0x4f89a6,
+      transparent: true,
+      opacity: 0.7,
+      roughness: 0.2,
+      metalness: 0.15,
+    }),
+  );
+  water.rotation.x = -Math.PI / 2;
+  water.position.set(-34, getTerrainHeight(-34, 24) - 0.6, 24);
+  water.receiveShadow = true;
+  worldRoot.add(water);
+}
+
+function createCliffs() {
+  for (let i = 0; i < 18; i += 1) {
+    const rock = new THREE.Mesh(
+      new THREE.DodecahedronGeometry(2 + Math.random() * 3.2, 0),
+      new THREE.MeshStandardMaterial({ color: i % 2 === 0 ? 0x6a675f : 0x7c786f, roughness: 1 }),
+    );
+    const radius = 22 + Math.random() * 50;
+    const angle = i * 1.43 + Math.random();
+    rock.position.set(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
+    rock.position.y = getTerrainHeight(rock.position.x, rock.position.z) + 1.3;
+    rock.rotation.set(Math.random(), Math.random(), Math.random());
+    rock.scale.setScalar(1 + Math.random() * 2);
+    rock.castShadow = true;
+    rock.receiveShadow = true;
+    worldRoot.add(rock);
+  }
+}
+
+function createTree(position, scale = 1) {
+  const group = new THREE.Group();
+  const trunk = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.45 * scale, 0.7 * scale, 8 * scale, 7),
+    new THREE.MeshStandardMaterial({ color: 0x6d4a2b, roughness: 1 }),
+  );
+  trunk.castShadow = true;
+  trunk.receiveShadow = true;
+  trunk.position.y = 4 * scale;
+  group.add(trunk);
+
+  const canopyColors = [0x315d35, 0x416f3e, 0x557d4d];
+  for (let i = 0; i < 4; i += 1) {
+    const canopy = new THREE.Mesh(
+      new THREE.SphereGeometry((2.9 + Math.random() * 1.4) * scale, 8, 8),
+      new THREE.MeshStandardMaterial({ color: canopyColors[i % canopyColors.length], roughness: 1 }),
+    );
+    canopy.castShadow = true;
+    canopy.receiveShadow = true;
+    canopy.position.set((Math.random() - 0.5) * 2.4 * scale, (8.2 + i * 0.7) * scale, (Math.random() - 0.5) * 2.4 * scale);
+    group.add(canopy);
+  }
+
+  group.position.set(position.x, getTerrainHeight(position.x, position.z), position.z);
+  return group;
+}
+
+function createBush(position, scale = 1) {
+  const group = new THREE.Group();
+  const colors = [0x45683b, 0x5d7a46, 0x6b8952];
+  for (let i = 0; i < 3; i += 1) {
+    const bush = new THREE.Mesh(
+      new THREE.SphereGeometry((1.5 + Math.random() * 0.7) * scale, 7, 7),
+      new THREE.MeshStandardMaterial({ color: colors[i % colors.length], roughness: 1 }),
+    );
+    bush.castShadow = true;
+    bush.receiveShadow = true;
+    bush.position.set((i - 1) * 1.2 * scale, (1 + Math.random() * 0.5) * scale, (Math.random() - 0.5) * 0.8 * scale);
+    group.add(bush);
+  }
+  group.position.set(position.x, getTerrainHeight(position.x, position.z), position.z);
+  return group;
+}
+
+function createAnimal(position, type) {
+  const group = new THREE.Group();
+  const color = type === "deer" ? 0x8d6a47 : 0x6f736f;
+  const body = new THREE.Mesh(
+    new THREE.CapsuleGeometry(0.9, 2.3, 4, 8),
+    new THREE.MeshStandardMaterial({ color, roughness: 1 }),
+  );
+  body.rotation.z = Math.PI / 2;
+  body.castShadow = true;
+  body.position.y = 2.2;
+  group.add(body);
+
+  for (let i = 0; i < 4; i += 1) {
+    const leg = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.12, 0.15, 1.9, 5),
+      new THREE.MeshStandardMaterial({ color: 0x403126, roughness: 1 }),
+    );
+    leg.position.set((i < 2 ? -0.7 : 0.7), 1, i % 2 === 0 ? -0.45 : 0.45);
+    leg.castShadow = true;
+    group.add(leg);
+  }
+
+  const head = new THREE.Mesh(
+    new THREE.SphereGeometry(0.72, 8, 8),
+    new THREE.MeshStandardMaterial({ color, roughness: 1 }),
+  );
+  head.position.set(1.8, 2.9, 0);
+  head.castShadow = true;
+  group.add(head);
+
+  if (type === "deer") {
+    const antlerMat = new THREE.MeshStandardMaterial({ color: 0xd7c6a1, roughness: 1 });
+    const antlerA = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.08, 0.9, 4), antlerMat);
+    const antlerB = antlerA.clone();
+    antlerA.position.set(2.0, 3.6, -0.16);
+    antlerB.position.set(2.0, 3.6, 0.16);
+    antlerA.rotation.z = -0.35;
+    antlerB.rotation.z = 0.35;
+    group.add(antlerA, antlerB);
+  }
+
+  group.position.set(position.x, getTerrainHeight(position.x, position.z), position.z);
+  group.rotation.y = Math.random() * Math.PI * 2;
+  group.userData.wander = Math.random() * Math.PI * 2;
+  animalMeshes.push(group);
+  return group;
+}
+
+function createLandmarks() {
+  nestMesh = createNestMesh();
+  nestMesh.position.set(LANDMARKS.nest.x, getTerrainHeight(LANDMARKS.nest.x, LANDMARKS.nest.z), LANDMARKS.nest.z);
+  worldRoot.add(nestMesh);
+
+  perchMesh = createPerchMesh();
+  perchMesh.position.set(LANDMARKS.perch.x, getTerrainHeight(LANDMARKS.perch.x, LANDMARKS.perch.z), LANDMARKS.perch.z);
+  worldRoot.add(perchMesh);
+
+  campMesh = createCampMesh();
+  campMesh.position.set(LANDMARKS.tailor.x, getTerrainHeight(LANDMARKS.tailor.x, LANDMARKS.tailor.z), LANDMARKS.tailor.z);
+  worldRoot.add(campMesh);
+}
+
+function createNestMesh() {
+  const group = new THREE.Group();
+  const bowl = new THREE.Mesh(
+    new THREE.TorusGeometry(2.5, 0.8, 8, 20),
+    new THREE.MeshStandardMaterial({ color: 0x8b5a35, roughness: 1 }),
+  );
+  bowl.rotation.x = Math.PI / 2;
+  bowl.position.y = 0.8;
+  bowl.castShadow = true;
+  bowl.receiveShadow = true;
+  group.add(bowl);
+
+  const glow = new THREE.PointLight(0xf4d38f, 8, 22, 2);
+  glow.position.set(0, 4, 0);
+  group.add(glow);
+  return group;
+}
+
+function createPerchMesh() {
+  const group = new THREE.Group();
+  const pole = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.35, 0.5, 8.5, 6),
+    new THREE.MeshStandardMaterial({ color: 0x5d452f, roughness: 1 }),
+  );
+  pole.position.y = 4.2;
+  pole.castShadow = true;
+  pole.receiveShadow = true;
+  group.add(pole);
+
+  const beam = new THREE.Mesh(
+    new THREE.BoxGeometry(5.5, 0.42, 0.42),
+    new THREE.MeshStandardMaterial({ color: 0xd2ecff, emissive: 0x7fb7d7, emissiveIntensity: 0.25, roughness: 0.4 }),
+  );
+  beam.position.set(0, 8.2, 0);
+  beam.castShadow = true;
+  group.add(beam);
+
+  return group;
+}
+
+function createCampMesh() {
+  const group = new THREE.Group();
+  const base = new THREE.Mesh(
+    new THREE.CylinderGeometry(4.5, 5.2, 2.8, 6),
+    new THREE.MeshStandardMaterial({ color: 0x82664a, roughness: 1 }),
+  );
+  base.position.y = 1.4;
+  base.castShadow = true;
+  base.receiveShadow = true;
+  group.add(base);
+
+  const tent = new THREE.Mesh(
+    new THREE.ConeGeometry(5.5, 5.8, 4),
+    new THREE.MeshStandardMaterial({ color: 0xb06773, roughness: 1 }),
+  );
+  tent.position.y = 5.4;
+  tent.rotation.y = Math.PI / 4;
+  tent.castShadow = true;
+  group.add(tent);
+  return group;
+}
+
+function createPlayerMesh() {
+  const group = new THREE.Group();
+
+  const boots = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.55, 0.65, 2.1, 6),
+    new THREE.MeshStandardMaterial({ color: 0x3f3228, roughness: 1 }),
+  );
+  boots.position.y = 1.05;
+  boots.castShadow = true;
+  group.add(boots);
+
+  const coat = new THREE.Mesh(
+    new THREE.CapsuleGeometry(1.6, 3.8, 5, 10),
+    new THREE.MeshStandardMaterial({ color: new THREE.Color(CHARACTER_COLORS.jacket[state.character.jacket]), roughness: 1 }),
+  );
+  coat.position.y = 4.2;
+  coat.castShadow = true;
+  group.add(coat);
+
+  const head = new THREE.Mesh(
+    new THREE.SphereGeometry(0.98, 14, 14),
+    new THREE.MeshStandardMaterial({ color: 0xf1d2ba, roughness: 1 }),
+  );
+  head.position.y = 7.2;
+  head.castShadow = true;
+  group.add(head);
+
+  const hair = new THREE.Mesh(
+    new THREE.SphereGeometry(1.03, 14, 14, 0, Math.PI * 2, 0, Math.PI * 0.55),
+    new THREE.MeshStandardMaterial({ color: new THREE.Color(CHARACTER_COLORS.hair[state.character.hair]), roughness: 1 }),
+  );
+  hair.position.y = 7.45;
+  hair.castShadow = true;
+  group.add(hair);
+
+  backpackMesh = new THREE.Mesh(
+    new THREE.BoxGeometry(1.9, 2.6, 1.1),
+    new THREE.MeshStandardMaterial({ color: new THREE.Color(CHARACTER_COLORS.pack[state.character.pack]), roughness: 1 }),
+  );
+  backpackMesh.position.set(0, 4.25, -1.35);
+  backpackMesh.castShadow = true;
+  group.add(backpackMesh);
+
+  group.position.set(state.player.x, getTerrainHeight(state.player.x, state.player.z), state.player.z);
+  playerMesh = group;
+  worldRoot.add(group);
+}
+
+function recolorPlayer() {
+  if (!playerMesh) return;
+  const [boots, coat, head, hair] = playerMesh.children;
+  coat.material.color.set(CHARACTER_COLORS.jacket[state.character.jacket]);
+  hair.material.color.set(CHARACTER_COLORS.hair[state.character.hair]);
+  backpackMesh.material.color.set(CHARACTER_COLORS.pack[state.character.pack]);
+}
+
+function createSpeciesBirdMesh(species, scale = 1) {
+  const group = new THREE.Group();
+  const bodyMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(species.color), roughness: 0.95 });
+  const accentMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(species.accent), roughness: 0.8, emissive: new THREE.Color(species.accent).multiplyScalar(0.08) });
+  const beakMat = new THREE.MeshStandardMaterial({ color: 0xe3b558, roughness: 0.7 });
+
+  const body = new THREE.Mesh(new THREE.SphereGeometry(1.2, 12, 12), bodyMat);
+  body.scale.set(1.45, 1, 1);
+  body.castShadow = true;
+  group.add(body);
+
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.7, 12, 12), accentMat);
+  head.position.set(1.15, 0.35, 0);
+  head.castShadow = true;
+  group.add(head);
+
+  const beak = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.75, 5), beakMat);
+  beak.rotation.z = -Math.PI / 2;
+  beak.position.set(1.95, 0.28, 0);
+  beak.castShadow = true;
+  group.add(beak);
+
+  const wingGeo = new THREE.BoxGeometry(1.8, 0.16, 0.85);
+  const leftWing = new THREE.Mesh(wingGeo, bodyMat);
+  const rightWing = leftWing.clone();
+  leftWing.position.set(-0.3, 0.2, -1.15);
+  rightWing.position.set(-0.3, 0.2, 1.15);
+  leftWing.rotation.x = 0.2;
+  rightWing.rotation.x = -0.2;
+  leftWing.castShadow = true;
+  rightWing.castShadow = true;
+  group.add(leftWing, rightWing);
+
+  const tail = new THREE.Mesh(new THREE.ConeGeometry(0.45, 1.2, 5), accentMat);
+  tail.rotation.z = Math.PI / 2;
+  tail.position.set(-1.4, -0.1, 0);
+  tail.castShadow = true;
+  group.add(tail);
+
+  if (species.look === "flame" || species.look === "phoenix" || species.look === "crest") {
+    const crest = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.95, 5), accentMat);
+    crest.position.set(0.95, 1.05, 0);
+    crest.rotation.z = 0.18;
+    group.add(crest);
+  } else if (species.look === "storm" || species.look === "tempest" || species.look === "mist") {
+    const finA = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.85, 0.08), accentMat);
+    const finB = finA.clone();
+    finA.position.set(-0.2, 0.75, -0.45);
+    finB.position.set(-0.2, 0.75, 0.45);
+    finA.rotation.z = 0.22;
+    finB.rotation.z = -0.22;
+    group.add(finA, finB);
+  } else {
+    for (let i = 0; i < 3; i += 1) {
+      const petal = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 8), accentMat);
+      petal.position.set(0.1 + i * 0.25, 0.95 + (i % 2) * 0.12, i === 1 ? 0 : i === 0 ? -0.25 : 0.25);
+      group.add(petal);
+    }
+  }
+
+  group.scale.setScalar(scale);
+  return group;
+}
+
+function createEggMesh(entity) {
+  const species = SPECIES.find((entry) => entry.id === entity.speciesId);
+  const group = new THREE.Group();
+  const shellMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(species.accent), roughness: 0.6 });
+  const stripeMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(species.color), roughness: 0.8, emissive: new THREE.Color(species.color).multiplyScalar(0.08) });
+
+  const shell = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 14), shellMat);
+  shell.scale.y = 1.35;
+  shell.castShadow = true;
+  group.add(shell);
+
+  const stripe = new THREE.Mesh(new THREE.TorusGeometry(0.65, 0.12, 6, 12), stripeMat);
+  stripe.rotation.x = Math.PI / 2;
+  stripe.position.y = 0.18;
+  group.add(stripe);
+
+  const glow = new THREE.PointLight(new THREE.Color(species.color), 1.3, 10, 2);
+  glow.position.y = 1.2;
+  group.add(glow);
+  return group;
+}
+
+function createItemMesh(entity) {
+  const def = ITEM_DEFS.find((item) => item.id === entity.itemId);
+  const group = new THREE.Group();
+  const color = new THREE.Color(def.color);
+  let mesh;
+  if (def.effect === "growth") {
+    mesh = new THREE.Mesh(new THREE.SphereGeometry(1.05, 12, 12), new THREE.MeshStandardMaterial({ color, roughness: 0.5, emissive: color.clone().multiplyScalar(0.15) }));
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.14, 0.7, 6), new THREE.MeshStandardMaterial({ color: 0xc9f090 }));
+    stem.position.y = 1.1;
+    group.add(stem);
+  } else if (def.effect === "ability") {
+    mesh = new THREE.Mesh(new THREE.OctahedronGeometry(1.1), new THREE.MeshStandardMaterial({ color, roughness: 0.35, emissive: color.clone().multiplyScalar(0.2), metalness: 0.08 }));
+  } else {
+    mesh = new THREE.Mesh(new THREE.DodecahedronGeometry(1.02), new THREE.MeshStandardMaterial({ color, roughness: 0.45, emissive: color.clone().multiplyScalar(0.12) }));
+  }
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  group.add(mesh);
+  const glow = new THREE.PointLight(color, 1.1, 9, 2);
+  glow.position.y = 1;
+  group.add(glow);
+  return group;
+}
+
+function placeInteractableMesh(entity) {
+  let mesh;
+  if (entity.type === "egg") mesh = createEggMesh(entity);
+  else mesh = createItemMesh(entity);
+  mesh.position.set(entity.x, getTerrainHeight(entity.x, entity.z) + 1.25, entity.z);
+  mesh.userData.entityId = entity.id;
+  mesh.userData.kind = entity.type;
+  mesh.userData.floatOffset = Math.random() * Math.PI * 2;
+  interactables.push(mesh);
+  worldRoot.add(mesh);
+}
+
+function createForest() {
+  for (let i = 0; i < 90; i += 1) {
+    const radius = 12 + Math.sqrt(Math.random()) * (WORLD_RADIUS - 10);
+    const angle = Math.random() * Math.PI * 2;
+    const position = { x: Math.cos(angle) * radius, z: Math.sin(angle) * radius };
+    if (Math.hypot(position.x, position.z) < 16) continue;
+    worldRoot.add(createTree(position, 0.85 + Math.random() * 1.45));
+  }
+
+  for (let i = 0; i < 140; i += 1) {
+    const radius = 10 + Math.sqrt(Math.random()) * (WORLD_RADIUS - 8);
+    const angle = Math.random() * Math.PI * 2;
+    const position = { x: Math.cos(angle) * radius, z: Math.sin(angle) * radius };
+    if (Math.hypot(position.x, position.z) < 10) continue;
+    worldRoot.add(createBush(position, 0.75 + Math.random() * 0.9));
+  }
+
+  for (let i = 0; i < 12; i += 1) {
+    const radius = 18 + Math.sqrt(Math.random()) * (WORLD_RADIUS - 12);
+    const angle = Math.random() * Math.PI * 2;
+    const position = { x: Math.cos(angle) * radius, z: Math.sin(angle) * radius };
+    worldRoot.add(createAnimal(position, i % 3 === 0 ? "deer" : "wolf"));
+  }
+}
+
+function rebuildWorld() {
+  clearWorld();
+  createTerrain();
+  createForest();
+  createLandmarks();
+  createPlayerMesh();
+  for (const entity of state.worldEntities) placeInteractableMesh(entity);
+  updateCompanionBird();
+}
+
+function updateCompanionBird() {
   const bird = selectedBird();
   if (!bird) {
-    state.message = "Hatch a bird before starting flight training.";
+    if (companionMesh) {
+      worldRoot.remove(companionMesh);
+      disposeHierarchy(companionMesh);
+      companionMesh = null;
+      currentCompanionBirdId = null;
+    }
     return;
   }
-  state.scene = "flight";
-  state.flight = {
-    timer: 34,
-    laneX: 0,
-    altitude: 0,
-    velocityY: 0,
-    energy: 100,
-    speed: 17 + bird.speed * 3.5,
-    runXp: 0,
-    combo: 0,
-    objects: createFlightObjects(),
-  };
-  state.prompt = `${bird.name} launched. Use mouse look in the sanctuary and A/D + Space in flight.`;
-}
 
-function createFlightObjects() {
-  const objects = [];
-  for (let i = 0; i < 26; i += 1) {
-    objects.push({ kind: "ring", z: 34 + i * 14, x: Math.sin(i * 0.75) * 1.05, y: Math.cos(i * 0.55) * 0.48, value: 16, hit: false });
-    if (i % 2 === 0) objects.push({ kind: "star", z: 40 + i * 14, x: Math.cos(i * 1.3) * 1.35, y: Math.sin(i * 0.8) * 0.58, value: 12, hit: false });
-    if (i % 3 === 0) objects.push({ kind: "gust", z: 46 + i * 14, x: Math.sin(i * 1.1) * 1.55, y: 0.12 + Math.cos(i * 0.9) * 0.4, value: 10, hit: false });
-  }
-  return objects;
-}
-
-function updateFlight(dt) {
-  const flight = state.flight;
-  const bird = selectedBird();
-  flight.timer -= dt;
-  flight.energy = Math.min(100, flight.energy + dt * (8 + bird.growth * 2) + (bird.abilities.includes("Tailwind") ? 5 * dt : 0));
-
-  if (keys.has("KeyA")) flight.laneX -= dt * 2;
-  if (keys.has("KeyD")) flight.laneX += dt * 2;
-  flight.laneX = clamp(flight.laneX, -1.9, 1.9);
-
-  if (keys.has("Space") && flight.energy > 8) {
-    flight.velocityY += 12 * bird.lift * dt;
-    flight.energy -= 18 * dt;
-  }
-  if (keys.has("ShiftLeft") || keys.has("ShiftRight")) {
-    if (flight.energy > 16) {
-      flight.speed = Math.min(31 + bird.speed * 4, flight.speed + 18 * dt);
-      flight.energy -= 24 * dt;
-      flight.runXp += dt * (bird.name === "Sunflare" ? 7 : 3);
+  if (currentCompanionBirdId !== bird.id) {
+    if (companionMesh) {
+      worldRoot.remove(companionMesh);
+      disposeHierarchy(companionMesh);
     }
+    const species = SPECIES.find((entry) => entry.id === bird.speciesId);
+    companionMesh = createSpeciesBirdMesh(species, 0.85 * bird.size);
+    companionMesh.castShadow = true;
+    companionMesh.traverse((child) => {
+      if (child.isMesh) child.castShadow = true;
+    });
+    worldRoot.add(companionMesh);
+    currentCompanionBirdId = bird.id;
   } else {
-    const cruise = 17 + bird.speed * 3.5;
-    flight.speed += (cruise - flight.speed) * 0.9 * dt;
+    companionMesh.scale.setScalar(0.85 * bird.size);
   }
-
-  flight.velocityY -= 4.6 * dt;
-  flight.altitude = clamp(flight.altitude + flight.velocityY * dt, -1.1, 1.3);
-  if (flight.altitude <= -1.1) flight.velocityY = 0;
-
-  if (bird.name === "Rose Phoenix") flight.runXp += 2.2 * dt;
-  if (bird.name === "Bloomtail" || bird.name === "Verdant Seraph") flight.runXp += 1.1 * dt;
-
-  for (const object of flight.objects) {
-    object.z -= flight.speed * dt;
-    if (!object.hit && object.z < 2.4) {
-      const hitX = Math.abs(object.x - flight.laneX) < (object.kind === "ring" ? 0.52 : 0.38);
-      const hitY = Math.abs(object.y - flight.altitude) < (object.kind === "ring" ? 0.38 : 0.3);
-      if (hitX && hitY) {
-        object.hit = true;
-        if (object.kind === "ring") {
-          flight.combo += 1;
-          flight.runXp += object.value + flight.combo * 2;
-        } else if (object.kind === "star") {
-          flight.runXp += object.value + (bird.name === "Bloomtail" ? 6 : 0);
-          flight.energy = Math.min(100, flight.energy + 12);
-        } else if (object.kind === "gust") {
-          flight.runXp += bird.name === "Stormwing" ? 18 : object.value;
-          flight.velocityY += 0.8 + bird.lift * 0.35;
-        }
-      } else if (object.kind === "ring") {
-        flight.combo = 0;
-      }
-    }
-  }
-
-  if (flight.timer <= 0) finishFlight();
-}
-
-function finishFlight() {
-  const bird = selectedBird();
-  const totalXp = Math.max(18, Math.round(state.flight.runXp + 10 + bird.level * 2));
-  gainBirdXp(bird, totalXp);
-  state.scene = "land";
-  state.flight = null;
-  state.prompt = `${bird.name} landed with ${totalXp} XP. Stronger flocks reveal stronger eggs.`;
-  state.message = `${bird.name} completed a flight run.`;
-}
-
-function ensureWorldSpawns() {
-  if (state.spawnCooldown > 0) return;
-  const eggCount = state.worldEntities.filter((entity) => entity.type === "egg").length;
-  const itemCount = state.worldEntities.filter((entity) => entity.type === "item").length;
-  const openSpots = FORAGE_SPOTS.filter(
-    (spot) => !state.worldEntities.some((entity) => distance2D(entity.x, entity.z, spot.x, spot.z) < 2),
-  );
-  if (!openSpots.length) return;
-  if (eggCount < 6) {
-    state.worldEntities.push(makeEggEntity(state, openSpots[Math.floor(Math.random() * openSpots.length)]));
-    state.spawnCooldown = 3.2;
-    return;
-  }
-  if (itemCount < 5) {
-    state.worldEntities.push(makeItemEntity(state, openSpots[Math.floor(Math.random() * openSpots.length)]));
-    state.spawnCooldown = 4.5;
-  }
-}
-
-function refreshUI() {
-  const bird = selectedBird();
-  ui.sceneStat.textContent = state.scene === "land" ? "Sanctuary" : "Flight Training";
-  ui.bagStat.textContent = `${state.backpack.length} / 10`;
-  ui.flockStat.textContent = `${totalFlockLevel()}`;
-  ui.tierStat.textContent = capitalize(currentTier());
-  ui.promptStat.textContent = currentPromptText();
-  ui.overlayCard.innerHTML = overlayMarkup();
-  ui.inventoryPanel.innerHTML = inventoryMarkup();
-  ui.rosterPanel.innerHTML = rosterMarkup();
-  ui.portrait.innerHTML = portraitMarkup();
-  ui.hatchBtn.disabled = !state.backpack.some((item) => item.type === "egg");
-  ui.useItemBtn.disabled = !bird || !state.backpack.some((item) => item.type === "item");
-  ui.sendFlightBtn.disabled = !bird || state.scene !== "land";
 }
 
 function currentPromptText() {
   if (state.scene === "flight") return "A/D steer, Space flap, Shift dash. Clear rings for XP.";
-  const nearby = nearestWorldObject();
+  const nearby = nearestInteraction();
   if (!nearby) return state.prompt;
   if (nearby.kind === "egg") return "Press E to place the egg into your backpack.";
   if (nearby.kind === "item") return "Press E to collect the growth item.";
@@ -543,7 +890,7 @@ function overlayMarkup() {
       <br />Run XP ${Math.round(state.flight.runXp)} · Time ${state.flight.timer.toFixed(1)}s`;
   }
   if (!bird) {
-    return `<strong>Sanctuary Brief</strong>This is a mythical open sanctuary, not a maze. Explore meadows, ruins, and glowing groves to find eggs and form your first bond.`;
+    return `<strong>Sanctuary Brief</strong>The scene is now real 3D via three.js. Explore the valley, collect eggs, and begin forming your flock.`;
   }
   const species = SPECIES.find((entry) => entry.id === bird.speciesId);
   return `<strong>${bird.name}</strong>${species.perk}<br />Level ${bird.level} · XP ${Math.round(bird.xp)}/${bird.xpToNext} · Size ${(bird.size * 100).toFixed(0)}%`;
@@ -559,7 +906,7 @@ function inventoryMarkup() {
       const species = SPECIES.find((entry) => entry.id === item.speciesId);
       return `<button class="entry${active}" data-bag-index="${index}" type="button">
         <h3>${species.name} Egg</h3>
-        <p>${capitalize(item.rarity)} egg. Only the common three appear at the start, then rarer eggs begin to show up as your flock levels rise.</p>
+        <p>${capitalize(item.rarity)} egg. The rare pool expands as your flock levels up.</p>
       </button>`;
     }
     const def = ITEM_DEFS.find((entry) => entry.id === item.itemId);
@@ -599,560 +946,405 @@ function portraitMarkup() {
       <rect x="141" y="56" width="24" height="28" rx="8" fill="${pack}" />
       <rect x="155" y="58" width="4" height="18" rx="2" fill="rgba(255,255,255,0.45)" />
     </svg>
-    <p>Your ranger colors also show up on the third-person explorer in the world.</p>
+    <p>The sanctuary now uses a live three.js scene, so these colors update the in-world explorer too.</p>
   `;
 }
 
-function buildCamera() {
-  const forward = {
-    x: Math.sin(state.player.yaw) * Math.cos(state.player.pitch),
-    y: Math.sin(state.player.pitch),
-    z: Math.cos(state.player.yaw) * Math.cos(state.player.pitch),
-  };
-  const right = { x: Math.cos(state.player.yaw), y: 0, z: -Math.sin(state.player.yaw) };
-  const up = {
-    x: -right.z * forward.y,
-    y: right.x * forward.z - right.z * forward.x,
-    z: right.x * -forward.y,
-  };
-  const playerY = terrainHeight(state.player.x, state.player.z) + 1.7;
-  const cam = {
-    x: state.player.x - forward.x * 6 + right.x * 0.8,
-    y: playerY + 3.4,
-    z: state.player.z - forward.z * 6 + right.z * 0.8,
-  };
-  return { cam, forward, right, up };
+function refreshUI() {
+  const bird = selectedBird();
+  ui.sceneStat.textContent = state.scene === "land" ? "Sanctuary" : "Flight Training";
+  ui.bagStat.textContent = `${state.backpack.length} / 10`;
+  ui.flockStat.textContent = `${totalFlockLevel()}`;
+  ui.tierStat.textContent = capitalize(currentTier());
+  ui.promptStat.textContent = currentPromptText();
+  ui.overlayCard.innerHTML = overlayMarkup();
+  ui.inventoryPanel.innerHTML = inventoryMarkup();
+  ui.rosterPanel.innerHTML = rosterMarkup();
+  ui.portrait.innerHTML = portraitMarkup();
+  ui.hatchBtn.disabled = !state.backpack.some((item) => item.type === "egg");
+  ui.useItemBtn.disabled = !bird || !state.backpack.some((item) => item.type === "item");
+  ui.sendFlightBtn.disabled = !bird || state.scene !== "land";
 }
 
-function projectPoint(point, camera) {
-  const dx = point.x - camera.cam.x;
-  const dy = point.y - camera.cam.y;
-  const dz = point.z - camera.cam.z;
-  const cx = dx * camera.right.x + dy * camera.right.y + dz * camera.right.z;
-  const cy = dx * camera.up.x + dy * camera.up.y + dz * camera.up.z;
-  const cz = dx * camera.forward.x + dy * camera.forward.y + dz * camera.forward.z;
-  if (cz <= 0.25) return null;
+function syncCustomizationUI() {
+  ui.hairSelect.value = state.character.hair;
+  ui.jacketSelect.value = state.character.jacket;
+  ui.packSelect.value = state.character.pack;
+}
+
+function nearestInteraction() {
+  let best = null;
+  for (const mesh of interactables) {
+    const dist = mesh.position.distanceTo(new THREE.Vector3(state.player.x, mesh.position.y, state.player.z));
+    if (dist < INTERACT_DISTANCE && (!best || dist < best.distance)) {
+      best = { kind: mesh.userData.kind, mesh, distance: dist };
+    }
+  }
+  for (const [key, landmark] of Object.entries(LANDMARKS)) {
+    const dist = Math.hypot(state.player.x - landmark.x, state.player.z - landmark.z);
+    if (dist < INTERACT_DISTANCE && (!best || dist < best.distance)) {
+      best = { kind: landmark.type, key, distance: dist };
+    }
+  }
+  return best;
+}
+
+function interactNearby() {
+  const nearby = nearestInteraction();
+  if (!nearby) {
+    state.message = "Nothing close enough to interact with.";
+    return;
+  }
+
+  if (nearby.kind === "egg" || nearby.kind === "item") {
+    const entityId = nearby.mesh.userData.entityId;
+    const entity = state.worldEntities.find((entry) => entry.id === entityId);
+    if (!entity) return;
+    const collected = nearby.kind === "egg" ? collectEgg(entity) : collectItem(entity);
+    if (!collected) return;
+    worldRoot.remove(nearby.mesh);
+    disposeHierarchy(nearby.mesh);
+    const index = interactables.indexOf(nearby.mesh);
+    if (index >= 0) interactables.splice(index, 1);
+  } else if (nearby.kind === "nest") {
+    hatchSelectedEgg();
+  } else if (nearby.kind === "perch") {
+    startFlight();
+  } else if (nearby.kind === "tailor") {
+    state.message = "Use the ranger panel on the right to customize your explorer.";
+  }
+}
+
+function collectEgg(entity) {
+  if (state.backpack.length >= 10) {
+    state.message = "Backpack full. Hatch eggs or use items before gathering more.";
+    return false;
+  }
+  state.backpack.push({ type: "egg", speciesId: entity.speciesId, rarity: entity.rarity, label: entity.label });
+  state.worldEntities = state.worldEntities.filter((entry) => entry.id !== entity.id);
+  state.selectedBagIndex = state.backpack.length - 1;
+  state.prompt = "Egg stored. Use the Hatch button or return to the Star Nest.";
+  state.message = `${entity.label} added to your backpack.`;
+  return true;
+}
+
+function collectItem(entity) {
+  if (state.backpack.length >= 10) {
+    state.message = "Backpack full. Use an item or hatch an egg first.";
+    return false;
+  }
+  const def = ITEM_DEFS.find((item) => item.id === entity.itemId);
+  state.backpack.push({ type: "item", itemId: def.id, label: def.name });
+  state.worldEntities = state.worldEntities.filter((entry) => entry.id !== entity.id);
+  state.selectedBagIndex = state.backpack.length - 1;
+  state.prompt = "Growth item stored. Use it on your selected bird from the side panel.";
+  state.message = `${def.name} added to your backpack.`;
+  return true;
+}
+
+function ensureWorldSpawns() {
+  if (state.spawnCooldown > 0) return;
+  const eggCount = state.worldEntities.filter((entity) => entity.type === "egg").length;
+  const itemCount = state.worldEntities.filter((entity) => entity.type === "item").length;
+  const openSpots = FORAGE_SPOTS.filter(
+    (spot) => !state.worldEntities.some((entity) => Math.hypot(entity.x - spot.x, entity.z - spot.z) < 5),
+  );
+  if (!openSpots.length) return;
+  if (eggCount < 6) {
+    const entity = makeEggEntity(state, openSpots[Math.floor(Math.random() * openSpots.length)]);
+    state.worldEntities.push(entity);
+    placeInteractableMesh(entity);
+    state.spawnCooldown = 5;
+    return;
+  }
+  if (itemCount < 5) {
+    const entity = makeItemEntity(state, openSpots[Math.floor(Math.random() * openSpots.length)]);
+    state.worldEntities.push(entity);
+    placeInteractableMesh(entity);
+    state.spawnCooldown = 7;
+  }
+}
+
+function startFlight() {
+  const bird = selectedBird();
+  if (!bird) {
+    state.message = "Hatch a bird before starting flight training.";
+    return;
+  }
+  state.scene = "flight";
+  playerMesh.visible = false;
+  state.flight = {
+    timer: 34,
+    laneX: 0,
+    altitude: 0,
+    velocityY: 0,
+    energy: 100,
+    speed: 22 + bird.speed * 4.6,
+    runXp: 0,
+    combo: 0,
+    birdId: bird.id,
+  };
+  buildFlightCourse();
+  state.prompt = `${bird.name} launched. Clear rings and stars to earn XP.`;
+}
+
+function buildFlightCourse() {
+  for (const object of flightObjects) {
+    scene.remove(object.mesh);
+    disposeHierarchy(object.mesh);
+  }
+  flightObjects.length = 0;
+
+  for (let i = 0; i < 26; i += 1) {
+    flightObjects.push(makeFlightObject("ring", i));
+    if (i % 2 === 0) flightObjects.push(makeFlightObject("star", i));
+    if (i % 3 === 0) flightObjects.push(makeFlightObject("gust", i));
+  }
+}
+
+function makeFlightObject(kind, i) {
+  let mesh;
+  if (kind === "ring") {
+    mesh = new THREE.Mesh(
+      new THREE.TorusGeometry(1.9, 0.22, 10, 24),
+      new THREE.MeshStandardMaterial({ color: 0xffe28b, emissive: 0xc49d3a, emissiveIntensity: 0.25, roughness: 0.3 }),
+    );
+  } else if (kind === "star") {
+    mesh = new THREE.Mesh(
+      new THREE.OctahedronGeometry(1.05),
+      new THREE.MeshStandardMaterial({ color: 0xfff0c4, emissive: 0xe7cc83, emissiveIntensity: 0.3, roughness: 0.2 }),
+    );
+  } else {
+    mesh = new THREE.Mesh(
+      new THREE.TorusKnotGeometry(0.65, 0.16, 40, 6, 2, 3),
+      new THREE.MeshStandardMaterial({ color: 0xd8f6ff, emissive: 0x88d5ff, emissiveIntensity: 0.25, roughness: 0.3 }),
+    );
+    mesh.scale.set(1.2, 1.2, 0.5);
+  }
+  mesh.castShadow = true;
+  scene.add(mesh);
   return {
-    x: WIDTH * 0.5 + (cx / cz) * FOV,
-    y: HEIGHT * 0.5 - (cy / cz) * FOV,
-    depth: cz,
+    kind,
+    mesh,
+    z: 48 + i * 18 + (kind === "star" ? 5 : kind === "gust" ? 9 : 0),
+    x: Math.sin(i * (kind === "gust" ? 0.95 : 0.72)) * (kind === "gust" ? 7.5 : kind === "star" ? 6.4 : 5.6),
+    y: kind === "gust" ? 4 + Math.cos(i * 0.8) * 3 : 5 + Math.cos(i * 0.55) * 3.5,
+    hit: false,
+    value: kind === "ring" ? 16 : kind === "star" ? 12 : 10,
   };
 }
 
-function render() {
-  if (state.scene === "land") renderLand();
-  else renderFlight();
-}
-
-function renderLand() {
-  const camera = buildCamera();
-  drawModernSky();
-  drawMountains(camera);
-  drawMythicalGround(camera);
-  drawProjectedWorld(camera);
-  drawFireflies(camera);
-  drawExplorer();
-}
-
-function drawModernSky() {
-  const gradient = ctx.createLinearGradient(0, 0, 0, HEIGHT);
-  gradient.addColorStop(0, "#fbffff");
-  gradient.addColorStop(0.48, "#9dd8ff");
-  gradient.addColorStop(1, "#d2f0ff");
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, WIDTH, HEIGHT);
-
-  ctx.fillStyle = "rgba(255, 241, 177, 0.85)";
-  ctx.beginPath();
-  ctx.arc(WIDTH - 170, 120, 62, 0, Math.PI * 2);
-  ctx.fill();
-
-  for (let i = 0; i < 6; i += 1) {
-    const x = ((state.time * 10 + i * 220) % (WIDTH + 260)) - 130;
-    const y = 96 + (i % 3) * 38;
-    ctx.fillStyle = "rgba(255,255,255,0.72)";
-    ctx.beginPath();
-    ctx.ellipse(x, y, 96, 26, 0, 0, Math.PI * 2);
-    ctx.ellipse(x + 56, y + 8, 80, 24, 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
-}
-
-function drawMountains(camera) {
-  const base = HEIGHT * 0.54;
-  for (let layer = 0; layer < 3; layer += 1) {
-    ctx.beginPath();
-    ctx.moveTo(0, base + layer * 30);
-    for (let x = 0; x <= WIDTH; x += 80) {
-      const worldX = (x / WIDTH - 0.5) * 90 + state.player.x * 0.2 * (layer + 1);
-      const peak = Math.sin(worldX * 0.12 + layer * 2.2) * 42 + Math.cos(worldX * 0.07) * 28;
-      ctx.lineTo(x, base - peak + layer * 38);
-    }
-    ctx.lineTo(WIDTH, HEIGHT);
-    ctx.lineTo(0, HEIGHT);
-    ctx.closePath();
-    ctx.fillStyle = layer === 0 ? "rgba(112, 177, 161, 0.45)" : layer === 1 ? "rgba(81, 129, 140, 0.42)" : "rgba(45, 75, 97, 0.32)";
-    ctx.fill();
-  }
-}
-
-function drawMythicalGround(camera) {
-  const horizon = HEIGHT * 0.58;
-  const ground = ctx.createLinearGradient(0, horizon, 0, HEIGHT);
-  ground.addColorStop(0, "#a3db8b");
-  ground.addColorStop(1, "#45754b");
-  ctx.fillStyle = ground;
-  ctx.fillRect(0, horizon, WIDTH, HEIGHT - horizon);
-
-  for (let i = 0; i < 24; i += 1) {
-    const depth = i + 1;
-    const y = horizon + depth * depth * 0.56;
-    const alpha = clamp(0.2 - depth * 0.006, 0.02, 0.18);
-    ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(WIDTH, y);
-    ctx.stroke();
-  }
-}
-
-function projectedObjects(camera) {
-  const objects = [];
-  for (const tree of TREES) objects.push({ kind: "tree", x: tree.x, y: terrainHeight(tree.x, tree.z), z: tree.z, scale: tree.scale, color: tree.color });
-  for (const crystal of CRYSTALS) objects.push({ kind: "crystal", x: crystal.x, y: terrainHeight(crystal.x, crystal.z), z: crystal.z, scale: crystal.scale, color: crystal.color });
-  for (const entity of state.worldEntities) objects.push({ ...entity, y: terrainHeight(entity.x, entity.z) });
-  for (const landmark of Object.values(LANDMARKS)) objects.push({ ...landmark, y: terrainHeight(landmark.x, landmark.z) });
+function finishFlight() {
   const bird = selectedBird();
-  if (bird && state.scene === "land") {
-    const offset = 2.8;
-    const followX = state.player.x - Math.cos(state.time * 1.2) * offset;
-    const followZ = state.player.z - Math.sin(state.time * 1.2) * offset;
-    objects.push({ kind: "companion", speciesId: bird.speciesId, x: followX, y: terrainHeight(followX, followZ) + 1.8 + Math.sin(state.time * 3) * 0.2, z: followZ, scale: 1.2 * bird.size });
+  const totalXp = Math.max(18, Math.round(state.flight.runXp + 10 + bird.level * 2));
+  gainBirdXp(bird, totalXp);
+  state.scene = "land";
+  playerMesh.visible = true;
+  state.flight = null;
+  for (const object of flightObjects) {
+    scene.remove(object.mesh);
+    disposeHierarchy(object.mesh);
   }
-  return objects
-    .map((object) => {
-      const point = projectPoint({ x: object.x, y: object.y + (object.kind === "tree" ? object.scale * 2.3 : 0), z: object.z }, camera);
-      if (!point) return null;
-      return { object, point };
-    })
-    .filter(Boolean)
-    .sort((a, b) => b.point.depth - a.point.depth);
+  flightObjects.length = 0;
+  state.prompt = `${bird.name} landed with ${totalXp} XP. Stronger flocks reveal stronger eggs.`;
+  state.message = `${bird.name} completed a flight run.`;
+  updateCompanionBird();
 }
 
-function drawProjectedWorld(camera) {
-  for (const entry of projectedObjects(camera)) {
-    const { object, point } = entry;
-    const size = clamp((220 / point.depth) * (object.scale || 1.2), 18, 280);
-    if (object.kind === "tree") drawTreeBillboard(point.x, point.y, size, object.color);
-    else if (object.kind === "crystal") drawCrystalBillboard(point.x, point.y, size, object.color);
-    else if (object.kind === "egg") drawEggBillboard(point.x, point.y, size, object);
-    else if (object.kind === "item") drawItemBillboard(point.x, point.y, size, object);
-    else if (object.kind === "nest") drawNestBillboard(point.x, point.y, size * 1.2, object);
-    else if (object.kind === "perch") drawPerchBillboard(point.x, point.y, size * 1.25, object);
-    else if (object.kind === "tailor") drawCampBillboard(point.x, point.y, size * 1.2, object);
-    else if (object.kind === "companion") drawBirdBillboard(point.x, point.y, size * 1.2, SPECIES.find((species) => species.id === object.speciesId));
-  }
-}
-
-function drawTreeBillboard(x, y, size, color) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.fillStyle = "#6d4d33";
-  ctx.fillRect(-size * 0.08, 0, size * 0.16, size * 0.5);
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.arc(0, -size * 0.1, size * 0.34, 0, Math.PI * 2);
-  ctx.arc(size * 0.18, -size * 0.18, size * 0.28, 0, Math.PI * 2);
-  ctx.arc(-size * 0.18, -size * 0.16, size * 0.24, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-}
-
-function drawCrystalBillboard(x, y, size, color) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.moveTo(0, -size * 0.4);
-  ctx.lineTo(size * 0.2, 0);
-  ctx.lineTo(0, size * 0.45);
-  ctx.lineTo(-size * 0.2, 0);
-  ctx.closePath();
-  ctx.fill();
-  ctx.restore();
-}
-
-function drawEggBillboard(x, y, size, egg) {
-  const species = SPECIES.find((entry) => entry.id === egg.speciesId);
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.fillStyle = "rgba(255,255,255,0.18)";
-  ctx.beginPath();
-  ctx.ellipse(0, size * 0.2, size * 0.24, size * 0.08, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = species.accent;
-  ctx.beginPath();
-  ctx.ellipse(0, 0, size * 0.18, size * 0.24, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = species.color;
-  ctx.lineWidth = Math.max(2, size * 0.03);
-  ctx.beginPath();
-  if (species.look === "flame" || species.look === "phoenix" || species.look === "crest") {
-    ctx.moveTo(-size * 0.08, size * 0.08);
-    ctx.quadraticCurveTo(0, -size * 0.22, size * 0.09, size * 0.04);
-  } else if (species.look === "storm" || species.look === "tempest" || species.look === "mist") {
-    ctx.moveTo(-size * 0.12, -size * 0.04);
-    ctx.lineTo(size * 0.12, -size * 0.04);
-    ctx.moveTo(-size * 0.1, size * 0.08);
-    ctx.lineTo(size * 0.1, size * 0.08);
-  } else {
-    ctx.arc(0, 0, size * 0.08, 0, Math.PI * 2);
-  }
-  ctx.stroke();
-  ctx.restore();
-}
-
-function drawItemBillboard(x, y, size, item) {
-  const def = ITEM_DEFS.find((entry) => entry.id === item.itemId);
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.fillStyle = def.color;
-  if (def.effect === "growth") {
-    ctx.beginPath();
-    ctx.arc(0, 0, size * 0.18, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "rgba(255,255,255,0.5)";
-    ctx.fillRect(-size * 0.03, -size * 0.28, size * 0.06, size * 0.16);
-  } else if (def.effect === "ability") {
-    ctx.beginPath();
-    for (let i = 0; i < 5; i += 1) {
-      const outer = -Math.PI / 2 + (i * Math.PI * 2) / 5;
-      const inner = outer + Math.PI / 5;
-      ctx.lineTo(Math.cos(outer) * size * 0.22, Math.sin(outer) * size * 0.22);
-      ctx.lineTo(Math.cos(inner) * size * 0.09, Math.sin(inner) * size * 0.09);
-    }
-    ctx.closePath();
-    ctx.fill();
-  } else {
-    ctx.beginPath();
-    ctx.moveTo(0, -size * 0.24);
-    ctx.lineTo(size * 0.18, 0);
-    ctx.lineTo(0, size * 0.24);
-    ctx.lineTo(-size * 0.18, 0);
-    ctx.closePath();
-    ctx.fill();
-  }
-  ctx.restore();
-}
-
-function drawNestBillboard(x, y, size) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.fillStyle = "rgba(255, 240, 184, 0.18)";
-  ctx.beginPath();
-  ctx.ellipse(0, size * 0.28, size * 0.36, size * 0.12, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "#8d5d38";
-  ctx.beginPath();
-  ctx.ellipse(0, size * 0.12, size * 0.34, size * 0.16, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = "#d7a26d";
-  ctx.lineWidth = Math.max(2, size * 0.025);
-  ctx.beginPath();
-  ctx.arc(0, 0, size * 0.18, Math.PI * 0.2, Math.PI * 0.8);
-  ctx.stroke();
-  ctx.restore();
-}
-
-function drawPerchBillboard(x, y, size) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.fillStyle = "#604832";
-  ctx.fillRect(-size * 0.05, -size * 0.1, size * 0.1, size * 0.5);
-  ctx.fillStyle = "#d8f6ff";
-  ctx.fillRect(-size * 0.2, -size * 0.2, size * 0.4, size * 0.08);
-  ctx.strokeStyle = "#fff4be";
-  ctx.lineWidth = Math.max(2, size * 0.022);
-  ctx.strokeRect(-size * 0.2, -size * 0.2, size * 0.4, size * 0.08);
-  ctx.restore();
-}
-
-function drawCampBillboard(x, y, size) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.fillStyle = "#87694c";
-  ctx.fillRect(-size * 0.18, 0, size * 0.36, size * 0.22);
-  ctx.fillStyle = "#c06a77";
-  ctx.beginPath();
-  ctx.moveTo(-size * 0.24, 0);
-  ctx.lineTo(0, -size * 0.2);
-  ctx.lineTo(size * 0.24, 0);
-  ctx.closePath();
-  ctx.fill();
-  ctx.restore();
-}
-
-function drawBirdBillboard(x, y, size, species) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.scale(size / 80, size / 80);
-  drawBirdArt(species);
-  ctx.restore();
-}
-
-function drawBirdArt(species) {
-  ctx.fillStyle = species.color;
-  ctx.beginPath();
-  ctx.ellipse(0, 0, 24, 15, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = species.accent;
-  ctx.beginPath();
-  ctx.ellipse(8, -3, 11, 8, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "#ffffff";
-  ctx.beginPath();
-  ctx.arc(13, -5, 4, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "#182838";
-  ctx.beginPath();
-  ctx.arc(14, -5, 1.6, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "#f6ca69";
-  ctx.beginPath();
-  ctx.moveTo(21, -1);
-  ctx.lineTo(30, 2);
-  ctx.lineTo(21, 6);
-  ctx.closePath();
-  ctx.fill();
-  ctx.strokeStyle = species.accent;
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  ctx.moveTo(-4, 0);
-  ctx.quadraticCurveTo(-28, -22, -38, -2);
-  ctx.moveTo(-2, 5);
-  ctx.quadraticCurveTo(-24, 18, -35, 10);
-  ctx.stroke();
-
-  if (species.look === "flame" || species.look === "phoenix" || species.look === "crest") {
-    ctx.fillStyle = "#ffdb74";
-    ctx.beginPath();
-    ctx.moveTo(-8, -10);
-    ctx.lineTo(-4, -24);
-    ctx.lineTo(0, -10);
-    ctx.lineTo(5, -20);
-    ctx.lineTo(6, -6);
-    ctx.closePath();
-    ctx.fill();
-  } else if (species.look === "storm" || species.look === "tempest" || species.look === "mist") {
-    ctx.strokeStyle = "#f5fcff";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(-6, -9);
-    ctx.lineTo(6, -12);
-    ctx.moveTo(-3, 12);
-    ctx.lineTo(6, 9);
-    ctx.stroke();
-  } else {
-    ctx.fillStyle = "#f7a3cb";
-    ctx.beginPath();
-    ctx.arc(-7, -12, 5, 0, Math.PI * 2);
-    ctx.arc(0, -16, 5, 0, Math.PI * 2);
-    ctx.arc(6, -11, 5, 0, Math.PI * 2);
-    ctx.fill();
-  }
-}
-
-function drawFireflies(camera) {
-  for (const firefly of FIREFLIES) {
-    const angle = state.time * 0.25 + firefly.seed;
-    const point = {
-      x: Math.cos(angle) * firefly.radius,
-      y: terrainHeight(Math.cos(angle) * firefly.radius, Math.sin(angle) * firefly.radius) + firefly.height + Math.sin(state.time * 2 + firefly.seed) * 0.25,
-      z: Math.sin(angle) * firefly.radius,
-    };
-    const projected = projectPoint(point, camera);
-    if (!projected) continue;
-    const alpha = clamp(0.8 - projected.depth * 0.03, 0.08, 0.7);
-    ctx.fillStyle = `rgba(255, 247, 176, ${alpha})`;
-    ctx.beginPath();
-    ctx.arc(projected.x, projected.y, clamp(5 / projected.depth * 20, 1, 4), 0, Math.PI * 2);
-    ctx.fill();
-  }
-}
-
-function drawExplorer() {
-  const hair = CHARACTER_COLORS.hair[state.character.hair];
-  const jacket = CHARACTER_COLORS.jacket[state.character.jacket];
-  const pack = CHARACTER_COLORS.pack[state.character.pack];
-  const bob = Math.sin(state.player.bob * 6) * 6;
-  const cx = WIDTH * 0.5;
-  const cy = HEIGHT * 0.79 + bob;
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.fillStyle = "rgba(0,0,0,0.18)";
-  ctx.beginPath();
-  ctx.ellipse(0, 54, 82, 18, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = pack;
-  ctx.fillRect(-34, -8, 68, 82);
-  ctx.fillStyle = jacket;
-  ctx.beginPath();
-  ctx.moveTo(-54, 6);
-  ctx.quadraticCurveTo(0, -42, 54, 6);
-  ctx.lineTo(42, 90);
-  ctx.lineTo(-42, 90);
-  ctx.closePath();
-  ctx.fill();
-  ctx.fillStyle = "#ffd7b4";
-  ctx.beginPath();
-  ctx.arc(0, -34, 20, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = hair;
-  ctx.beginPath();
-  ctx.moveTo(-18, -38);
-  ctx.quadraticCurveTo(0, -62, 18, -38);
-  ctx.lineTo(18, -26);
-  ctx.lineTo(-18, -26);
-  ctx.closePath();
-  ctx.fill();
-  ctx.restore();
-}
-
-function renderFlight() {
+function updateFlight(dt) {
+  const flight = state.flight;
   const bird = selectedBird();
-  const sky = ctx.createLinearGradient(0, 0, 0, HEIGHT);
-  sky.addColorStop(0, "#f8fdff");
-  sky.addColorStop(0.52, "#91ceff");
-  sky.addColorStop(1, "#d7f0ff");
-  ctx.fillStyle = sky;
-  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+  flight.timer -= dt;
+  flight.energy = Math.min(100, flight.energy + dt * (8 + bird.growth * 2) + (bird.abilities.includes("Tailwind") ? 5 * dt : 0));
 
-  drawFlightBackdrop();
-  drawFlightTrack();
-  drawFlightPickups();
-  drawFlightBird(bird);
-  drawFlightHud();
-}
+  if (keys.has("KeyA")) flight.laneX -= dt * 8.8;
+  if (keys.has("KeyD")) flight.laneX += dt * 8.8;
+  flight.laneX = clamp(flight.laneX, -8.5, 8.5);
 
-function drawFlightBackdrop() {
-  for (let i = 0; i < 7; i += 1) {
-    const drift = (state.time * 28 + i * 190) % (WIDTH + 220) - 110;
-    ctx.fillStyle = "rgba(255,255,255,0.76)";
-    ctx.beginPath();
-    ctx.ellipse(drift, 110 + (i % 3) * 36, 96, 26, 0, 0, Math.PI * 2);
-    ctx.ellipse(drift + 60, 122 + (i % 3) * 36, 82, 24, 0, 0, Math.PI * 2);
-    ctx.fill();
+  if (keys.has("Space") && flight.energy > 8) {
+    flight.velocityY += 18 * bird.lift * dt;
+    flight.energy -= 18 * dt;
   }
-}
-
-function drawFlightTrack() {
-  ctx.fillStyle = "rgba(110, 196, 124, 0.72)";
-  ctx.beginPath();
-  ctx.moveTo(0, HEIGHT);
-  ctx.lineTo(WIDTH * 0.22, HEIGHT * 0.58);
-  ctx.lineTo(WIDTH * 0.78, HEIGHT * 0.58);
-  ctx.lineTo(WIDTH, HEIGHT);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.strokeStyle = "rgba(255,255,255,0.34)";
-  ctx.lineWidth = 3;
-  for (let i = 1; i < 5; i += 1) {
-    const t = i / 5;
-    const y = HEIGHT * (0.58 + t * 0.38);
-    const width = WIDTH * (0.56 + t * 0.5);
-    ctx.beginPath();
-    ctx.moveTo(WIDTH * 0.5 - width * 0.5, y);
-    ctx.lineTo(WIDTH * 0.5 + width * 0.5, y);
-    ctx.stroke();
+  if (keys.has("ShiftLeft") || keys.has("ShiftRight")) {
+    if (flight.energy > 16) {
+      flight.speed = Math.min(44 + bird.speed * 6, flight.speed + 18 * dt);
+      flight.energy -= 24 * dt;
+      flight.runXp += dt * (bird.name === "Sunflare" ? 7 : 3);
+    }
+  } else {
+    const cruise = 22 + bird.speed * 4.6;
+    flight.speed += (cruise - flight.speed) * 0.9 * dt;
   }
-}
 
-function drawFlightPickups() {
-  const objects = state.flight.objects.filter((object) => !object.hit && object.z > 0 && object.z < 72).sort((a, b) => b.z - a.z);
-  for (const object of objects) {
-    const scale = clamp(1 / object.z * 880, 10, 180);
-    const x = WIDTH * 0.5 + object.x * (WIDTH * 0.2) / Math.max(object.z / 16, 0.52);
-    const y = HEIGHT * 0.6 - object.y * (HEIGHT * 0.18) / Math.max(object.z / 16, 0.52);
-    ctx.save();
-    ctx.translate(x, y);
-    if (object.kind === "ring") {
-      ctx.strokeStyle = "#ffe48b";
-      ctx.lineWidth = Math.max(4, scale * 0.08);
-      ctx.beginPath();
-      ctx.arc(0, 0, scale * 0.45, 0, Math.PI * 2);
-      ctx.stroke();
-    } else if (object.kind === "star") {
-      ctx.fillStyle = "#fff3c6";
-      ctx.beginPath();
-      for (let i = 0; i < 5; i += 1) {
-        const outer = -Math.PI / 2 + (i * Math.PI * 2) / 5;
-        const inner = outer + Math.PI / 5;
-        ctx.lineTo(Math.cos(outer) * scale * 0.35, Math.sin(outer) * scale * 0.35);
-        ctx.lineTo(Math.cos(inner) * scale * 0.14, Math.sin(inner) * scale * 0.14);
+  flight.velocityY -= 6.4 * dt;
+  flight.altitude = clamp(flight.altitude + flight.velocityY * dt, 1.5, 14);
+  if (flight.altitude <= 1.5) flight.velocityY = 0;
+
+  if (bird.name === "Rose Phoenix") flight.runXp += 2.2 * dt;
+  if (bird.name === "Bloomtail" || bird.name === "Verdant Seraph") flight.runXp += 1.1 * dt;
+
+  for (const object of flightObjects) {
+    object.z -= flight.speed * dt;
+    if (!object.hit) {
+      object.mesh.position.set(object.x, object.y, object.z);
+      object.mesh.rotation.x += dt * 0.5;
+      object.mesh.rotation.y += dt * 0.8;
+    }
+    if (!object.hit && object.z < 4) {
+      const hitX = Math.abs(object.x - flight.laneX) < (object.kind === "ring" ? 2.3 : 1.8);
+      const hitY = Math.abs(object.y - flight.altitude) < (object.kind === "ring" ? 2.1 : 1.6);
+      if (hitX && hitY) {
+        object.hit = true;
+        object.mesh.visible = false;
+        if (object.kind === "ring") {
+          flight.combo += 1;
+          flight.runXp += object.value + flight.combo * 2;
+        } else if (object.kind === "star") {
+          flight.runXp += object.value + (bird.name === "Bloomtail" ? 6 : 0);
+          flight.energy = Math.min(100, flight.energy + 12);
+        } else if (object.kind === "gust") {
+          flight.runXp += bird.name === "Stormwing" ? 18 : object.value;
+          flight.velocityY += 2.2 + bird.lift * 0.5;
+        }
+      } else if (object.kind === "ring") {
+        flight.combo = 0;
       }
-      ctx.closePath();
-      ctx.fill();
-    } else {
-      ctx.strokeStyle = "#dff8ff";
-      ctx.lineWidth = Math.max(4, scale * 0.08);
-      ctx.beginPath();
-      ctx.moveTo(-scale * 0.32, 0);
-      ctx.quadraticCurveTo(0, -scale * 0.22, scale * 0.32, 0);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(-scale * 0.22, scale * 0.12);
-      ctx.quadraticCurveTo(scale * 0.02, -scale * 0.08, scale * 0.28, scale * 0.12);
-      ctx.stroke();
     }
-    ctx.restore();
+  }
+
+  if (flight.timer <= 0) finishFlight();
+}
+
+function updateAnimals(dt) {
+  for (const animal of animalMeshes) {
+    animal.userData.wander += dt * 0.1;
+    animal.rotation.y += Math.sin(animal.userData.wander) * 0.002;
   }
 }
 
-function drawFlightBird(bird) {
-  const species = SPECIES.find((entry) => entry.id === bird.speciesId);
-  const x = WIDTH * 0.5 + state.flight.laneX * 170;
-  const y = HEIGHT * 0.7 - state.flight.altitude * 130;
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.scale(2.8 * bird.size / 1.2, 2.8 * bird.size / 1.2);
-  drawBirdArt(species);
-  ctx.restore();
+function updateGrass(dt) {
+  for (let i = 0; i < grassBlades.length; i += 1) {
+    const blade = grassBlades[i];
+    blade.rotation.z = Math.sin(state.time * 1.8 + blade.userData.sway) * 0.14;
+  }
 }
 
-function drawFlightHud() {
+function updateInteractables(dt) {
+  for (const mesh of interactables) {
+    mesh.position.y = getTerrainHeight(mesh.position.x, mesh.position.z) + 1.2 + Math.sin(state.time * 2 + mesh.userData.floatOffset) * 0.35;
+    mesh.rotation.y += dt * 0.8;
+  }
+}
+
+function updatePlayer(dt) {
+  const sprint = keys.has("ShiftLeft") || keys.has("ShiftRight");
+  const speed = MOVE_SPEED * (sprint ? 1.48 : 1);
+  let moveX = 0;
+  let moveZ = 0;
+  if (keys.has("KeyW")) moveZ += 1;
+  if (keys.has("KeyS")) moveZ -= 1;
+  if (keys.has("KeyA")) moveX -= 1;
+  if (keys.has("KeyD")) moveX += 1;
+
+  if (!state.pointerLocked) {
+    if (keys.has("KeyQ") || keys.has("ArrowLeft")) state.player.yaw += TURN_SPEED * dt;
+    if (keys.has("ArrowRight")) state.player.yaw -= TURN_SPEED * dt;
+  }
+
+  if (moveX || moveZ) {
+    const forward = new THREE.Vector3(Math.sin(state.player.yaw), 0, Math.cos(state.player.yaw));
+    const right = new THREE.Vector3(forward.z, 0, -forward.x);
+    const move = forward.multiplyScalar(moveZ).add(right.multiplyScalar(moveX)).normalize().multiplyScalar(speed * dt);
+    state.player.x += move.x;
+    state.player.z += move.z;
+    state.player.bob += dt * speed * 0.22;
+    state.player.moveBlend = Math.min(1, state.player.moveBlend + dt * 5);
+  } else {
+    state.player.moveBlend = Math.max(0, state.player.moveBlend - dt * 4);
+  }
+
+  const radius = Math.hypot(state.player.x, state.player.z);
+  if (radius > WORLD_RADIUS - 4) {
+    const scale = (WORLD_RADIUS - 4) / radius;
+    state.player.x *= scale;
+    state.player.z *= scale;
+  }
+
+  state.player.y = getTerrainHeight(state.player.x, state.player.z);
+  playerMesh.position.set(state.player.x, state.player.y, state.player.z);
+  playerMesh.rotation.y = -state.player.yaw + Math.PI;
+  playerMesh.position.y += Math.sin(state.player.bob * 2) * 0.1 * state.player.moveBlend;
+
+  if (companionMesh) {
+    const offsetAngle = state.time * 0.6;
+    const tx = state.player.x + Math.cos(offsetAngle) * 3.6;
+    const tz = state.player.z + Math.sin(offsetAngle) * 3.6;
+    companionMesh.position.lerp(new THREE.Vector3(tx, getTerrainHeight(tx, tz) + 2.6 + Math.sin(state.time * 4) * 0.3, tz), 0.06);
+    companionMesh.lookAt(playerMesh.position.x, companionMesh.position.y + 0.2, playerMesh.position.z);
+  }
+
+  updateLandCamera(dt);
+}
+
+function updateLandCamera(dt) {
+  const forward = new THREE.Vector3(Math.sin(state.player.yaw), 0, Math.cos(state.player.yaw));
+  const desired = new THREE.Vector3(
+    state.player.x - forward.x * CAMERA_DISTANCE,
+    state.player.y + CAMERA_HEIGHT,
+    state.player.z - forward.z * CAMERA_DISTANCE,
+  );
+  desired.y += 2 * Math.max(0, Math.sin(state.player.bob * 2) * state.player.moveBlend);
+  camera.position.lerp(desired, 0.1);
+  const target = new THREE.Vector3(
+    state.player.x,
+    state.player.y + CAMERA_LOOK_HEIGHT,
+    state.player.z,
+  );
+  camera.lookAt(target);
+}
+
+function updateFlightCamera(dt) {
+  const flight = state.flight;
   const bird = selectedBird();
-  ctx.fillStyle = "rgba(10, 27, 40, 0.74)";
-  ctx.fillRect(24, 22, 300, 90);
-  ctx.fillStyle = "#fff5c8";
-  ctx.font = "700 16px sans-serif";
-  ctx.fillText(bird.name, 38, 46);
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "14px sans-serif";
-  ctx.fillText(`Energy ${Math.round(state.flight.energy)}`, 38, 70);
-  ctx.fillText(`Run XP ${Math.round(state.flight.runXp)}`, 38, 92);
-  ctx.fillStyle = "#69d2ff";
-  ctx.fillRect(138, 58, Math.max(0, state.flight.energy) * 1.5, 12);
-  ctx.strokeStyle = "rgba(255,255,255,0.45)";
-  ctx.strokeRect(138, 58, 150, 12);
+  if (!bird) return;
 
-  ctx.fillStyle = "rgba(10, 27, 40, 0.74)";
-  ctx.fillRect(WIDTH - 182, 22, 158, 90);
-  ctx.fillStyle = "#ffffff";
-  ctx.fillText(`Time ${state.flight.timer.toFixed(1)}`, WIDTH - 166, 46);
-  ctx.fillText(`Combo ${state.flight.combo}`, WIDTH - 166, 68);
-  ctx.fillText(`Altitude ${state.flight.altitude.toFixed(1)}`, WIDTH - 166, 90);
+  if (!companionMesh) updateCompanionBird();
+  if (companionMesh) {
+    companionMesh.visible = true;
+    companionMesh.position.set(flight.laneX, flight.altitude, 0);
+    companionMesh.rotation.y = Math.PI;
+    companionMesh.rotation.z = Math.sin(state.time * 18) * 0.12;
+  }
+
+  camera.position.lerp(new THREE.Vector3(flight.laneX, flight.altitude + 4.5, -12), 0.12);
+  camera.lookAt(new THREE.Vector3(flight.laneX, flight.altitude + 1, 10));
 }
 
-function resetGame() {
-  state = createState();
-  syncCustomizationUI();
+function update(dt) {
+  state.time += dt;
+  if (keys.has("KeyR")) {
+    resetGame();
+    keys.delete("KeyR");
+    return;
+  }
+
+  if (state.scene === "land") {
+    updatePlayer(dt);
+    updateInteractables(dt);
+    updateAnimals(dt);
+    updateGrass(dt);
+    state.spawnCooldown -= dt;
+    ensureWorldSpawns();
+  } else {
+    updateFlight(dt);
+    updateFlightCamera(dt);
+  }
+
   refreshUI();
 }
 
-function distance2D(ax, az, bx, bz) {
-  return Math.hypot(ax - bx, az - bz);
+function render() {
+  renderer.render(scene, camera);
 }
 
 function clamp(value, min, max) {
@@ -1174,32 +1366,18 @@ function shuffle(list, seed) {
   return clone;
 }
 
-function createDecor(count, radiusMin, radiusMax, scaleBase, type) {
-  const entries = [];
-  for (let i = 0; i < count; i += 1) {
-    const angle = i * 1.67 + (type === "crystal" ? 0.4 : 0);
-    const radius = radiusMin + (i % 9) * radiusMax;
-    const x = Math.cos(angle) * radius;
-    const z = Math.sin(angle) * radius;
-    if (distance2D(x, z, 0, 0) < 8) continue;
-    entries.push({
-      x,
-      z,
-      scale: scaleBase + (i % 4) * 0.22,
-      color: type === "tree" ? ["#4d8a52", "#5b9d5e", "#76b77a"][i % 3] : ["#89d9ff", "#d7a9ff", "#9ee6c7"][i % 3],
-    });
-  }
-  return entries;
-}
-
-function syncCustomizationUI() {
-  ui.hairSelect.value = state.character.hair;
-  ui.jacketSelect.value = state.character.jacket;
-  ui.packSelect.value = state.character.pack;
-}
-
 document.addEventListener("keydown", (event) => {
   keys.add(event.code);
+  if (event.code === "KeyE" && state.scene === "land") {
+    interactNearby();
+  }
+  if (event.code === "Space" && state.scene === "land") {
+    const nearby = nearestInteraction();
+    if (nearby && nearby.kind === "perch") startFlight();
+  }
+  for (let i = 0; i < 6; i += 1) {
+    if (event.code === `Digit${i + 1}`) selectBird(i);
+  }
 });
 
 document.addEventListener("keyup", (event) => {
@@ -1216,22 +1394,24 @@ document.addEventListener("pointerlockchange", () => {
 
 document.addEventListener("mousemove", (event) => {
   if (document.pointerLockElement !== canvas || state.scene !== "land") return;
-  state.player.yaw += event.movementX * 0.0025;
-  state.player.pitch = clamp(state.player.pitch - event.movementY * 0.0018, -0.45, 0.12);
+  state.player.yaw -= event.movementX * 0.0022;
 });
 
 ui.hairSelect.addEventListener("change", () => {
   state.character.hair = ui.hairSelect.value;
+  recolorPlayer();
   refreshUI();
 });
 
 ui.jacketSelect.addEventListener("change", () => {
   state.character.jacket = ui.jacketSelect.value;
+  recolorPlayer();
   refreshUI();
 });
 
 ui.packSelect.addEventListener("change", () => {
   state.character.pack = ui.packSelect.value;
+  recolorPlayer();
   refreshUI();
 });
 
@@ -1270,6 +1450,14 @@ ui.rosterPanel.addEventListener("click", (event) => {
   refreshUI();
 });
 
+window.addEventListener("resize", () => {
+  const width = canvas.clientWidth || canvas.width;
+  const height = canvas.clientHeight || canvas.height;
+  renderer.setSize(width, height, false);
+  camera.aspect = width / height;
+  camera.updateProjectionMatrix();
+});
+
 let lastFrame = performance.now();
 function frame(now) {
   const dt = Math.min(0.033, (now - lastFrame) / 1000);
@@ -1279,6 +1467,27 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
-syncCustomizationUI();
-refreshUI();
-requestAnimationFrame(frame);
+function showRuntimeError(error) {
+  const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+  ui.promptStat.textContent = `Runtime error: ${message}`;
+  ui.overlayCard.innerHTML = `<strong>Renderer Error</strong>${message}`;
+  console.error(error);
+}
+
+window.addEventListener("error", (event) => {
+  showRuntimeError(event.error || event.message);
+});
+
+window.addEventListener("unhandledrejection", (event) => {
+  showRuntimeError(event.reason);
+});
+
+try {
+  seedWorld(state);
+  rebuildWorld();
+  syncCustomizationUI();
+  refreshUI();
+  requestAnimationFrame(frame);
+} catch (error) {
+  showRuntimeError(error);
+}
