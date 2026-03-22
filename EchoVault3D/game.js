@@ -135,9 +135,9 @@ const MAPS = {
       arenaY: 10.5,
       patrol: [{ x: 13.0, y: 17.5 }, { x: 18.5, y: 17.5 }],
       weakPoints: [
-        { key: "crown", name: "Cryo Crown", dx: 0, dy: 0.05, radius: 0.038, color: "#d4fbff" },
-        { key: "left_joint", name: "Left Joint", dx: -0.16, dy: 0.34, radius: 0.032, color: "#8ee7ff" },
-        { key: "right_joint", name: "Right Joint", dx: 0.16, dy: 0.34, radius: 0.032, color: "#8ee7ff" }
+        { key: "crown", name: "Cryo Crown", dx: 0, dy: 0.05, radius: 0.055, color: "#d4fbff" },
+        { key: "left_joint", name: "Left Joint", dx: -0.16, dy: 0.34, radius: 0.048, color: "#8ee7ff" },
+        { key: "right_joint", name: "Right Joint", dx: 0.16, dy: 0.34, radius: 0.048, color: "#8ee7ff" }
       ]
     },
     layout: [
@@ -1001,6 +1001,13 @@ function fireEnemyProjectile(enemy) {
   if (def.attack === "punch") return;
   const angle = Math.atan2(state.player.y - enemy.y, state.player.x - enemy.x);
   const shots = [];
+  let originX = enemy.x;
+  let originY = enemy.y;
+  let lift = 0;
+
+  if (enemy.type === "frost_tyrant") {
+    lift = 1.38;
+  }
 
   if (enemy.isBoss) {
     if (enemy.type === "warden") {
@@ -1028,13 +1035,14 @@ function fireEnemyProjectile(enemy) {
 
   for (const shot of shots) {
     state.enemyProjectiles.push({
-      x: enemy.x,
-      y: enemy.y,
+      x: originX,
+      y: originY,
       vx: Math.cos(shot.angle) * def.projectileSpeed * (shot.speedScale || 1),
       vy: Math.sin(shot.angle) * def.projectileSpeed * (shot.speedScale || 1),
       color: shot.color || def.projectileColor,
       radius: def.size * (shot.radiusScale || 1),
       kind: def.attack,
+      lift,
       damage: def.damage * (shot.damageScale || 1) * getDifficulty().damage,
       life: shot.life || 2.6
     });
@@ -1216,18 +1224,38 @@ function shoot() {
     const shootAngle = state.player.angle + rand(-weapon.spread, weapon.spread);
     let bestEnemy = null;
     let bestDelta = Math.max(weapon.spread * 1.8, 0.04);
+    let weakHit = null;
 
     for (const enemy of state.enemies) {
-      if (enemy.health <= 0) continue;
-      const dx = enemy.x - state.player.x;
-      const dy = enemy.y - state.player.y;
-      const distance = Math.hypot(dx, dy);
-      const angleToEnemy = Math.atan2(dy, dx);
-      let delta = angleToEnemy - shootAngle;
-      delta = Math.atan2(Math.sin(delta), Math.cos(delta));
-      if (Math.abs(delta) < bestDelta && distance < weapon.range && hasLineOfSight(state.player.x, state.player.y, enemy.x, enemy.y)) {
-        bestDelta = Math.abs(delta);
+      if (!enemy.isBoss || enemy.health <= 0) continue;
+      const distance = Math.hypot(enemy.x - state.player.x, enemy.y - state.player.y);
+      if (distance >= weapon.range) continue;
+      if (enemy.type !== "frost_tyrant" && !hasLineOfSight(state.player.x, state.player.y, enemy.x, enemy.y)) continue;
+      const projected = getRenderedBossProjection(enemy);
+      if (!projected) continue;
+      const candidate = getBossWeakpointScreenPositions(projected, enemy).find((point) =>
+        point.active && Math.hypot(point.screenX - WIDTH / 2, point.screenY - HALF_HEIGHT) < Math.max(point.screenRadius * 2.8, enemy.type === "frost_tyrant" ? 68 : 24)
+      );
+      if (candidate) {
         bestEnemy = enemy;
+        weakHit = candidate;
+        break;
+      }
+    }
+
+    if (!bestEnemy) {
+      for (const enemy of state.enemies) {
+        if (enemy.health <= 0) continue;
+        const dx = enemy.x - state.player.x;
+        const dy = enemy.y - state.player.y;
+        const distance = Math.hypot(dx, dy);
+        const angleToEnemy = Math.atan2(dy, dx);
+        let delta = angleToEnemy - shootAngle;
+        delta = Math.atan2(Math.sin(delta), Math.cos(delta));
+        if (Math.abs(delta) < bestDelta && distance < weapon.range && hasLineOfSight(state.player.x, state.player.y, enemy.x, enemy.y)) {
+          bestDelta = Math.abs(delta);
+          bestEnemy = enemy;
+        }
       }
     }
 
@@ -1235,12 +1263,13 @@ function shoot() {
       let damage = weapon.damage;
       bestEnemy.hitFlash = 1;
       hitCount += 1;
-      let weakHit = null;
       if (bestEnemy.isBoss) {
-        const projected = projectSprite(bestEnemy.x, bestEnemy.y, getBossRenderScale(bestEnemy));
-        if (projected) {
-          const weakPoints = getBossWeakpointScreenPositions(projected, bestEnemy);
-          weakHit = weakPoints.find((point) => point.active && Math.hypot(point.screenX - WIDTH / 2, point.screenY - HALF_HEIGHT) < Math.max(point.screenRadius, 18));
+        if (!weakHit) {
+          const projected = getRenderedBossProjection(bestEnemy);
+          if (projected) {
+            const weakPoints = getBossWeakpointScreenPositions(projected, bestEnemy);
+            weakHit = weakPoints.find((point) => point.active && Math.hypot(point.screenX - WIDTH / 2, point.screenY - HALF_HEIGHT) < Math.max(point.screenRadius * 2.8, bestEnemy.type === "frost_tyrant" ? 68 : 24));
+          }
         }
         if (weakHit) {
           damage = Math.ceil(weapon.damage * 2.4);
@@ -1311,12 +1340,22 @@ function getBossRenderScale(enemy, distance = Math.hypot(enemy.x - state.player.
   return 2.15;
 }
 
+function getBossHeightScale(enemy) {
+  return enemy.type === "frost_tyrant" ? 1.45 : 1.08;
+}
+
+function getRenderedBossProjection(enemy) {
+  const baseProjected = projectSprite(enemy.x, enemy.y, getBossRenderScale(enemy));
+  if (!baseProjected) return null;
+  return { ...baseProjected, size: baseProjected.size * getBossHeightScale(enemy) };
+}
+
 function getEnemyPose(projected, enemy) {
   const def = ENEMY_DEFS[enemy.type];
   const hoverOffset = def.hover ? Math.sin(performance.now() * 0.006 + enemy.hoverPhase) * projected.size * 0.08 : 0;
   const bodyW = projected.size * (enemy.isBoss ? 0.58 : enemy.type === "brute" ? 0.4 : enemy.type === "drone" ? 0.31 : 0.2);
   const bodyH = projected.size * (enemy.isBoss ? 0.86 : enemy.type === "brute" ? 0.62 : enemy.type === "drone" ? 0.34 : 0.58);
-  const groundY = projected.screenY + projected.size * 0.5;
+  const groundY = projected.screenY + projected.size * (enemy.type === "frost_tyrant" ? 0.02 : 0.5);
   const top = def.hover ? projected.screenY - projected.size * 0.3 + hoverOffset : groundY - bodyH;
   return { def, hoverOffset, bodyW, bodyH, groundY, top, left: projected.screenX - bodyW / 2 };
 }
@@ -1328,7 +1367,7 @@ function getBossWeakpointScreenPositions(projected, enemy) {
     ...point,
     screenX: projected.screenX + point.dx * projected.size,
     screenY: pose.top + point.dy * projected.size,
-    screenRadius: point.radius * projected.size * (enemy.type === "frost_tyrant" ? 0.72 : 1),
+    screenRadius: point.radius * projected.size * (enemy.type === "frost_tyrant" ? 1.8 : 1),
     active: enemy.weakPointHealth?.[point.key] !== 0
   }));
 }
@@ -1621,7 +1660,7 @@ function drawEnemy(projected, enemy) {
   const def = ENEMY_DEFS[enemy.type];
   const alpha = Math.max(0.35, 1 - projected.distance / MAX_DEPTH);
   const hitBoost = (enemy.hitFlash || 0) * 0.35;
-  const bossHeightScale = enemy.type === "frost_tyrant" ? 1.45 : enemy.isBoss ? 1.08 : 1;
+  const bossHeightScale = enemy.isBoss ? getBossHeightScale(enemy) : 1;
   const scaledProjected = bossHeightScale !== 1 ? { ...projected, size: projected.size * bossHeightScale } : projected;
   const pose = getEnemyPose(scaledProjected, enemy);
   const { bodyW, bodyH, left, groundY, top } = pose;
@@ -1954,7 +1993,7 @@ function drawEnemy(projected, enemy) {
 function drawEnemyProjectile(projected, projectile) {
   const alpha = Math.max(0.32, 1 - projected.distance / MAX_DEPTH);
   const color = projectile.color;
-  const centerY = projected.screenY + projected.size * 0.08;
+  const centerY = projected.screenY - projected.size * (projectile.lift || 0) + projected.size * 0.08;
   if (projectile.kind === "beam") {
     ctx.strokeStyle = `${color}${Math.round(alpha * 255).toString(16).padStart(2, "0")}`;
     ctx.lineWidth = Math.max(2, projected.size * 0.08);
@@ -1964,6 +2003,22 @@ function drawEnemyProjectile(projected, projectile) {
     ctx.stroke();
     ctx.fillStyle = `${color}${Math.round(alpha * 200).toString(16).padStart(2, "0")}`;
     ctx.fillRect(projected.screenX - projected.size * 0.04, centerY - projected.size * 0.2, projected.size * 0.08, projected.size * 0.4);
+    return;
+  }
+
+  if (projectile.kind === "plasma") {
+    const halo = ctx.createRadialGradient(projected.screenX, centerY, 0, projected.screenX, centerY, projected.size * 0.6);
+    halo.addColorStop(0, `${color}${Math.round(alpha * 255).toString(16).padStart(2, "0")}`);
+    halo.addColorStop(0.55, `${color}${Math.round(alpha * 180).toString(16).padStart(2, "0")}`);
+    halo.addColorStop(1, `${color}00`);
+    ctx.fillStyle = halo;
+    ctx.beginPath();
+    ctx.arc(projected.screenX, centerY, projected.size * 0.6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(235, 252, 255, 0.92)";
+    ctx.beginPath();
+    ctx.arc(projected.screenX, centerY, projected.size * 0.22, 0, Math.PI * 2);
+    ctx.fill();
     return;
   }
 
@@ -1986,7 +2041,7 @@ function renderSprites() {
     if (enemy.health > 0) sprites.push({ kind: "enemy", enemy, x: enemy.x, y: enemy.y, scale: enemy.isBoss ? getBossRenderScale(enemy) : enemy.type === "brute" ? 1.28 : 1 });
   }
   for (const projectile of state.enemyProjectiles) {
-    sprites.push({ kind: "enemyProjectile", projectile, x: projectile.x, y: projectile.y, scale: 0.55 });
+    sprites.push({ kind: "enemyProjectile", projectile, x: projectile.x, y: projectile.y, scale: projectile.kind === "plasma" ? projectile.radius * 0.7 : 0.55 });
   }
 
   sprites.sort((a, b) => Math.hypot(state.player.x - b.x, state.player.y - b.y) - Math.hypot(state.player.x - a.x, state.player.y - a.y));
@@ -2484,7 +2539,7 @@ document.addEventListener("mousedown", () => {
 document.addEventListener("mousemove", (event) => {
   if (document.pointerLockElement === canvas && state.status === "playing") {
     state.player.angle += event.movementX * TURN_SPEED;
-    state.player.pitch = clamp(state.player.pitch - event.movementY * PITCH_SPEED, -1.05, 1.05);
+    state.player.pitch = clamp(state.player.pitch - event.movementY * PITCH_SPEED, -3.05, 3.05);
   }
 });
 

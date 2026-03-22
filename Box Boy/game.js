@@ -15,7 +15,17 @@ const audio = {
   intervalId: null,
   step: 0,
 };
-const AUTHORED_LEVELS = new Set(["alley-run", "train-yard", "signal-bridge", "midtown-rise", "skyline-arc"]);
+const AUTHORED_LEVELS = new Set([
+  "alley-run",
+  "train-yard",
+  "signal-bridge",
+  "midtown-rise",
+  "skyline-arc",
+  "skycourt-terrace",
+  "skyrail-chase",
+  "neon-warrens",
+  "blackout-heights",
+]);
 
 const GRAVITY = 1800;
 const MOVE_SPEED = 265;
@@ -403,20 +413,24 @@ const levels = [
     id: "skycourt-terrace",
     name: "Level 7: Skycourt Terrace",
     chapter: "Act 3: Upper City",
-    goal: "Cross the civic rooftops, ride the lift decks, and rescue 4 civilians.",
+    goal: "Cross the upper-city terraces, ride the lift decks, clear the low vault, and rescue 4 civilians.",
     story:
       "With the plaza open again, Box Boy heads into the upper city. Monarch's rich district looks clean from the street, but the rooftops are all traps and patrol routes.",
+    introDialog: "The rooftops look polished up here, but the rich district is just another trap course with better stonework.",
     background: "midtown-noon",
     civiliansTarget: 4,
-    endX: 5220,
+    outro: "The upper city finally sees Box Boy cut through its polished rooftops and security patrols without slowing down.",
+    endX: 6420,
     platforms: [
-      { x: 0, y: 520, w: 5440, h: 140, type: "ground" },
+      { x: 0, y: 520, w: 6640, h: 140, type: "ground" },
       { x: 180, y: 430, w: 170, h: 20, type: "ledge" },
       { x: 450, y: 350, w: 170, h: 20, type: "ledge" },
       { x: 730, y: 280, w: 170, h: 20, type: "ledge" },
       { x: 1060, y: 350, w: 160, h: 20, type: "roof" },
       { x: 1330, y: 270, w: 170, h: 20, type: "roof" },
       { x: 1650, y: 200, w: 180, h: 20, type: "roof" },
+      { x: 1890, y: 438, w: 220, h: 18, type: "roof" },
+      { x: 1890, y: 372, w: 230, h: 18, type: "roof" },
       { x: 1960, y: 280, w: 170, h: 20, type: "roof" },
       { x: 2240, y: 210, w: 180, h: 20, type: "roof" },
       { x: 2540, y: 140, w: 180, h: 20, type: "roof" },
@@ -427,38 +441,51 @@ const levels = [
       { x: 4130, y: 120, w: 170, h: 20, type: "roof" },
       { x: 4460, y: 180, w: 170, h: 20, type: "roof" },
       { x: 4750, y: 120, w: 180, h: 20, type: "roof" },
+      { x: 5040, y: 220, w: 180, h: 20, type: "roof" },
+      { x: 5330, y: 144, w: 170, h: 20, type: "roof" },
+      { x: 5630, y: 84, w: 180, h: 20, type: "roof" },
+      { x: 5940, y: 174, w: 190, h: 20, type: "roof" },
     ],
     movingPlatforms: [
       { x: 930, y: 300, w: 110, h: 18, type: "moving", axis: "y", range: 110, speed: 1.6, phase: 0.2 },
       { x: 3610, y: 220, w: 110, h: 18, type: "moving", axis: "x", range: 130, speed: 1.8, phase: 1.2 },
+      { x: 5420, y: 196, w: 118, h: 18, type: "moving", axis: "y", range: 140, speed: 1.6, phase: 2.2 },
     ],
     civilians: [
       { x: 1140, y: 302, name: "Elio" },
-      { x: 2290, y: 162, name: "Carmen" },
+      { x: 2320, y: 390, name: "Carmen" },
       { x: 3560, y: 212, name: "Mr. Yuan" },
-      { x: 4820, y: 72, name: "Priya" },
+      { x: 5720, y: 36, name: "Priya" },
     ],
     enemies: [
       { x: 640, type: "walker" },
       { x: 1500, type: "walker" },
-      { x: 2120, y: 180, type: "drone" },
+      { x: 2120, y: 344, type: "drone" },
       { x: 2980, type: "walker" },
       { x: 3920, y: 160, type: "drone" },
       { x: 4610, type: "walker" },
+      { x: 5480, y: 112, type: "drone" },
+      { x: 6040, type: "walker" },
+    ],
+    checkpoints: [
+      { x: 1880, y: 438, label: "Stone Vault" },
+      { x: 4300, y: 438, label: "Lift Terrace" },
     ],
   },
   {
     id: "skyrail-chase",
     name: "Level 8: Skyrail Chase",
     chapter: "Act 3: Upper City",
-    goal: "Leap between rail cars, use the launch pads, and rescue 3 civilians.",
+    goal: "Leap between moving rail cars, chain launch pads, and rescue 3 civilians.",
     story:
       "Monarch's crews start moving gear toward the central tower on the skyrail. Box Boy stays on the chase even when the whole route keeps shifting under his feet.",
+    introDialog: "The rail line is moving now. If Box Boy misses the rhythm, the whole chase turns into a fall.",
     background: "freight-dawn",
     civiliansTarget: 3,
-    endX: 5480,
+    outro: "The whole rail route sees Box Boy stay on the chase. Even Monarch's crews start panicking about how far he has come.",
+    endX: 6780,
     platforms: [
-      { x: 0, y: 520, w: 5700, h: 140, type: "ground" },
+      { x: 0, y: 520, w: 7000, h: 140, type: "ground" },
       { x: 220, y: 430, w: 170, h: 20, type: "train" },
       { x: 520, y: 370, w: 170, h: 20, type: "train" },
       { x: 820, y: 300, w: 140, h: 20, type: "spring" },
@@ -475,15 +502,20 @@ const levels = [
       { x: 4270, y: 110, w: 180, h: 20, type: "train" },
       { x: 4600, y: 190, w: 170, h: 20, type: "container" },
       { x: 4920, y: 120, w: 180, h: 20, type: "train" },
+      { x: 5240, y: 200, w: 180, h: 20, type: "container" },
+      { x: 5570, y: 120, w: 180, h: 20, type: "train" },
+      { x: 5900, y: 200, w: 180, h: 20, type: "container" },
+      { x: 6230, y: 126, w: 180, h: 20, type: "train" },
     ],
     movingPlatforms: [
       { x: 1500, y: 370, w: 112, h: 18, type: "moving", axis: "x", range: 150, speed: 2.2, phase: 0.1 },
       { x: 3430, y: 250, w: 112, h: 18, type: "moving", axis: "x", range: 160, speed: 2.4, phase: 1.8 },
+      { x: 5410, y: 264, w: 116, h: 18, type: "moving", axis: "x", range: 168, speed: 2.6, phase: 0.9 },
     ],
     civilians: [
       { x: 1780, y: 212, name: "Mina" },
       { x: 3390, y: 142, name: "Rook" },
-      { x: 5000, y: 72, name: "Nurse Ada" },
+      { x: 6310, y: 78, name: "Nurse Ada" },
     ],
     enemies: [
       { x: 690, type: "walker" },
@@ -492,8 +524,17 @@ const levels = [
       { x: 3180, type: "walker" },
       { x: 4100, y: 140, type: "drone" },
       { x: 4750, type: "walker" },
+      { x: 5660, y: 168, type: "drone" },
+      { x: 6400, type: "walker" },
     ],
-    windZones: [{ x: 4040, y: 20, w: 550, h: 220, fx: 70, fy: -140 }],
+    windZones: [
+      { x: 4040, y: 20, w: 550, h: 220, fx: 70, fy: -140 },
+      { x: 5660, y: 10, w: 620, h: 220, fx: 74, fy: -150 },
+    ],
+    checkpoints: [
+      { x: 2840, y: 438, label: "Rail Split" },
+      { x: 5200, y: 438, label: "Launch Span" },
+    ],
   },
   {
     id: "rivet-rex",
@@ -541,14 +582,16 @@ const levels = [
     id: "neon-warrens",
     name: "Level 10: Neon Warrens",
     chapter: "Act 4: Last Push",
-    goal: "Navigate the neon backstreets, take the side vents, and rescue 4 civilians.",
+    goal: "Navigate the neon backstreets, take the side vents, and rescue 4 civilians before the blackout patrol closes in.",
     story:
       "The lower skyline is glowing again, but Monarch's crews own every straight road. Box Boy dives into the side routes and vents because the hard way is the only open one.",
+    introDialog: "The lower skyline is tighter, meaner, and full of trap routes. Box Boy has to cut through the side streets instead of taking the obvious path.",
     background: "market-night",
     civiliansTarget: 4,
-    endX: 5660,
+    outro: "The warrens light back up behind him. Down on the street, people start pointing toward Monarch's tower instead of away from it.",
+    endX: 6760,
     platforms: [
-      { x: 0, y: 520, w: 5900, h: 140, type: "ground" },
+      { x: 0, y: 520, w: 6980, h: 140, type: "ground" },
       { x: 170, y: 430, w: 170, h: 20, type: "roof" },
       { x: 410, y: 360, w: 160, h: 20, type: "sign" },
       { x: 670, y: 300, w: 160, h: 20, type: "roof" },
@@ -567,16 +610,21 @@ const levels = [
       { x: 4510, y: 120, w: 170, h: 20, type: "roof" },
       { x: 4820, y: 200, w: 170, h: 20, type: "roof" },
       { x: 5140, y: 130, w: 170, h: 20, type: "roof" },
+      { x: 5450, y: 214, w: 170, h: 20, type: "roof" },
+      { x: 5750, y: 140, w: 170, h: 20, type: "roof" },
+      { x: 6060, y: 214, w: 170, h: 20, type: "fireescape" },
+      { x: 6370, y: 136, w: 170, h: 20, type: "roof" },
     ],
     movingPlatforms: [
       { x: 1120, y: 180, w: 110, h: 18, type: "moving", axis: "y", range: 120, speed: 1.9, phase: 0.8 },
       { x: 3490, y: 120, w: 110, h: 18, type: "moving", axis: "x", range: 126, speed: 1.4, phase: 2.8 },
+      { x: 5900, y: 250, w: 118, h: 18, type: "moving", axis: "y", range: 140, speed: 1.5, phase: 2.1 },
     ],
     civilians: [
       { x: 1270, y: 262, name: "Marta" },
       { x: 2440, y: 272, name: "Wes" },
       { x: 3960, y: 62, name: "Ivy" },
-      { x: 5200, y: 82, name: "Dax" },
+      { x: 6480, y: 86, name: "Dax" },
     ],
     enemies: [
       { x: 760, type: "walker" },
@@ -585,21 +633,32 @@ const levels = [
       { x: 3330, type: "enforcer" },
       { x: 4360, y: 150, type: "drone" },
       { x: 5010, type: "walker" },
+      { x: 5860, y: 114, type: "drone" },
+      { x: 6440, type: "walker" },
     ],
-    windZones: [{ x: 2920, y: 70, w: 420, h: 200, fx: 52, fy: -100 }],
+    windZones: [
+      { x: 2920, y: 70, w: 420, h: 200, fx: 52, fy: -100 },
+      { x: 5860, y: 40, w: 420, h: 210, fx: 58, fy: -104 },
+    ],
+    checkpoints: [
+      { x: 2720, y: 438, label: "Neon Junction" },
+      { x: 5340, y: 438, label: "Vent Market" },
+    ],
   },
   {
     id: "blackout-heights",
     name: "Level 11: Blackout Heights",
     chapter: "Act 4: Last Push",
-    goal: "Glide through the blackout towers, beat the heavy guard, and rescue 4 civilians.",
+    goal: "Glide through the blackout towers, survive the storm lanes, beat the heavy guard, and rescue 4 civilians.",
     story:
       "The power grid fails again just as Monarch seals the last district. With the skyline dark, Box Boy has to make his own route through the tower blackout.",
+    introDialog: "No lights, no safe route, no backup. This is the closest the city gets to seeing how hard Box Boy is pushing for the tower.",
     background: "civic-night",
     civiliansTarget: 4,
-    endX: 5980,
+    outro: "When the blackout route clears, the whole last district can see the tower. So can Box Boy.",
+    endX: 7120,
     platforms: [
-      { x: 0, y: 520, w: 6200, h: 140, type: "ground" },
+      { x: 0, y: 520, w: 7360, h: 140, type: "ground" },
       { x: 220, y: 430, w: 170, h: 20, type: "roof" },
       { x: 510, y: 350, w: 170, h: 20, type: "roof" },
       { x: 860, y: 280, w: 170, h: 20, type: "spring" },
@@ -617,16 +676,21 @@ const levels = [
       { x: 4820, y: 160, w: 170, h: 20, type: "roof" },
       { x: 5160, y: 100, w: 180, h: 20, type: "roof" },
       { x: 5480, y: 180, w: 170, h: 20, type: "roof" },
+      { x: 5800, y: 96, w: 180, h: 20, type: "roof" },
+      { x: 6120, y: 196, w: 180, h: 20, type: "roof" },
+      { x: 6450, y: 112, w: 170, h: 20, type: "roof" },
+      { x: 6780, y: 204, w: 180, h: 20, type: "roof" },
     ],
     movingPlatforms: [
       { x: 1320, y: 290, w: 116, h: 18, type: "moving", axis: "x", range: 140, speed: 1.7, phase: 0.4 },
       { x: 4650, y: 110, w: 116, h: 18, type: "moving", axis: "y", range: 150, speed: 2.0, phase: 1.7 },
+      { x: 6200, y: 240, w: 120, h: 18, type: "moving", axis: "x", range: 150, speed: 1.9, phase: 0.9 },
     ],
     civilians: [
       { x: 1220, y: 142, name: "Nell" },
       { x: 2500, y: 162, name: "Omar" },
       { x: 4200, y: 112, name: "Syd" },
-      { x: 5540, y: 132, name: "Mara's Brother" },
+      { x: 6900, y: 154, name: "Mara's Brother" },
     ],
     enemies: [
       { x: 760, type: "walker" },
@@ -635,10 +699,17 @@ const levels = [
       { x: 3600, type: "walker" },
       { x: 4540, y: 120, type: "drone" },
       { x: 5360, type: "walker" },
+      { x: 6260, y: 150, type: "drone" },
+      { x: 7020, type: "walker" },
     ],
     windZones: [
       { x: 760, y: 40, w: 700, h: 260, fx: 82, fy: -180 },
       { x: 4300, y: 0, w: 820, h: 240, fx: 68, fy: -130 },
+      { x: 6060, y: 0, w: 880, h: 240, fx: 76, fy: -148 },
+    ],
+    checkpoints: [
+      { x: 2900, y: 438, label: "Blackout Spire" },
+      { x: 5660, y: 438, label: "Storm Lane" },
     ],
   },
   {
@@ -648,6 +719,8 @@ const levels = [
     goal: "Reach Monarch's rooftop, rescue Mara, and defeat the city's biggest villain.",
     story:
       "At the top of the skyline, Monarch finally steps out in person with the whole city watching below. This is the proof Box Boy came for.",
+    introDialog: "Everything in the story points here. No gadgets, no powers, just Box Boy and the biggest villain in the city.",
+    outro: "Monarch falls, and the whole skyline finally sees what Box Boy has been trying to prove from the beginning.",
     background: "finale-red",
     civiliansTarget: 1,
     endX: 3320,
@@ -1346,8 +1419,8 @@ function getPriorityText() {
   if (state.boss) {
     if (state.boss.type === "rivet") return "Make Rivet Rex crash into a wall, then punch him while he is stunned.";
     if (state.boss.type === "graft") return "Punch Graft King's missile at the last second to send it back into him.";
-    if (state.boss.type === "signal") return "Dodge the signal burst, then punch the Warden while its shield is down.";
-    return "Dodge Monarch's volleys, wait for the opening, then punch in close.";
+    if (state.boss.type === "signal") return "Wait for Signal Warden to overcharge, then punch while the shield drops.";
+    return "Avoid Monarch's volleys and slam, then punish the opening when he lands.";
   }
   return "Reach the beacon at the end of the level.";
 }
@@ -1703,18 +1776,40 @@ function updateBoss(dt) {
   const lowHp = boss.hp <= Math.ceil(boss.maxHp * 0.5);
 
   if (boss.type === "signal") {
-    boss.vulnerable = boss.stun > 0;
-    boss.x += Math.cos(boss.phase) * (lowHp ? 110 : 70) * dt;
-    boss.y = 220 + Math.sin(boss.phase * (lowHp ? 2.4 : 1.7)) * (lowHp ? 64 : 48);
-    if (boss.cooldown <= 0) {
-      boss.cooldown = lowHp ? 0.8 : 1.2;
-      const dx = (state.player.x - boss.x) * 0.9;
-      spawnProjectile(boss.x + boss.w / 2, boss.y + boss.h / 2, clamp(dx, -240, 240), 120, "#8ac6ff");
-      if (lowHp) {
-        spawnProjectile(boss.x + boss.w / 2, boss.y + boss.h / 2, -140, 180, "#b8d9ff");
-        spawnProjectile(boss.x + boss.w / 2, boss.y + boss.h / 2, 140, 180, "#b8d9ff");
+    if (boss.attack === "overload") {
+      boss.vulnerable = true;
+      boss.y = 226 + Math.sin(boss.phase * 4.5) * 6;
+      if (boss.stun <= 0) {
+        boss.attack = "idle";
+        boss.vulnerable = false;
+        boss.cooldown = lowHp ? 0.65 : 0.95;
       }
-      boss.stun = 0.9;
+    } else if (boss.attack === "telegraph") {
+      boss.vulnerable = false;
+      boss.telegraph -= dt;
+      boss.x += Math.sin(boss.phase * 10) * 22 * dt;
+      boss.y = 210 + Math.sin(boss.phase * 2.6) * 18;
+      if (boss.telegraph <= 0) {
+        boss.attack = "overload";
+        boss.stun = lowHp ? 1.25 : 1.05;
+        spawnProjectile(boss.x + boss.w / 2, boss.y + boss.h / 2, -210, 160, "#8ac6ff");
+        spawnProjectile(boss.x + boss.w / 2, boss.y + boss.h / 2, 0, 190, "#b8d9ff");
+        spawnProjectile(boss.x + boss.w / 2, boss.y + boss.h / 2, 210, 160, "#8ac6ff");
+        if (lowHp) {
+          spawnProjectile(boss.x + boss.w / 2, boss.y + boss.h / 2, -110, 240, "#d3e4ff");
+          spawnProjectile(boss.x + boss.w / 2, boss.y + boss.h / 2, 110, 240, "#d3e4ff");
+        }
+        playSfx([{ freq: 360, duration: 0.1, gain: 0.07, type: "square" }, { freq: 270, duration: 0.2, gain: 0.05, type: "triangle", offset: 0.03 }]);
+      }
+    } else {
+      boss.vulnerable = false;
+      boss.x += Math.cos(boss.phase) * (lowHp ? 110 : 70) * dt;
+      boss.y = 220 + Math.sin(boss.phase * (lowHp ? 2.4 : 1.7)) * (lowHp ? 64 : 48);
+      if (boss.cooldown <= 0) {
+        boss.attack = "telegraph";
+        boss.telegraph = lowHp ? 0.45 : 0.7;
+        playSfx([{ freq: 240, duration: 0.08, gain: 0.06, type: "square" }, { freq: 320, duration: 0.12, gain: 0.05, type: "sine", offset: 0.03 }]);
+      }
     }
   } else if (boss.type === "graft") {
     boss.vulnerable = false;
@@ -1806,20 +1901,57 @@ function updateBoss(dt) {
     }
     boss.y = 396 + Math.sin(boss.phase * (boss.attack === "charge" ? 12 : 4)) * (boss.attack === "charge" ? 2 : 1);
   } else if (boss.type === "monarch") {
-    boss.vulnerable = boss.stun > 0;
-    boss.x += boss.dir * (lowHp ? 130 : 86) * dt;
-    if (boss.x < state.level.boss.arenaStart + 40 || boss.x + boss.w > state.level.boss.arenaEnd - 40) {
-      boss.dir *= -1;
-    }
-    if (boss.cooldown <= 0) {
-      boss.cooldown = lowHp ? 0.95 : 1.55;
-      spawnProjectile(boss.x + 30, boss.y + 48, -180, 0, "#ff9f70");
-      spawnProjectile(boss.x + 120, boss.y + 48, -90, -60, "#ffcf7e");
-      if (lowHp) {
-        spawnProjectile(boss.x + 70, boss.y + 22, -40, -160, "#ffdcb1");
-        spawnProjectile(boss.x + 150, boss.y + 22, -220, -120, "#ffdcb1");
+    if (boss.attack === "slam") {
+      boss.vulnerable = false;
+      boss.x += (boss.chargeTarget - boss.x) * Math.min(1, dt * 5.4);
+      boss.y += (lowHp ? 460 : 390) * dt;
+      if (boss.y >= 394) {
+        boss.y = 394;
+        boss.attack = "overload";
+        boss.vulnerable = true;
+        boss.stun = lowHp ? 1.35 : 1.05;
+        spawnProjectile(boss.x + 24, boss.y + boss.h - 18, -180, -80, "#ff9f70");
+        spawnProjectile(boss.x + boss.w - 24, boss.y + boss.h - 18, 180, -80, "#ffcf7e");
+        playSfx([{ freq: 130, duration: 0.14, gain: 0.1, type: "sawtooth" }, { freq: 82, duration: 0.24, gain: 0.08, type: "triangle", offset: 0.03 }]);
+        spawnParticles(boss.x + boss.w / 2, boss.y + boss.h, "#ffd39c", 24);
       }
-      boss.stun = 1.05;
+    } else if (boss.attack === "telegraph") {
+      boss.vulnerable = false;
+      boss.telegraph -= dt;
+      boss.y = 316 + Math.sin(boss.phase * 8) * 8;
+      if (boss.telegraph <= 0) {
+        boss.attack = "slam";
+        playSfx([{ freq: 240, duration: 0.08, gain: 0.07, type: "square" }, { freq: 170, duration: 0.14, gain: 0.05, type: "triangle", offset: 0.02 }]);
+      }
+    } else if (boss.attack === "overload") {
+      boss.vulnerable = true;
+      if (boss.stun <= 0) {
+        boss.attack = "idle";
+        boss.vulnerable = false;
+        boss.cooldown = lowHp ? 0.95 : 1.25;
+      }
+    } else {
+      boss.vulnerable = false;
+      boss.x += boss.dir * (lowHp ? 130 : 86) * dt;
+      boss.y = 388 + Math.sin(boss.phase * 2.2) * 10;
+      if (boss.x < state.level.boss.arenaStart + 40 || boss.x + boss.w > state.level.boss.arenaEnd - 40) {
+        boss.dir *= -1;
+      }
+      if (boss.cooldown <= 0) {
+        if ((Math.floor(boss.phase * 10) % 2) === 0) {
+          boss.cooldown = lowHp ? 0.72 : 1.05;
+          spawnProjectile(boss.x + 30, boss.y + 48, -180, 0, "#ff9f70");
+          spawnProjectile(boss.x + boss.w - 30, boss.y + 48, 180, 0, "#ffcf7e");
+          if (lowHp) {
+            spawnProjectile(boss.x + boss.w / 2, boss.y + 18, 0, -160, "#ffdcb1");
+          }
+        } else {
+          boss.attack = "telegraph";
+          boss.telegraph = lowHp ? 0.52 : 0.78;
+          boss.chargeTarget = clamp(state.player.x - (boss.w / 2) + 18, state.level.boss.arenaStart + 40, state.level.boss.arenaEnd - boss.w - 40);
+          boss.y = 300;
+        }
+      }
     }
   } else {
     boss.vulnerable = false;

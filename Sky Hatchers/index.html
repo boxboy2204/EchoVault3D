@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sky Hatchers 3D</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">3D sanctuary prototype</p>
+          <h1>Sky Hatchers 3D</h1>
+          <p class="summary">
+            Explore a mythical sanctuary in third person, collect eggs into your
+            backpack, hatch rare birds, customize your ranger, and train your flock in
+            aerial runs so they evolve into stronger species.
+          </p>
+        </div>
+        <section class="hero-card">
+          <h2>Controls</h2>
+          <p><kbd>Click Game</kbd> lock mouse and control the camera look</p>
+          <p><kbd>WASD</kbd> move, <kbd>Q</kbd> or <kbd>Arrow Keys</kbd> turn if mouse is free</p>
+          <p><kbd>Shift</kbd> sprint on land, dash in flight</p>
+          <p><kbd>E</kbd> interact, pick up eggs/items, hatch at nest</p>
+          <p><kbd>1-6</kbd> select a bird</p>
+          <p><kbd>Space</kbd> start flight at the perch, flap in air</p>
+          <p><kbd>R</kbd> restart sanctuary</p>
+        </section>
+      </header>
+
+      <section class="topbar">
+        <div class="stat"><span class="label">Scene</span><span class="value" id="sceneStat">Sanctuary</span></div>
+        <div class="stat"><span class="label">Backpack</span><span class="value" id="bagStat">0 / 10</span></div>
+        <div class="stat"><span class="label">Flock Level</span><span class="value" id="flockStat">0</span></div>
+        <div class="stat"><span class="label">Unlock Tier</span><span class="value" id="tierStat">Common</span></div>
+        <div class="stat"><span class="label">Prompt</span><span class="value small" id="promptStat">Walk to the glowing eggs and press E.</span></div>
+      </section>
+
+      <section class="game-shell">
+        <section class="viewport-shell">
+          <canvas id="game" width="1440" height="820" aria-label="Sky Hatchers 3D game viewport"></canvas>
+          <div class="overlay-card" id="overlayCard"></div>
+        </section>
+
+        <aside class="sidebar">
+          <section class="panel">
+            <h2>Ranger</h2>
+            <div class="custom-grid">
+              <label>
+                Hair
+                <select id="hairSelect">
+                  <option value="ember">Ember</option>
+                  <option value="midnight">Midnight</option>
+                  <option value="mint">Mint</option>
+                </select>
+              </label>
+              <label>
+                Jacket
+                <select id="jacketSelect">
+                  <option value="gold">Sun Gold</option>
+                  <option value="teal">Sky Teal</option>
+                  <option value="rose">Rose</option>
+                </select>
+              </label>
+              <label>
+                Backpack
+                <select id="packSelect">
+                  <option value="tan">Explorer Tan</option>
+                  <option value="navy">Storm Navy</option>
+                  <option value="forest">Forest</option>
+                </select>
+              </label>
+            </div>
+            <div class="portrait" id="portrait"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <h2>Backpack</h2>
+              <button id="cycleBagBtn" type="button">Cycle</button>
+            </div>
+            <div id="inventoryPanel"></div>
+            <div class="action-row">
+              <button id="hatchBtn" type="button">Hatch Egg</button>
+              <button id="useItemBtn" type="button">Use On Bird</button>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <h2>Flock</h2>
+              <button id="sendFlightBtn" type="button">Launch Bird</button>
+            </div>
+            <div id="rosterPanel"></div>
+          </section>
+        </aside>
+      </section>
+    </main>
+
+    <script src="./game.js"></script>
+  </body>
+</html>
