@@ -7,44 +7,68 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <main class="app">
-      <header class="hero">
-        <div>
-          <p class="eyebrow">3D sanctuary prototype</p>
-          <h1>Sky Hatchers 3D</h1>
-          <p class="summary">
-            Explore a mythical sanctuary in third person, collect eggs into your
-            backpack, hatch rare birds, customize your ranger, and train your flock in
-            aerial runs so they evolve into stronger species.
-          </p>
-        </div>
-        <section class="hero-card">
-          <h2>Controls</h2>
-          <p><kbd>Click Game</kbd> lock mouse and control the camera look</p>
-          <p><kbd>WASD</kbd> move, <kbd>Q</kbd> or <kbd>Arrow Keys</kbd> turn if mouse is free</p>
-          <p><kbd>Shift</kbd> sprint on land, dash in flight</p>
-          <p><kbd>E</kbd> interact, pick up eggs/items, hatch at nest</p>
-          <p><kbd>1-6</kbd> select a bird</p>
-          <p><kbd>Space</kbd> start flight at the perch, flap in air</p>
-          <p><kbd>R</kbd> restart sanctuary</p>
-        </section>
-      </header>
+    <main class="app fullscreen-app">
+      <section class="viewport-shell">
+        <canvas id="game" width="1440" height="820" aria-label="Sky Hatchers 3D game viewport"></canvas>
 
-      <section class="topbar">
-        <div class="stat"><span class="label">Scene</span><span class="value" id="sceneStat">Sanctuary</span></div>
-        <div class="stat"><span class="label">Backpack</span><span class="value" id="bagStat">0 / 10</span></div>
-        <div class="stat"><span class="label">Flock Level</span><span class="value" id="flockStat">0</span></div>
-        <div class="stat"><span class="label">Unlock Tier</span><span class="value" id="tierStat">Common</span></div>
-        <div class="stat"><span class="label">Prompt</span><span class="value small" id="promptStat">Walk to the glowing eggs and press E.</span></div>
-      </section>
-
-      <section class="game-shell">
-        <section class="viewport-shell">
-          <canvas id="game" width="1440" height="820" aria-label="Sky Hatchers 3D game viewport"></canvas>
-          <div class="overlay-card" id="overlayCard"></div>
+        <section class="topbar hud-bar">
+          <div class="stat"><span class="label">Scene</span><span class="value" id="sceneStat">Sanctuary</span></div>
+          <div class="stat"><span class="label">Backpack</span><span class="value" id="bagStat">0 / 10</span></div>
+          <div class="stat"><span class="label">Flock Level</span><span class="value" id="flockStat">0</span></div>
+          <div class="stat"><span class="label">Unlock Tier</span><span class="value" id="tierStat">Common</span></div>
+          <div class="stat wide"><span class="label">Prompt</span><span class="value small" id="promptStat">Walk to the glowing eggs and press E.</span></div>
         </section>
 
-        <aside class="sidebar">
+        <section class="hud-actions">
+          <button id="openInventoryBtn" type="button">Inventory `I`</button>
+          <button id="openFolioBtn" type="button">Feather Folio `F`</button>
+          <button id="openMapBtn" type="button">Minimap `M`</button>
+          <button id="openSettingsBtn" type="button">Settings `O`</button>
+        </section>
+
+        <div class="overlay-card" id="overlayCard"></div>
+
+        <aside class="drawer" id="inventoryDrawer" aria-hidden="true">
+          <div class="drawer-head">
+            <h2>Inventory</h2>
+            <button id="closeInventoryBtn" type="button">Close</button>
+          </div>
+
+          <section class="panel">
+            <h2>Current Bird</h2>
+            <div id="activeBirdPanel"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <h2>Flock</h2>
+              <button id="sendFlightBtn" type="button">Launch Bird</button>
+            </div>
+            <div id="rosterPanel"></div>
+            <div class="action-row">
+              <button id="restBirdBtn" type="button">Rest At Nest</button>
+              <button id="releaseBirdBtn" type="button">Release Bird</button>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <h2>Backpack</h2>
+            </div>
+            <div id="inventoryPanel"></div>
+            <div class="action-row">
+              <button id="hatchBtn" type="button">Hatch Egg</button>
+              <button id="useItemBtn" type="button">Use On Bird</button>
+            </div>
+          </section>
+        </aside>
+
+        <aside class="drawer" id="settingsDrawer" aria-hidden="true">
+          <div class="drawer-head">
+            <h2>Settings</h2>
+            <button id="closeSettingsBtn" type="button">Close</button>
+          </div>
+
           <section class="panel">
             <h2>Ranger</h2>
             <div class="custom-grid">
@@ -77,28 +101,68 @@
           </section>
 
           <section class="panel">
-            <div class="panel-head">
-              <h2>Backpack</h2>
-              <button id="cycleBagBtn" type="button">Cycle</button>
-            </div>
-            <div id="inventoryPanel"></div>
+            <h2>Audio & Save</h2>
             <div class="action-row">
-              <button id="hatchBtn" type="button">Hatch Egg</button>
-              <button id="useItemBtn" type="button">Use On Bird</button>
+              <button id="musicToggleBtn" type="button">Music: On</button>
+              <button id="manualSaveBtn" type="button">Save Now</button>
+              <button id="resetSaveBtn" type="button">Reset Save</button>
             </div>
+            <p class="settings-note" id="settingsNote">Progress autosaves while you play.</p>
           </section>
 
           <section class="panel">
-            <div class="panel-head">
-              <h2>Flock</h2>
-              <button id="sendFlightBtn" type="button">Launch Bird</button>
-            </div>
-            <div id="rosterPanel"></div>
+            <h2>Controls</h2>
+            <p class="control-line"><kbd>Click Game</kbd> lock mouse and look around</p>
+            <p class="control-line"><kbd>Mouse</kbd> look left/right/up/down</p>
+            <p class="control-line"><kbd>W / S</kbd> walk forward/backward</p>
+            <p class="control-line"><kbd>I</kbd> inventory, <kbd>F</kbd> folio, <kbd>M</kbd> minimap, <kbd>O</kbd> settings</p>
+            <p class="control-line"><kbd>E</kbd> interact, <kbd>Space</kbd> launch at perch</p>
+            <p class="control-line"><kbd>Shift</kbd> sprint on land, boost in flight</p>
+            <p class="control-line"><kbd>Esc</kbd> close open menus</p>
+          </section>
+        </aside>
+
+        <aside class="drawer" id="folioDrawer" aria-hidden="true">
+          <div class="drawer-head">
+            <h2>Feather Folio</h2>
+            <button id="closeFolioBtn" type="button">Close</button>
+          </div>
+
+          <section class="panel">
+            <div id="folioSummary"></div>
+          </section>
+
+          <section class="panel">
+            <h2>Bird Archive</h2>
+            <div id="folioGrid"></div>
+          </section>
+
+          <section class="panel">
+            <h2>Species Notes</h2>
+            <div id="folioDetail"></div>
+          </section>
+        </aside>
+
+        <aside class="drawer" id="mapDrawer" aria-hidden="true">
+          <div class="drawer-head">
+            <h2>Archipelago Map</h2>
+            <button id="closeMapBtn" type="button">Close</button>
+          </div>
+
+          <section class="panel">
+            <div id="mapSummary"></div>
+          </section>
+
+          <section class="panel">
+            <h2>Known Waters</h2>
+            <div id="mapPanel"></div>
           </section>
         </aside>
       </section>
     </main>
 
     <script src="./bootstrap.js" defer></script>
+    <script src="./three.min.js" defer></script>
+    <script src="./game.js" defer></script>
   </body>
 </html>

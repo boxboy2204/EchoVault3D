@@ -27,8 +27,3 @@ window.addEventListener("error", (event) => {
 window.addEventListener("unhandledrejection", (event) => {
   showBootError(event.reason);
 });
-
-const bootstrapUrl = document.currentScript?.src;
-const gameUrl = bootstrapUrl ? new URL("./game.js", bootstrapUrl).href : "./game.js";
-
-import(gameUrl).catch(showBootError);
