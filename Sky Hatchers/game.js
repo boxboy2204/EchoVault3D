@@ -7,6 +7,7 @@ const ui = {
   tierStat: document.getElementById("tierStat"),
   promptStat: document.getElementById("promptStat"),
   overlayCard: document.getElementById("overlayCard"),
+  evolutionScreen: document.getElementById("evolutionScreen"),
   openInventoryBtn: document.getElementById("openInventoryBtn"),
   openFolioBtn: document.getElementById("openFolioBtn"),
   openMapBtn: document.getElementById("openMapBtn"),
@@ -33,19 +34,23 @@ const ui = {
   sendFlightBtn: document.getElementById("sendFlightBtn"),
   restBirdBtn: document.getElementById("restBirdBtn"),
   releaseBirdBtn: document.getElementById("releaseBirdBtn"),
+  releaseDuplicatesBtn: document.getElementById("releaseDuplicatesBtn"),
   musicToggleBtn: document.getElementById("musicToggleBtn"),
   manualSaveBtn: document.getElementById("manualSaveBtn"),
   resetSaveBtn: document.getElementById("resetSaveBtn"),
   settingsNote: document.getElementById("settingsNote"),
   hairSelect: document.getElementById("hairSelect"),
+  hairStyleSelect: document.getElementById("hairStyleSelect"),
+  skinSelect: document.getElementById("skinSelect"),
   jacketSelect: document.getElementById("jacketSelect"),
   packSelect: document.getElementById("packSelect"),
 };
 
 const keys = new Set();
-const WORLD_RADIUS = 300;
+const WORLD_RADIUS = 720;
 const MOVE_SPEED = 18;
-const INTERACT_DISTANCE = 7.5;
+const INTERACT_DISTANCE = 11;
+const NPC_INTERACT_DISTANCE = 15;
 const CAMERA_DISTANCE = 14;
 const CAMERA_HEIGHT = 7;
 const CAMERA_LOOK_HEIGHT = 3;
@@ -60,21 +65,22 @@ const CHARACTER_COLORS = {
   hair: { ember: "#7a3928", midnight: "#1d2438", mint: "#60a899" },
   jacket: { gold: "#c99834", teal: "#2b7f88", rose: "#b46577" },
   pack: { tan: "#8f6c43", navy: "#33506b", forest: "#446c48" },
+  skin: { fair: "#f1d2ba", warm: "#c9956d", deep: "#75492f" },
 };
 
 const SPECIES = [
-  { id: "sunflare", name: "Sunflare", rarity: "common", unlockLevel: 0, color: "#f29a2f", accent: "#ffe39b", perk: "Flame-feather dashes score extra XP.", base: { speed: 1.05, lift: 0.95, growth: 1.02 }, look: "flame" },
-  { id: "stormwing", name: "Stormwing", rarity: "common", unlockLevel: 0, color: "#bfc7cf", accent: "#ffffff", perk: "Gray-white wings hold altitude through gusts.", base: { speed: 0.98, lift: 1.12, growth: 0.96 }, look: "storm" },
-  { id: "bloomtail", name: "Bloomtail", rarity: "common", unlockLevel: 0, color: "#72c86d", accent: "#f097bb", perk: "Flower-bright feathers pull stars and grow fast.", base: { speed: 0.94, lift: 0.98, growth: 1.14 }, look: "bloom" },
-  { id: "embercrest", name: "Embercrest", rarity: "uncommon", unlockLevel: 6, color: "#cd632f", accent: "#ffd06f", perk: "Molten crest boosts launch speed.", base: { speed: 1.12, lift: 0.92, growth: 1.02 }, look: "crest" },
-  { id: "mistfinch", name: "Mistfinch", rarity: "uncommon", unlockLevel: 6, color: "#7fbdd2", accent: "#dff8ff", perk: "Mist feathers recover flight energy faster.", base: { speed: 0.99, lift: 1.08, growth: 1.02 }, look: "mist" },
-  { id: "thornbeak", name: "Thornbeak", rarity: "uncommon", unlockLevel: 6, color: "#698f42", accent: "#d3f79c", perk: "Forest plumage stacks strong growth gains.", base: { speed: 0.92, lift: 0.95, growth: 1.18 }, look: "thorn" },
-  { id: "glimmerowl", name: "Glimmerowl", rarity: "rare", unlockLevel: 14, color: "#7066d2", accent: "#fff1be", perk: "Moon-dusted wings widen ring pickups.", base: { speed: 1.06, lift: 1.06, growth: 1.08 }, look: "glimmer" },
-  { id: "tempestkite", name: "Tempest Kite", rarity: "rare", unlockLevel: 14, color: "#547bd0", accent: "#f4fbff", perk: "Storm fins turn gusts into bigger score bursts.", base: { speed: 1.14, lift: 1.12, growth: 0.98 }, look: "tempest" },
-  { id: "rosephoenix", name: "Rose Phoenix", rarity: "rare", unlockLevel: 14, color: "#f06182", accent: "#ffd4e0", perk: "Floral fire plumage grants passive flight XP.", base: { speed: 1.05, lift: 0.98, growth: 1.18 }, look: "phoenix" },
-  { id: "auroraseraph", name: "Aurora Seraph", rarity: "epic", unlockLevel: 24, color: "#61d0f6", accent: "#ffe47d", perk: "Aurora ribbons widen rings and accelerate growth.", base: { speed: 1.14, lift: 1.14, growth: 1.2 }, look: "aurora" },
-  { id: "titanroc", name: "Titan Roc", rarity: "epic", unlockLevel: 24, color: "#b67939", accent: "#fff2bd", perk: "Massive feathers push speed and size higher.", base: { speed: 1.16, lift: 1.02, growth: 1.18 }, look: "roc" },
-  { id: "verdantseraph", name: "Verdant Seraph", rarity: "epic", unlockLevel: 24, color: "#4fb06c", accent: "#f0a9ff", perk: "Sacred bloom-feathers amplify item bonuses.", base: { speed: 1.02, lift: 1.08, growth: 1.24 }, look: "seraph" },
+  { id: "sunflare", name: "Sunflare", rarity: "common", unlockLevel: 0, color: "#f29a2f", accent: "#ffe39b", perk: "Flame-feather dashes score extra XP.", base: { speed: 1.05, lift: 0.95, growth: 1.02 }, look: "flame", stages: ["Flicker", "Sunspark", "Sunflare", "Solarflare"] },
+  { id: "stormwing", name: "Stormwing", rarity: "common", unlockLevel: 0, color: "#bfc7cf", accent: "#ffffff", perk: "Gray-white wings hold altitude through gusts.", base: { speed: 0.98, lift: 1.12, growth: 0.96 }, look: "storm", stages: ["Cloudling", "Stormwing", "Thundercrest", "Tempest Lord"] },
+  { id: "bloomtail", name: "Bloomtail", rarity: "common", unlockLevel: 0, color: "#72c86d", accent: "#f097bb", perk: "Flower-bright feathers pull stars and grow fast.", base: { speed: 0.94, lift: 0.98, growth: 1.14 }, look: "bloom", stages: ["Budtail", "Bloomtail", "Roseplume", "Verdant Crown"] },
+  { id: "embercrest", name: "Embercrest", rarity: "uncommon", unlockLevel: 6, color: "#cd632f", accent: "#ffd06f", perk: "Molten crest boosts launch speed.", base: { speed: 1.12, lift: 0.92, growth: 1.02 }, look: "crest", stages: ["Coalcrest", "Embercrest", "Cindercrest", "Inferno Crest"] },
+  { id: "mistfinch", name: "Mistfinch", rarity: "uncommon", unlockLevel: 6, color: "#7fbdd2", accent: "#dff8ff", perk: "Mist feathers recover flight energy faster.", base: { speed: 0.99, lift: 1.08, growth: 1.02 }, look: "mist", stages: ["Dewfinch", "Mistfinch", "Fogwing", "Pale Nimbus"] },
+  { id: "thornbeak", name: "Thornbeak", rarity: "uncommon", unlockLevel: 6, color: "#698f42", accent: "#d3f79c", perk: "Forest plumage stacks strong growth gains.", base: { speed: 0.92, lift: 0.95, growth: 1.18 }, look: "thorn", stages: ["Sprigbeak", "Thornbeak", "Briar Talon", "Wildthorn King"] },
+  { id: "glimmerowl", name: "Glimmerowl", rarity: "rare", unlockLevel: 14, color: "#7066d2", accent: "#fff1be", perk: "Moon-dusted wings widen ring pickups.", base: { speed: 1.06, lift: 1.06, growth: 1.08 }, look: "glimmer", stages: ["Gleamlet", "Glimmerowl", "Moonwatch", "Star Oracle"] },
+  { id: "tempestkite", name: "Tempest Kite", rarity: "rare", unlockLevel: 14, color: "#547bd0", accent: "#f4fbff", perk: "Storm fins turn gusts into bigger score bursts.", base: { speed: 1.14, lift: 1.12, growth: 0.98 }, look: "tempest", stages: ["Squall Kite", "Tempest Kite", "Storm Lance", "Sky Tyrant"] },
+  { id: "rosephoenix", name: "Rose Phoenix", rarity: "rare", unlockLevel: 14, color: "#f06182", accent: "#ffd4e0", perk: "Floral fire plumage grants passive flight XP.", base: { speed: 1.05, lift: 0.98, growth: 1.18 }, look: "phoenix", stages: ["Rosekindle", "Rose Phoenix", "Blazebloom", "Petal Pyre"] },
+  { id: "auroraseraph", name: "Aurora Seraph", rarity: "epic", unlockLevel: 24, color: "#61d0f6", accent: "#ffe47d", perk: "Aurora ribbons widen rings and accelerate growth.", base: { speed: 1.14, lift: 1.14, growth: 1.2 }, look: "aurora", stages: ["Dawn Wisp", "Aurora Seraph", "Polar Archon", "Heaven Aurora"] },
+  { id: "titanroc", name: "Titan Roc", rarity: "epic", unlockLevel: 24, color: "#b67939", accent: "#fff2bd", perk: "Massive feathers push speed and size higher.", base: { speed: 1.16, lift: 1.02, growth: 1.18 }, look: "roc", stages: ["Stone Chick", "Titan Roc", "Crag Sovereign", "World Roc"] },
+  { id: "verdantseraph", name: "Verdant Seraph", rarity: "epic", unlockLevel: 24, color: "#4fb06c", accent: "#f0a9ff", perk: "Sacred bloom-feathers amplify item bonuses.", base: { speed: 1.02, lift: 1.08, growth: 1.24 }, look: "seraph", stages: ["Leafling", "Verdant Seraph", "Bloom Saint", "Evergarden"] },
 ];
 
 const ITEM_DEFS = [
@@ -84,6 +90,15 @@ const ITEM_DEFS = [
   { id: "bloom_nectar", name: "Bloom Nectar", effect: "growth", amount: 58, color: "#ff88b4", desc: "Rare nectar that strongly accelerates growth." },
   { id: "ember_relic", name: "Ember Relic", effect: "speed", amount: 0.15, color: "#ff8a52", desc: "Ancient relic that increases launch speed." },
 ];
+
+function makeVillageNpcs(cx, cz, names) {
+  return names.map((name, index) => ({
+    id: `${name.toLowerCase().replace(/\s+/g, "-")}`,
+    name,
+    x: cx + Math.cos((index / names.length) * Math.PI * 2 + Math.PI * 0.25) * 7.5,
+    z: cz + Math.sin((index / names.length) * Math.PI * 2 + Math.PI * 0.25) * 6.5,
+  }));
+}
 
 function makeForageSpots(cx, cz, radius, count) {
   const spots = [];
@@ -103,8 +118,9 @@ const ISLANDS = {
     id: "tutorial",
     name: "Tutorial Isle",
     center: { x: 0, z: 0 },
-    radius: 46,
+    radius: 68,
     rarityCap: "common",
+    theme: "meadow",
     biome: "Sunlit meadows and starter groves",
     enemies: ["Mischief foxes"],
     birdsHint: "Starter flock",
@@ -112,69 +128,167 @@ const ISLANDS = {
     nest: { x: 0, z: 0, label: "Star Nest", type: "nest", color: "#f3c97c" },
     perch: { x: 18, z: -10, label: "Sky Perch", type: "perch", color: "#bceeff" },
     tailor: { x: -16, z: 12, label: "Wanderer's Camp", type: "tailor", color: "#f1a0ac" },
-    forageSpots: makeForageSpots(0, 0, 28, 18),
+    forageSpots: makeForageSpots(0, 0, 40, 24),
   },
   moonfen: {
     id: "moonfen",
     name: "Moonfen Atoll",
-    center: { x: 178, z: -92 },
-    radius: 58,
+    center: { x: 276, z: -146 },
+    radius: 132,
     rarityCap: "rare",
+    theme: "moonfen",
     biome: "Silver marshes, mist pools, and moonstone ruins",
     enemies: ["Fen stalkers", "Marsh wraiths"],
     birdsHint: "Mistfinch, Glimmerowl, Tempest Kite",
-    groundSpawn: { x: 180, z: -62 },
-    nest: { x: 166, z: -94, label: "Moon Nest", type: "nest", color: "#d9d3ff" },
-    perch: { x: 208, z: -73, label: "Wind Spire", type: "perch", color: "#bceeff" },
-    tailor: { x: 154, z: -60, label: "Moon Camp", type: "tailor", color: "#e8b4ff" },
-    forageSpots: makeForageSpots(178, -92, 42, 28),
+    groundSpawn: { x: 286, z: -98 },
+    nest: { x: 248, z: -152, label: "Moon Nest", type: "nest", color: "#d9d3ff" },
+    perch: { x: 318, z: -122, label: "Wind Spire", type: "perch", color: "#bceeff" },
+    tailor: { x: 236, z: -102, label: "Moon Camp", type: "tailor", color: "#e8b4ff" },
+    village: { x: 294, z: -164, label: "Fenwatch Hamlet", npcs: makeVillageNpcs(294, -164, ["Mira Reed", "Old Pell", "Sable"]) },
+    forageSpots: makeForageSpots(276, -146, 98, 64),
   },
   emberreach: {
     id: "emberreach",
     name: "Emberreach",
-    center: { x: -196, z: 120 },
-    radius: 64,
+    center: { x: -324, z: 196 },
+    radius: 148,
     rarityCap: "epic",
-    biome: "Volcanic cliffs, ash pines, and broken giant nests",
+    theme: "ember",
+    biome: "Volcanic cliffs, ash fields, lava vents, and broken giant nests",
     enemies: ["Ash wolves", "Cinder drakes"],
     birdsHint: "Embercrest, Rose Phoenix, Titan Roc",
-    groundSpawn: { x: -190, z: 154 },
-    nest: { x: -212, z: 120, label: "Ember Nest", type: "nest", color: "#ffca8b" },
-    perch: { x: -160, z: 135, label: "Roc Perch", type: "perch", color: "#ffd9a0" },
-    tailor: { x: -226, z: 157, label: "Reef Camp", type: "tailor", color: "#f1a0ac" },
-    forageSpots: makeForageSpots(-196, 120, 48, 30),
+    groundSpawn: { x: -306, z: 252 },
+    nest: { x: -352, z: 194, label: "Ember Nest", type: "nest", color: "#ffca8b" },
+    perch: { x: -258, z: 228, label: "Roc Perch", type: "perch", color: "#ffd9a0" },
+    tailor: { x: -372, z: 264, label: "Reef Camp", type: "tailor", color: "#f1a0ac" },
+    forageSpots: makeForageSpots(-324, 196, 112, 68),
   },
   verdantwilds: {
     id: "verdantwilds",
     name: "Verdant Wilds",
-    center: { x: 132, z: 176 },
-    radius: 72,
+    center: { x: 238, z: 314 },
+    radius: 156,
     rarityCap: "epic",
+    theme: "verdant",
     biome: "Massive forest canopies, bloom glades, and overgrown ruins",
     enemies: ["Bramble boars", "Thorn cats"],
     birdsHint: "Bloomtail, Thornbeak, Verdant Seraph",
-    groundSpawn: { x: 128, z: 212 },
-    nest: { x: 118, z: 174, label: "Canopy Nest", type: "nest", color: "#ffd9ea" },
-    perch: { x: 164, z: 186, label: "Bloom Perch", type: "perch", color: "#bff0ce" },
-    tailor: { x: 106, z: 214, label: "Grove Camp", type: "tailor", color: "#f1a0ac" },
-    forageSpots: makeForageSpots(132, 176, 52, 32),
+    groundSpawn: { x: 224, z: 362 },
+    nest: { x: 204, z: 304, label: "Canopy Nest", type: "nest", color: "#ffd9ea" },
+    perch: { x: 286, z: 326, label: "Bloom Perch", type: "perch", color: "#bff0ce" },
+    tailor: { x: 180, z: 366, label: "Grove Camp", type: "tailor", color: "#f1a0ac" },
+    village: { x: 272, z: 338, label: "Petal Hollow", npcs: makeVillageNpcs(272, 338, ["Auri", "Thorn Sage", "Linn"]) },
+    forageSpots: makeForageSpots(238, 314, 118, 76),
   },
   stormchain: {
     id: "stormchain",
     name: "Stormchain Keys",
-    center: { x: -40, z: -220 },
-    radius: 44,
+    center: { x: -76, z: -356 },
+    radius: 122,
     rarityCap: "rare",
+    theme: "storm",
     biome: "Wind-cut islets, slate rock, and storm arches",
     enemies: ["Razor gulls", "Skyray hunters"],
     birdsHint: "Stormwing, Tempest Kite, Aurora Seraph",
-    groundSpawn: { x: -34, z: -196 },
-    nest: { x: -54, z: -221, label: "Storm Nest", type: "nest", color: "#d5ebff" },
-    perch: { x: -16, z: -212, label: "Tempest Roost", type: "perch", color: "#bceeff" },
-    tailor: { x: -66, z: -192, label: "Storm Camp", type: "tailor", color: "#c0d8ff" },
-    forageSpots: makeForageSpots(-40, -220, 31, 22),
+    groundSpawn: { x: -58, z: -310 },
+    nest: { x: -104, z: -360, label: "Storm Nest", type: "nest", color: "#d5ebff" },
+    perch: { x: -26, z: -340, label: "Tempest Roost", type: "perch", color: "#bceeff" },
+    tailor: { x: -118, z: -304, label: "Storm Camp", type: "tailor", color: "#c0d8ff" },
+    village: { x: -34, z: -384, label: "Chainport", npcs: makeVillageNpcs(-34, -384, ["Captain Vey", "Neri", "Torch"]) },
+    forageSpots: makeForageSpots(-76, -356, 92, 58),
   },
 };
+
+function islandInfluenceAt(x, z) {
+  let best = null;
+  for (const island of Object.values(ISLANDS)) {
+    const dx = x - island.center.x;
+    const dz = z - island.center.z;
+    const dist = Math.hypot(dx, dz);
+    const falloff = Math.max(0, 1 - dist / island.radius);
+    if (!best || falloff > best.falloff) best = { island, falloff, dist };
+  }
+  return best;
+}
+
+function biomePalette(island) {
+  const theme = island?.theme || "meadow";
+  if (theme === "ember") {
+    return {
+      groundLow: new THREE.Color(0x5f4630),
+      groundHigh: new THREE.Color(0x8a5b39),
+      grass: [0x6b5237, 0x7e5e3b, 0x925c34],
+      rockA: 0x4a3934,
+      rockB: 0x7b4b36,
+      treeTrunk: 0x4a2c1d,
+      treeLeaf: [0x6b3822, 0x8b4a26, 0xb85d28],
+      bush: [0x6b4b2e, 0x8c5d34, 0x9d6a30],
+      water: 0x6e3221,
+      evoTheme: "fire",
+    };
+  }
+  if (theme === "moonfen") {
+    return {
+      groundLow: new THREE.Color(0x4a5a5f),
+      groundHigh: new THREE.Color(0x7e8fa2),
+      grass: [0x68818b, 0x829ba5, 0x9ab6bf],
+      rockA: 0x4a4e60,
+      rockB: 0x79809a,
+      treeTrunk: 0x4d4658,
+      treeLeaf: [0x708ca0, 0x95a9bf, 0xb8c1d1],
+      bush: [0x667e8b, 0x839aa7, 0xa1b7c2],
+      water: 0x58748f,
+      evoTheme: "arcane",
+    };
+  }
+  if (theme === "storm") {
+    return {
+      groundLow: new THREE.Color(0x44505b),
+      groundHigh: new THREE.Color(0x6b7b87),
+      grass: [0x556774, 0x748897, 0x8fa4b2],
+      rockA: 0x384651,
+      rockB: 0x60707c,
+      treeTrunk: 0x3e3536,
+      treeLeaf: [0x677887, 0x889cac, 0xb8ceda],
+      bush: [0x5a6c78, 0x738994, 0x8ea2ae],
+      water: 0x436d8a,
+      evoTheme: "storm",
+    };
+  }
+  if (theme === "verdant") {
+    return {
+      groundLow: new THREE.Color(0x356038),
+      groundHigh: new THREE.Color(0x689552),
+      grass: [0x4a7a3f, 0x68a452, 0x84bf63],
+      rockA: 0x50634d,
+      rockB: 0x7e8f67,
+      treeTrunk: 0x5a4024,
+      treeLeaf: [0x3f7a3d, 0x63a451, 0x8cc96b],
+      bush: [0x558247, 0x72ad5d, 0x9bd07a],
+      water: 0x4b8d5d,
+      evoTheme: "bloom",
+    };
+  }
+  return {
+    groundLow: new THREE.Color(0x54753f),
+    groundHigh: new THREE.Color(0x95bb69),
+    grass: [0x5f8d4b, 0x7eaf5c, 0xa3ce79],
+    rockA: 0x6a675f,
+    rockB: 0x7c786f,
+    treeTrunk: 0x6d4a2b,
+    treeLeaf: [0x315d35, 0x416f3e, 0x557d4d],
+    bush: [0x45683b, 0x5d7a46, 0x6b8952],
+    water: 0x3f7695,
+    evoTheme: "bloom",
+  };
+}
+
+function evolutionThemeForLook(look) {
+  if (["flame", "phoenix", "crest"].includes(look)) return "fire";
+  if (["storm", "tempest", "mist"].includes(look)) return "storm";
+  if (["glimmer", "aurora", "roc"].includes(look)) return "arcane";
+  return "bloom";
+}
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x9fc9e8);
@@ -214,6 +328,7 @@ const grassMaterials = [];
 const grassBlades = [];
 const flightObjects = [];
 const obstacleColliders = [];
+const villageNpcs = [];
 
 const raycaster = new THREE.Raycaster();
 const down = new THREE.Vector3(0, -1, 0);
@@ -247,12 +362,13 @@ function createState() {
       z: ISLANDS.tutorial.groundSpawn.z,
       y: 0,
       yaw: Math.PI,
+      facingYaw: Math.PI,
       pitch: -0.18,
       bob: 0,
       moveBlend: 0,
     },
     currentIsland: "tutorial",
-    character: { hair: "ember", jacket: "gold", pack: "tan" },
+    character: { hair: "ember", hairStyle: "windswept", skin: "fair", jacket: "gold", pack: "tan" },
     backpack: [],
     selectedBagIndex: 0,
     birds: [],
@@ -266,6 +382,7 @@ function createState() {
     discoveredSpecies: defaultDiscovered,
     selectedFolioSpeciesId: SPECIES[0].id,
     discoveredIslands: ["tutorial"],
+    completedNpcQuests: {},
     evolution: null,
     flight: null,
   };
@@ -291,10 +408,12 @@ function snapshotState(sourceState = state) {
     discoveredSpecies: sourceState.discoveredSpecies,
     selectedFolioSpeciesId: sourceState.selectedFolioSpeciesId,
     discoveredIslands: sourceState.discoveredIslands,
+    completedNpcQuests: sourceState.completedNpcQuests,
     player: {
       x: sourceState.player.x,
       z: sourceState.player.z,
       yaw: sourceState.player.yaw,
+      facingYaw: sourceState.player.facingYaw,
       pitch: sourceState.player.pitch,
     },
   };
@@ -343,6 +462,14 @@ function loadGame() {
       bird.evolutionStage = typeof bird.evolutionStage === "number" ? bird.evolutionStage : getEvolutionStage(bird.level || 1);
     });
     fresh.selectedBirdIndex = clamp(parsed.selectedBirdIndex || 0, 0, Math.max(fresh.birds.length - 1, 0));
+    const selectedBirdId = fresh.birds[fresh.selectedBirdIndex]?.id;
+    fresh.birds.sort((a, b) => {
+      const progressDiff = b.level * 10000 + Math.round((b.xp || 0) * 100) + Math.round((b.growth || 0) * 1000)
+        - (a.level * 10000 + Math.round((a.xp || 0) * 100) + Math.round((a.growth || 0) * 1000));
+      if (progressDiff !== 0) return progressDiff;
+      return a.name.localeCompare(b.name);
+    });
+    fresh.selectedBirdIndex = Math.max(0, fresh.birds.findIndex((bird) => bird.id === selectedBirdId));
     fresh.nextEntityId = Number.isFinite(parsed.nextEntityId) ? parsed.nextEntityId : 1;
     fresh.worldEntities = Array.isArray(parsed.worldEntities) ? parsed.worldEntities : [];
     fresh.spawnCooldown = typeof parsed.spawnCooldown === "number" ? parsed.spawnCooldown : 0;
@@ -362,10 +489,12 @@ function loadGame() {
         ...(Array.isArray(parsed.discoveredIslands) ? parsed.discoveredIslands.filter((id) => ISLANDS[id]) : []),
       ]),
     ];
+    fresh.completedNpcQuests = parsed.completedNpcQuests && typeof parsed.completedNpcQuests === "object" ? parsed.completedNpcQuests : {};
     if (parsed.player) {
       fresh.player.x = typeof parsed.player.x === "number" ? parsed.player.x : fresh.player.x;
       fresh.player.z = typeof parsed.player.z === "number" ? parsed.player.z : fresh.player.z;
       fresh.player.yaw = typeof parsed.player.yaw === "number" ? parsed.player.yaw : fresh.player.yaw;
+      fresh.player.facingYaw = typeof parsed.player.facingYaw === "number" ? parsed.player.facingYaw : fresh.player.yaw;
       fresh.player.pitch = typeof parsed.player.pitch === "number" ? parsed.player.pitch : fresh.player.pitch;
     }
     return fresh;
@@ -515,7 +644,16 @@ function getTerrainHeight(x, z) {
         Math.sin((x + island.center.x) * 0.08) * 1.6 +
         Math.cos((z - island.center.z) * 0.09) * 1.4 +
         Math.sin((x + z) * 0.04) * 1.2;
-      height = Math.max(height, plateau + detail);
+      let islandHeight = plateau + detail;
+      if (island.theme === "ember") {
+        const volcanoX = island.center.x + 10;
+        const volcanoZ = island.center.z - 12;
+        const volcanoDist = Math.hypot(x - volcanoX, z - volcanoZ);
+        const cone = Math.max(0, 1 - volcanoDist / 34) * 38;
+        const crater = Math.max(0, 1 - volcanoDist / 11) * 20;
+        islandHeight = Math.max(islandHeight, plateau * 0.8 + detail * 0.5 + cone - crater);
+      }
+      height = Math.max(height, islandHeight);
     }
   }
   return height;
@@ -529,6 +667,7 @@ function clearWorld() {
   interactables.length = 0;
   obstacleColliders.length = 0;
   animalMeshes.length = 0;
+  villageNpcs.length = 0;
   grassBlades.length = 0;
   grassMaterials.length = 0;
   flightObjects.length = 0;
@@ -702,6 +841,20 @@ function selectedBird() {
   return state.birds[state.selectedBirdIndex] || null;
 }
 
+function birdProgressScore(bird) {
+  if (!bird) return 0;
+  return bird.level * 10000 + Math.round((bird.xp || 0) * 100) + Math.round((bird.growth || 0) * 1000);
+}
+
+function sortBirdsPreserveSelection(selectedId = selectedBird()?.id) {
+  state.birds.sort((a, b) => {
+    const progressDiff = birdProgressScore(b) - birdProgressScore(a);
+    if (progressDiff !== 0) return progressDiff;
+    return a.name.localeCompare(b.name);
+  });
+  state.selectedBirdIndex = Math.max(0, state.birds.findIndex((bird) => bird.id === selectedId));
+}
+
 function getEvolutionStage(level) {
   if (level >= EVOLUTION_LEVELS[2]) return 3;
   if (level >= EVOLUTION_LEVELS[1]) return 2;
@@ -713,16 +866,28 @@ function evolutionLabel(stage) {
   return ["Hatchling", "Ascended", "Mythic", "Elder"][stage] || "Hatchling";
 }
 
+function getSpeciesStageName(species, stage) {
+  if (!species) return evolutionLabel(stage);
+  return species.stages?.[stage] || species.name;
+}
+
+function getBirdDisplayName(bird) {
+  const species = SPECIES.find((entry) => entry.id === bird.speciesId);
+  return getSpeciesStageName(species, bird.evolutionStage || getEvolutionStage(bird.level));
+}
+
 function startEvolutionSequence(bird, stage) {
+  const species = SPECIES.find((entry) => entry.id === bird.speciesId);
   state.evolution = {
     birdId: bird.id,
     name: bird.name,
+    formName: getSpeciesStageName(species, stage),
     stage,
     timer: 2.6,
     duration: 2.6,
   };
   state.prompt = `${bird.name} is evolving.`;
-  state.message = `${bird.name} evolved into its ${evolutionLabel(stage)} form.`;
+  state.message = `${bird.name} evolved into ${getSpeciesStageName(species, stage)}.`;
 }
 
 function selectBird(index) {
@@ -760,6 +925,7 @@ function gainBirdXp(bird, amount, quiet = false) {
     startEvolutionSequence(bird, evolvedStage);
     if (selectedBird() && selectedBird().id === bird.id) updateCompanionBird();
   }
+  sortBirdsPreserveSelection(bird.id);
   if (!leveledUp && !quiet) state.message = `${bird.name} gained ${Math.round(amount)} XP.`;
   queueSave();
 }
@@ -788,7 +954,7 @@ function hatchSelectedEgg() {
   };
   state.birds.push(bird);
   discoverSpecies(species.id);
-  state.selectedBirdIndex = state.birds.length - 1;
+  sortBirdsPreserveSelection(bird.id);
   state.backpack.splice(state.selectedBagIndex, 1);
   state.selectedBagIndex = clamp(state.selectedBagIndex, 0, Math.max(state.backpack.length - 1, 0));
   state.prompt =
@@ -872,10 +1038,58 @@ function releaseSelectedBird() {
   }
 
   const sharedXp = Math.max(10, Math.round(10 + releasedBird.level * 4 + releasedBird.growth * 8));
-  for (const flockBird of state.birds) gainBirdXp(flockBird, sharedXp, true);
+  for (const flockBird of [...state.birds]) gainBirdXp(flockBird, sharedXp, true);
+  sortBirdsPreserveSelection(selectedBird()?.id);
   state.prompt = `${releasedBird.name} returned to the wild and inspired the flock.`;
   state.message = `${releasedBird.name} was released. The rest of your birds each gained ${sharedXp} XP.`;
   updateCompanionBird();
+  queueSave();
+}
+
+function releaseDuplicateBirds() {
+  if (state.scene !== "land") {
+    state.message = "Land before managing your flock.";
+    return;
+  }
+
+  const groups = new Map();
+  state.birds.forEach((bird, index) => {
+    if (!groups.has(bird.speciesId)) groups.set(bird.speciesId, []);
+    groups.get(bird.speciesId).push({ bird, index });
+  });
+
+  const indexesToRemove = [];
+  let totalSharedXp = 0;
+  for (const entries of groups.values()) {
+    if (entries.length <= 1) continue;
+    entries.sort((a, b) => {
+      if (b.bird.level !== a.bird.level) return b.bird.level - a.bird.level;
+      return (b.bird.xp || 0) - (a.bird.xp || 0);
+    });
+    for (let i = 1; i < entries.length; i += 1) {
+      indexesToRemove.push(entries[i].index);
+      totalSharedXp += Math.max(10, Math.round(10 + entries[i].bird.level * 4 + entries[i].bird.growth * 8));
+    }
+  }
+
+  if (!indexesToRemove.length) {
+    state.message = "You do not have any duplicate birds to release.";
+    return;
+  }
+
+  indexesToRemove.sort((a, b) => b - a);
+  for (const index of indexesToRemove) state.birds.splice(index, 1);
+
+  const recipients = state.birds.length;
+  const xpPerBird = recipients ? Math.max(6, Math.round(totalSharedXp / recipients)) : 0;
+  if (xpPerBird > 0) {
+    for (const bird of [...state.birds]) gainBirdXp(bird, xpPerBird, true);
+  }
+
+  sortBirdsPreserveSelection(selectedBird()?.id);
+  updateCompanionBird();
+  state.prompt = "Duplicate birds were released back into the wild.";
+  state.message = `Released ${indexesToRemove.length} duplicate birds. The remaining flock each gained ${xpPerBird} XP.`;
   queueSave();
 }
 
@@ -892,11 +1106,14 @@ function createTerrain() {
     const z = positions.getZ(i);
     const y = getTerrainHeight(x, z);
     positions.setY(i, y);
-
+    const influence = islandInfluenceAt(x, z);
+    const palette = biomePalette(influence?.island);
+    const blend = Math.max(0, influence?.falloff || 0);
     const moisture = 0.5 + Math.sin(x * 0.08 + z * 0.03) * 0.25;
-    const slopeTint = 0.4 + y * 0.03;
-    const color = new THREE.Color().setHSL(0.26 - slopeTint * 0.02, 0.42, 0.26 + moisture * 0.12);
-    if (y > 5) color.offsetHSL(0, -0.08, 0.08);
+    const color = palette.groundLow.clone().lerp(palette.groundHigh, clamp(0.35 + moisture * 0.45 + blend * 0.28 + y * 0.015, 0, 1));
+    if (influence?.island?.theme === "ember" && y > 6) color.lerp(new THREE.Color(0xba7034), 0.28);
+    if (influence?.island?.theme === "moonfen" && y < 2) color.lerp(new THREE.Color(0x71859d), 0.22);
+    if (influence?.island?.theme === "storm" && y > 4) color.lerp(new THREE.Color(0xa8b7c4), 0.18);
     colors.push(color.r, color.g, color.b);
   }
 
@@ -930,8 +1147,12 @@ function createGrassTufts() {
     const x = Math.cos(angle) * radius;
     const z = Math.sin(angle) * radius;
     const y = getTerrainHeight(x, z);
+    const influence = islandInfluenceAt(x, z);
+    if (!influence || influence.falloff <= 0 || y < -2.5) continue;
+    if (influence.island.theme === "ember" && Math.random() > 0.18) continue;
+    const palette = biomePalette(influence.island);
     const mat = new THREE.MeshStandardMaterial({
-      color: new THREE.Color().setHSL(0.25 + Math.random() * 0.03, 0.45, 0.24 + Math.random() * 0.08),
+      color: new THREE.Color(palette.grass[i % palette.grass.length]).offsetHSL(0, 0, Math.random() * 0.05),
       side: THREE.DoubleSide,
       roughness: 1,
     });
@@ -949,28 +1170,79 @@ function createGrassTufts() {
 }
 
 function createWaterPlane() {
-  const water = new THREE.Mesh(
-    new THREE.CircleGeometry(150, 96),
+  const cloudSea = new THREE.Mesh(
+    new THREE.CircleGeometry(420, 120),
     new THREE.MeshStandardMaterial({
-      color: 0x3f7695,
+      color: 0xe8eef3,
       transparent: true,
-      opacity: 0.88,
-      roughness: 0.16,
-      metalness: 0.22,
+      opacity: 0.92,
+      roughness: 1,
+      metalness: 0,
     }),
   );
-  water.rotation.x = -Math.PI / 2;
-  water.position.set(0, -6.9, 0);
-  water.receiveShadow = true;
-  worldRoot.add(water);
+  cloudSea.rotation.x = -Math.PI / 2;
+  cloudSea.position.set(0, -8.1, 0);
+  cloudSea.receiveShadow = true;
+  worldRoot.add(cloudSea);
+
+  const mistRing = new THREE.Mesh(
+    new THREE.RingGeometry(300, 620, 96),
+    new THREE.MeshStandardMaterial({
+      color: 0xd7e0e7,
+      transparent: true,
+      opacity: 0.38,
+      side: THREE.DoubleSide,
+      roughness: 1,
+    }),
+  );
+  mistRing.rotation.x = -Math.PI / 2;
+  mistRing.position.set(0, -7.7, 0);
+  worldRoot.add(mistRing);
+
+  for (let i = 0; i < 22; i += 1) {
+    const puff = new THREE.Mesh(
+      new THREE.SphereGeometry(10 + Math.random() * 18, 14, 14),
+      new THREE.MeshStandardMaterial({
+        color: 0xf4f7fa,
+        transparent: true,
+        opacity: 0.78,
+        roughness: 1,
+      }),
+    );
+    const angle = (i / 22) * Math.PI * 2 + Math.random() * 0.35;
+    const radius = 80 + Math.random() * 320;
+    puff.position.set(Math.cos(angle) * radius, -2.5 - Math.random() * 6, Math.sin(angle) * radius);
+    puff.scale.set(1.45 + Math.random() * 1.4, 0.34 + Math.random() * 0.22, 1.1 + Math.random() * 1.1);
+    puff.receiveShadow = false;
+    worldRoot.add(puff);
+  }
+
+  const emberIsland = Object.values(ISLANDS).find((island) => island.theme === "ember");
+  if (emberIsland) {
+    const lava = new THREE.Mesh(
+      new THREE.CircleGeometry(18, 32),
+      new THREE.MeshStandardMaterial({
+        color: 0xc04a20,
+        emissive: 0xff7b30,
+        emissiveIntensity: 0.45,
+        transparent: true,
+        opacity: 0.9,
+      }),
+    );
+    lava.rotation.x = -Math.PI / 2;
+    lava.position.set(emberIsland.center.x + 8, getTerrainHeight(emberIsland.center.x + 8, emberIsland.center.z - 6) - 0.35, emberIsland.center.z - 6);
+    worldRoot.add(lava);
+  }
 }
 
 function createCliffs() {
   for (const island of Object.values(ISLANDS)) {
-    for (let i = 0; i < 9; i += 1) {
+    const palette = biomePalette(island);
+    const rockCount = island.theme === "ember" ? 22 : 9;
+    for (let i = 0; i < rockCount; i += 1) {
       const rock = new THREE.Mesh(
         new THREE.DodecahedronGeometry(2 + Math.random() * 3.2, 0),
-        new THREE.MeshStandardMaterial({ color: i % 2 === 0 ? 0x6a675f : 0x7c786f, roughness: 1 }),
+        new THREE.MeshStandardMaterial({ color: i % 2 === 0 ? palette.rockA : palette.rockB, roughness: 1 }),
       );
       const radius = island.radius * (0.6 + Math.random() * 0.32);
       const angle = i * 0.78 + island.center.x * 0.03 + island.center.z * 0.02 + Math.random() * 0.35;
@@ -986,18 +1258,19 @@ function createCliffs() {
   }
 }
 
-function createTree(position, scale = 1) {
+function createTree(position, scale = 1, island = null) {
   const group = new THREE.Group();
+  const palette = biomePalette(island || islandInfluenceAt(position.x, position.z)?.island);
   const trunk = new THREE.Mesh(
     new THREE.CylinderGeometry(0.45 * scale, 0.7 * scale, 8 * scale, 7),
-    new THREE.MeshStandardMaterial({ color: 0x6d4a2b, roughness: 1 }),
+    new THREE.MeshStandardMaterial({ color: palette.treeTrunk, roughness: 1 }),
   );
   trunk.castShadow = true;
   trunk.receiveShadow = true;
   trunk.position.y = 4 * scale;
   group.add(trunk);
 
-  const canopyColors = [0x315d35, 0x416f3e, 0x557d4d];
+  const canopyColors = palette.treeLeaf;
   for (let i = 0; i < 4; i += 1) {
     const canopy = new THREE.Mesh(
       new THREE.SphereGeometry((2.9 + Math.random() * 1.4) * scale, 8, 8),
@@ -1015,9 +1288,9 @@ function createTree(position, scale = 1) {
   return group;
 }
 
-function createBush(position, scale = 1) {
+function createBush(position, scale = 1, island = null) {
   const group = new THREE.Group();
-  const colors = [0x45683b, 0x5d7a46, 0x6b8952];
+  const colors = biomePalette(island || islandInfluenceAt(position.x, position.z)?.island).bush;
   for (let i = 0; i < 3; i += 1) {
     const bush = new THREE.Mesh(
       new THREE.SphereGeometry((1.5 + Math.random() * 0.7) * scale, 7, 7),
@@ -1084,6 +1357,7 @@ function createAnimal(position, type) {
 
 function createLandmarks() {
   const island = ISLANDS[state.currentIsland];
+  createVolcanoFeature(island);
   nestMesh = createNestMesh();
   nestMesh.position.set(island.nest.x, getTerrainHeight(island.nest.x, island.nest.z), island.nest.z);
   worldRoot.add(nestMesh);
@@ -1098,6 +1372,7 @@ function createLandmarks() {
   campMesh.position.set(island.tailor.x, getTerrainHeight(island.tailor.x, island.tailor.z), island.tailor.z);
   worldRoot.add(campMesh);
   obstacleColliders.push({ x: island.tailor.x, z: island.tailor.z, radius: 4.4 });
+  createVillage(island);
 }
 
 function createNestMesh() {
@@ -1162,49 +1437,264 @@ function createCampMesh() {
   return group;
 }
 
+function createVolcanoFeature(island) {
+  if (island.theme !== "ember") return;
+  const volcano = new THREE.Group();
+  const cone = new THREE.Mesh(
+    new THREE.ConeGeometry(24, 34, 24, 1, true),
+    new THREE.MeshStandardMaterial({ color: 0x5a4037, roughness: 1 }),
+  );
+  cone.position.y = 17;
+  cone.castShadow = true;
+  cone.receiveShadow = true;
+  volcano.add(cone);
+  const rim = new THREE.Mesh(
+    new THREE.TorusGeometry(8.5, 1.8, 10, 20),
+    new THREE.MeshStandardMaterial({ color: 0x3b2d2b, roughness: 1 }),
+  );
+  rim.rotation.x = Math.PI / 2;
+  rim.position.y = 34;
+  volcano.add(rim);
+  const lava = new THREE.Mesh(
+    new THREE.CircleGeometry(6.8, 20),
+    new THREE.MeshStandardMaterial({ color: 0xff7b30, emissive: 0xff7b30, emissiveIntensity: 0.7 }),
+  );
+  lava.rotation.x = -Math.PI / 2;
+  lava.position.y = 34.3;
+  volcano.add(lava);
+  const vx = island.center.x + 10;
+  const vz = island.center.z - 12;
+  volcano.position.set(vx, getTerrainHeight(vx, vz) - 3, vz);
+  worldRoot.add(volcano);
+  obstacleColliders.push({ x: vx, z: vz, radius: 18 });
+
+  for (let i = 0; i < 46; i += 1) {
+    const angle = Math.random() * Math.PI * 2;
+    const ring = 18 + Math.random() * (island.radius - 18);
+    const rx = island.center.x + Math.cos(angle) * ring;
+    const rz = island.center.z + Math.sin(angle) * ring;
+    const shard = new THREE.Mesh(
+      new THREE.DodecahedronGeometry(1.8 + Math.random() * 3.1, 0),
+      new THREE.MeshStandardMaterial({ color: 0x433432, roughness: 1 }),
+    );
+    shard.position.set(rx, getTerrainHeight(rx, rz) + 1.2 + Math.random() * 1.8, rz);
+    shard.rotation.set(Math.random() * 0.8, Math.random() * Math.PI, Math.random() * 0.8);
+    shard.castShadow = true;
+    shard.receiveShadow = true;
+    worldRoot.add(shard);
+    obstacleColliders.push({ x: rx, z: rz, radius: 1.8 + Math.random() * 1.6 });
+  }
+}
+
+function createHairStyleMesh(style, hairMat) {
+  const group = new THREE.Group();
+  if (style === "braid") {
+    const crown = new THREE.Mesh(new THREE.SphereGeometry(0.88, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.62), hairMat);
+    crown.scale.set(0.98, 1.02, 0.98);
+    crown.castShadow = true;
+    group.add(crown);
+    for (let i = 0; i < 4; i += 1) {
+      const braid = new THREE.Mesh(new THREE.SphereGeometry(0.16 + i * 0.015, 10, 10), hairMat);
+      braid.position.set(-0.08, -0.55 - i * 0.26, -0.74);
+      braid.castShadow = true;
+      group.add(braid);
+    }
+  } else if (style === "short") {
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.84, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.52), hairMat);
+    cap.scale.set(0.96, 0.84, 0.96);
+    cap.castShadow = true;
+    group.add(cap);
+  } else if (style === "wild") {
+    for (let i = 0; i < 6; i += 1) {
+      const tuft = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.48 + Math.random() * 0.18, 5), hairMat);
+      tuft.position.set((Math.random() - 0.5) * 0.9, 0.2 + Math.random() * 0.55, (Math.random() - 0.5) * 0.8);
+      tuft.rotation.z = (Math.random() - 0.5) * 0.8;
+      tuft.rotation.x = (Math.random() - 0.5) * 0.45;
+      tuft.castShadow = true;
+      group.add(tuft);
+    }
+    const base = new THREE.Mesh(new THREE.SphereGeometry(0.84, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.56), hairMat);
+    base.castShadow = true;
+    group.add(base);
+  } else {
+    const windswept = new THREE.Mesh(new THREE.SphereGeometry(0.9, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.66), hairMat);
+    windswept.scale.set(0.98, 1.06, 1.02);
+    windswept.position.x = -0.05;
+    windswept.castShadow = true;
+    group.add(windswept);
+    const swoop = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.62, 5), hairMat);
+    swoop.position.set(0.4, 0.42, 0.14);
+    swoop.rotation.z = -0.7;
+    swoop.rotation.x = 0.2;
+    swoop.castShadow = true;
+    group.add(swoop);
+  }
+  return group;
+}
+
+function createNpcMesh(npc, island) {
+  const group = new THREE.Group();
+  const skinMat = new THREE.MeshStandardMaterial({ color: 0xc68d62, roughness: 1 });
+  const clothMat = new THREE.MeshStandardMaterial({ color: island.theme === "storm" ? 0x6b8395 : island.theme === "moonfen" ? 0x7c6998 : 0x73965b, roughness: 1 });
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.7, 2.65, 4, 10), clothMat);
+  body.position.y = 3.1;
+  body.castShadow = true;
+  group.add(body);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.7, 14, 14), skinMat);
+  head.scale.set(0.96, 1.06, 0.92);
+  head.position.y = 5.15;
+  head.castShadow = true;
+  group.add(head);
+  const leftArm = new THREE.Mesh(new THREE.CapsuleGeometry(0.16, 1.4, 4, 8), skinMat);
+  const rightArm = leftArm.clone();
+  leftArm.position.set(-0.95, 3.35, 0);
+  rightArm.position.set(0.95, 3.35, 0);
+  leftArm.rotation.z = 0.28;
+  rightArm.rotation.z = -0.28;
+  leftArm.castShadow = true;
+  rightArm.castShadow = true;
+  group.add(leftArm, rightArm);
+  const marker = new THREE.Mesh(
+    new THREE.RingGeometry(0.72, 1.05, 24),
+    new THREE.MeshBasicMaterial({ color: 0xfff0bf, side: THREE.DoubleSide }),
+  );
+  marker.rotation.x = -Math.PI / 2;
+  marker.position.y = 0.18;
+  group.add(marker);
+  group.position.set(npc.x, getTerrainHeight(npc.x, npc.z), npc.z);
+  group.userData.npcId = npc.id;
+  group.userData.kind = "npc";
+  worldRoot.add(group);
+  villageNpcs.push({ ...npc, islandId: island.id, mesh: group });
+}
+
+function createVillage(island) {
+  if (!island.village) return;
+  const plaza = new THREE.Mesh(
+    new THREE.CylinderGeometry(16, 18, 1.6, 18),
+    new THREE.MeshStandardMaterial({ color: island.theme === "storm" ? 0x58616c : island.theme === "moonfen" ? 0x6e6d83 : 0x90765a, roughness: 1 }),
+  );
+  plaza.position.set(island.village.x, getTerrainHeight(island.village.x, island.village.z) + 0.35, island.village.z);
+  plaza.receiveShadow = true;
+  worldRoot.add(plaza);
+
+  for (let i = 0; i < 5; i += 1) {
+    const hut = new THREE.Group();
+    const angle = (i / 5) * Math.PI * 2;
+    const x = island.village.x + Math.cos(angle) * 18.5;
+    const z = island.village.z + Math.sin(angle) * 15.5;
+    const base = new THREE.Mesh(
+      new THREE.CylinderGeometry(4.2, 4.9, 5.8, 8),
+      new THREE.MeshStandardMaterial({ color: island.theme === "storm" ? 0x64707a : 0x8a6b4a, roughness: 1 }),
+    );
+    base.position.y = 2.95;
+    base.castShadow = true;
+    base.receiveShadow = true;
+    hut.add(base);
+    const roof = new THREE.Mesh(
+      new THREE.ConeGeometry(5.8, 5.2, 8),
+      new THREE.MeshStandardMaterial({ color: island.theme === "moonfen" ? 0x7b6a8d : island.theme === "verdant" ? 0x56723a : 0x5e4a38, roughness: 1 }),
+    );
+    roof.position.y = 8;
+    roof.rotation.y = angle * 0.5;
+    roof.castShadow = true;
+    hut.add(roof);
+    const door = new THREE.Mesh(
+      new THREE.BoxGeometry(1.5, 2.8, 0.2),
+      new THREE.MeshStandardMaterial({ color: 0x3b2c25, roughness: 1 }),
+    );
+    door.position.set(0, 1.5, 4.18);
+    hut.add(door);
+    const chimney = new THREE.Mesh(
+      new THREE.BoxGeometry(0.9, 2.8, 0.9),
+      new THREE.MeshStandardMaterial({ color: 0x6a615f, roughness: 1 }),
+    );
+    chimney.position.set(-1.5, 8.8, -0.6);
+    hut.add(chimney);
+    hut.position.set(x, getTerrainHeight(x, z), z);
+    hut.lookAt(island.village.x, hut.position.y + 2, island.village.z);
+    worldRoot.add(hut);
+    obstacleColliders.push({ x, z, radius: 4.2 });
+  }
+
+  for (let i = 0; i < 7; i += 1) {
+    const pathStone = new THREE.Mesh(
+      new THREE.CylinderGeometry(1.8, 2.2, 0.35, 7),
+      new THREE.MeshStandardMaterial({ color: island.theme === "storm" ? 0x737f89 : 0xb29a7d, roughness: 1 }),
+    );
+    const x = island.village.x - 22 + i * 6.8;
+    const z = island.village.z + Math.sin(i * 0.7) * 1.8;
+    pathStone.position.set(x, getTerrainHeight(x, z) + 0.1, z);
+    pathStone.rotation.y = Math.random() * Math.PI;
+    pathStone.receiveShadow = true;
+    worldRoot.add(pathStone);
+  }
+
+  for (let i = 0; i < 4; i += 1) {
+    const pole = new THREE.Group();
+    const angle = (i / 4) * Math.PI * 2 + Math.PI * 0.25;
+    const x = island.village.x + Math.cos(angle) * 9.5;
+    const z = island.village.z + Math.sin(angle) * 8.5;
+    const post = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.22, 0.28, 4.6, 6),
+      new THREE.MeshStandardMaterial({ color: 0x5b4131, roughness: 1 }),
+    );
+    post.position.y = 2.3;
+    post.castShadow = true;
+    pole.add(post);
+    const lantern = new THREE.Mesh(
+      new THREE.SphereGeometry(0.42, 10, 10),
+      new THREE.MeshStandardMaterial({ color: 0xffcf8a, emissive: 0xffb45c, emissiveIntensity: 0.5, roughness: 0.7 }),
+    );
+    lantern.position.y = 4.6;
+    pole.add(lantern);
+    pole.position.set(x, getTerrainHeight(x, z), z);
+    worldRoot.add(pole);
+  }
+  island.village.npcs.forEach((npc) => createNpcMesh(npc, island));
+}
+
 function createPlayerMesh() {
   const group = new THREE.Group();
-  const skinMat = new THREE.MeshStandardMaterial({ color: 0xf1d2ba, roughness: 1 });
+  const skinMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(CHARACTER_COLORS.skin[state.character.skin]), roughness: 1 });
   const clothMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(CHARACTER_COLORS.jacket[state.character.jacket]), roughness: 1 });
   const darkMat = new THREE.MeshStandardMaterial({ color: 0x3f3228, roughness: 1 });
   const hairMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(CHARACTER_COLORS.hair[state.character.hair]), roughness: 1 });
 
-  const hips = new THREE.Mesh(new THREE.BoxGeometry(1.75, 1.2, 1.15), clothMat);
-  hips.position.y = 2.95;
+  const hips = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.05, 1.08), clothMat);
+  hips.position.y = 2.85;
   hips.castShadow = true;
   group.add(hips);
 
-  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.96, 2.3, 6, 12), clothMat);
-  torso.position.y = 5.3;
+  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.84, 2.55, 6, 12), clothMat);
+  torso.position.y = 5.15;
   torso.castShadow = true;
   group.add(torso);
 
   const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.25, 0.48, 8), skinMat);
-  neck.position.y = 6.85;
+  neck.position.y = 6.95;
   neck.castShadow = true;
   group.add(neck);
 
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.88, 16, 16), skinMat);
-  head.scale.set(0.95, 1.08, 0.94);
-  head.position.y = 7.78;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.82, 16, 16), skinMat);
+  head.scale.set(0.94, 1.08, 0.88);
+  head.position.y = 7.88;
   head.castShadow = true;
   group.add(head);
 
-  const hair = new THREE.Mesh(new THREE.SphereGeometry(0.94, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.68), hairMat);
-  hair.scale.set(0.98, 1.08, 1.02);
-  hair.position.y = 7.96;
-  hair.castShadow = true;
-  group.add(hair);
+  const hairStyleGroup = createHairStyleMesh(state.character.hairStyle, hairMat);
+  hairStyleGroup.position.y = 7.95;
+  group.add(hairStyleGroup);
 
-  const shoulderBar = new THREE.Mesh(new THREE.BoxGeometry(2.15, 0.45, 1.18), clothMat);
-  shoulderBar.position.y = 6.2;
+  const shoulderBar = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.38, 1.04), clothMat);
+  shoulderBar.position.y = 6.05;
   shoulderBar.castShadow = true;
   group.add(shoulderBar);
 
   const leftUpperArm = new THREE.Mesh(new THREE.CapsuleGeometry(0.22, 1.22, 4, 8), clothMat);
   const rightUpperArm = leftUpperArm.clone();
-  leftUpperArm.position.set(-1.35, 5.65, 0);
-  rightUpperArm.position.set(1.35, 5.65, 0);
+  leftUpperArm.position.set(-1.18, 5.55, 0);
+  rightUpperArm.position.set(1.18, 5.55, 0);
   leftUpperArm.rotation.z = 0.24;
   rightUpperArm.rotation.z = -0.24;
   leftUpperArm.castShadow = true;
@@ -1213,8 +1703,8 @@ function createPlayerMesh() {
 
   const leftForearm = new THREE.Mesh(new THREE.CapsuleGeometry(0.19, 1.12, 4, 8), skinMat);
   const rightForearm = leftForearm.clone();
-  leftForearm.position.set(-1.75, 4.45, 0);
-  rightForearm.position.set(1.75, 4.45, 0);
+  leftForearm.position.set(-1.5, 4.38, 0);
+  rightForearm.position.set(1.5, 4.38, 0);
   leftForearm.rotation.z = 0.1;
   rightForearm.rotation.z = -0.1;
   leftForearm.castShadow = true;
@@ -1223,30 +1713,30 @@ function createPlayerMesh() {
 
   const leftThigh = new THREE.Mesh(new THREE.CapsuleGeometry(0.3, 1.55, 4, 8), darkMat);
   const rightThigh = leftThigh.clone();
-  leftThigh.position.set(-0.48, 1.72, 0);
-  rightThigh.position.set(0.48, 1.72, 0);
+  leftThigh.position.set(-0.4, 1.78, 0);
+  rightThigh.position.set(0.4, 1.78, 0);
   leftThigh.castShadow = true;
   rightThigh.castShadow = true;
   group.add(leftThigh, rightThigh);
 
   const leftCalf = new THREE.Mesh(new THREE.CapsuleGeometry(0.26, 1.45, 4, 8), darkMat);
   const rightCalf = leftCalf.clone();
-  leftCalf.position.set(-0.48, 0.45, 0.06);
-  rightCalf.position.set(0.48, 0.45, 0.06);
+  leftCalf.position.set(-0.4, 0.48, 0.04);
+  rightCalf.position.set(0.4, 0.48, 0.04);
   leftCalf.castShadow = true;
   rightCalf.castShadow = true;
   group.add(leftCalf, rightCalf);
 
   const leftFoot = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.22, 1.02), darkMat);
   const rightFoot = leftFoot.clone();
-  leftFoot.position.set(-0.48, -0.55, 0.28);
-  rightFoot.position.set(0.48, -0.55, 0.28);
+  leftFoot.position.set(-0.4, -0.55, 0.28);
+  rightFoot.position.set(0.4, -0.55, 0.28);
   leftFoot.castShadow = true;
   rightFoot.castShadow = true;
   group.add(leftFoot, rightFoot);
 
   backpackMesh = new THREE.Mesh(new THREE.BoxGeometry(1.7, 2.3, 0.95), new THREE.MeshStandardMaterial({ color: new THREE.Color(CHARACTER_COLORS.pack[state.character.pack]), roughness: 1 }));
-  backpackMesh.position.set(0, 5.05, -1.18);
+  backpackMesh.position.set(0, 5.0, -1.06);
   backpackMesh.castShadow = true;
   group.add(backpackMesh);
 
@@ -1259,16 +1749,22 @@ function recolorPlayer() {
   if (!playerMesh) return;
   const hips = playerMesh.children[0];
   const torso = playerMesh.children[1];
+  const neck = playerMesh.children[2];
+  const head = playerMesh.children[3];
   const hair = playerMesh.children[4];
   const shoulderBar = playerMesh.children[5];
   const leftUpperArm = playerMesh.children[6];
   const rightUpperArm = playerMesh.children[7];
   torso.material.color.set(CHARACTER_COLORS.jacket[state.character.jacket]);
   hips.material.color.set(CHARACTER_COLORS.jacket[state.character.jacket]);
+  neck.material.color.set(CHARACTER_COLORS.skin[state.character.skin]);
+  head.material.color.set(CHARACTER_COLORS.skin[state.character.skin]);
   shoulderBar.material.color.set(CHARACTER_COLORS.jacket[state.character.jacket]);
   leftUpperArm.material.color.set(CHARACTER_COLORS.jacket[state.character.jacket]);
   rightUpperArm.material.color.set(CHARACTER_COLORS.jacket[state.character.jacket]);
-  hair.material.color.set(CHARACTER_COLORS.hair[state.character.hair]);
+  hair.traverse((child) => {
+    if (child.material?.color) child.material.color.set(CHARACTER_COLORS.hair[state.character.hair]);
+  });
   backpackMesh.material.color.set(CHARACTER_COLORS.pack[state.character.pack]);
 }
 
@@ -1277,6 +1773,10 @@ function createSpeciesBirdMesh(species, scale = 1, evolutionStage = 0) {
   const bodyMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(species.color), roughness: 0.95 });
   const accentMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(species.accent), roughness: 0.8, emissive: new THREE.Color(species.accent).multiplyScalar(0.08) });
   const beakMat = new THREE.MeshStandardMaterial({ color: 0xe3b558, roughness: 0.7 });
+  const isFire = ["flame", "phoenix", "crest"].includes(species.look);
+  const isStorm = ["storm", "tempest", "mist", "glimmer", "aurora"].includes(species.look);
+  const isBloom = ["bloom", "thorn", "seraph"].includes(species.look);
+  const isRoc = species.look === "roc";
 
   const body = new THREE.Mesh(new THREE.SphereGeometry(1.2, 12, 12), bodyMat);
   body.scale.set(1.45 + evolutionStage * 0.14, 1 + evolutionStage * 0.04, 1 + evolutionStage * 0.08);
@@ -1313,12 +1813,12 @@ function createSpeciesBirdMesh(species, scale = 1, evolutionStage = 0) {
   tail.castShadow = true;
   group.add(tail);
 
-  if (species.look === "flame" || species.look === "phoenix" || species.look === "crest") {
+  if (isFire) {
     const crest = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.95, 5), accentMat);
     crest.position.set(0.95, 1.05 + evolutionStage * 0.18, 0);
     crest.rotation.z = 0.18;
     group.add(crest);
-  } else if (species.look === "storm" || species.look === "tempest" || species.look === "mist") {
+  } else if (isStorm) {
     const finA = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.85, 0.08), accentMat);
     const finB = finA.clone();
     finA.position.set(-0.2, 0.75, -0.45);
@@ -1344,6 +1844,42 @@ function createSpeciesBirdMesh(species, scale = 1, evolutionStage = 0) {
     plume.rotation.x = i % 2 === 0 ? 0.22 : -0.22;
     plume.castShadow = true;
     group.add(plume);
+  }
+
+  if (isFire) {
+    for (let i = 0; i < 1 + evolutionStage; i += 1) {
+      const flame = new THREE.Mesh(new THREE.ConeGeometry(0.18 + i * 0.04, 0.7 + i * 0.18, 5), accentMat);
+      flame.position.set(-1.35 - i * 0.28, 0.2 + i * 0.06, 0);
+      flame.rotation.z = Math.PI / 2;
+      flame.rotation.y = (i % 2 === 0 ? 0.25 : -0.25);
+      group.add(flame);
+    }
+  }
+
+  if (isStorm) {
+    for (let i = 0; i < evolutionStage; i += 1) {
+      const arc = new THREE.Mesh(new THREE.TorusGeometry(0.5 + i * 0.14, 0.04, 6, 16), accentMat);
+      arc.position.set(-0.25 - i * 0.15, 0.62 + i * 0.12, 0);
+      arc.rotation.y = Math.PI / 2;
+      arc.rotation.z = 0.6;
+      group.add(arc);
+    }
+  }
+
+  if (isBloom) {
+    for (let i = 0; i < evolutionStage; i += 1) {
+      const thorn = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.48 + i * 0.1, 5), bodyMat);
+      thorn.position.set(-0.55 - i * 0.28, 0.3 + i * 0.08, i % 2 === 0 ? -0.55 : 0.55);
+      thorn.rotation.z = -0.55;
+      group.add(thorn);
+    }
+  }
+
+  if (isRoc) {
+    const chestPlate = new THREE.Mesh(new THREE.BoxGeometry(0.86 + evolutionStage * 0.12, 0.26, 1.2), accentMat);
+    chestPlate.position.set(0.3, -0.18, 0);
+    chestPlate.rotation.z = 0.12;
+    group.add(chestPlate);
   }
 
   if (evolutionStage >= 1) {
@@ -1441,37 +1977,39 @@ function placeInteractableMesh(entity) {
 
 function createForest() {
   for (const island of Object.values(ISLANDS)) {
-    const treeCount = island.id === "tutorial" ? 20 : Math.round(island.radius * 1.05);
-    const bushCount = island.id === "tutorial" ? 28 : Math.round(island.radius * 1.55);
+    const treeCount = island.theme === "ember" ? 0 : island.id === "tutorial" ? 24 : Math.round(island.radius * 0.95);
+    const bushCount = island.theme === "ember" ? 0 : island.id === "tutorial" ? 34 : Math.round(island.radius * 1.35);
     const animalCount = island.id === "tutorial" ? 2 : Math.max(5, Math.round(island.radius / 10));
     const keepClear = [
-      island.groundSpawn,
-      island.nest,
-      island.perch,
-      island.tailor,
-      ...island.forageSpots,
+      { x: island.groundSpawn.x, z: island.groundSpawn.z, radius: 7 },
+      { x: island.nest.x, z: island.nest.z, radius: 8 },
+      { x: island.perch.x, z: island.perch.z, radius: 8 },
+      { x: island.tailor.x, z: island.tailor.z, radius: 8 },
+      ...(island.village ? [{ x: island.village.x, z: island.village.z, radius: 18 }] : []),
+      ...island.forageSpots.map((spot) => ({ x: spot.x, z: spot.z, radius: 5 })),
     ];
 
     for (let i = 0; i < treeCount; i += 1) {
       const radius = 5 + Math.sqrt(Math.random()) * (island.radius - 4);
       const angle = Math.random() * Math.PI * 2;
       const position = { x: island.center.x + Math.cos(angle) * radius, z: island.center.z + Math.sin(angle) * radius };
-      if (keepClear.some((spot) => Math.hypot(position.x - spot.x, position.z - spot.z) < 6.2)) continue;
-      worldRoot.add(createTree(position, 0.85 + Math.random() * 1.2));
+      if (keepClear.some((spot) => Math.hypot(position.x - spot.x, position.z - spot.z) < spot.radius)) continue;
+      worldRoot.add(createTree(position, 0.85 + Math.random() * 1.2, island));
     }
 
     for (let i = 0; i < bushCount; i += 1) {
       const radius = 3 + Math.sqrt(Math.random()) * (island.radius - 2);
       const angle = Math.random() * Math.PI * 2;
       const position = { x: island.center.x + Math.cos(angle) * radius, z: island.center.z + Math.sin(angle) * radius };
-      if (keepClear.some((spot) => Math.hypot(position.x - spot.x, position.z - spot.z) < 4.2)) continue;
-      worldRoot.add(createBush(position, 0.72 + Math.random() * 0.78));
+      if (keepClear.some((spot) => Math.hypot(position.x - spot.x, position.z - spot.z) < spot.radius - 1)) continue;
+      worldRoot.add(createBush(position, 0.72 + Math.random() * 0.78, island));
     }
 
     for (let i = 0; i < animalCount; i += 1) {
       const radius = 6 + Math.sqrt(Math.random()) * (island.radius - 6);
       const angle = Math.random() * Math.PI * 2;
       const position = { x: island.center.x + Math.cos(angle) * radius, z: island.center.z + Math.sin(angle) * radius };
+      if (keepClear.some((spot) => Math.hypot(position.x - spot.x, position.z - spot.z) < spot.radius + 4)) continue;
       worldRoot.add(createAnimal(position, i % 3 === 0 ? "deer" : "wolf"));
     }
   }
@@ -1538,16 +2076,26 @@ function currentPromptText() {
   if (nearby.kind === "item") return "Press E to collect the growth item.";
   if (nearby.kind === "nest") return state.backpack[state.selectedBagIndex]?.type === "egg" ? "Press E or use the Hatch button to hatch the selected egg." : "Birds can rest at the nest for bonus XP.";
   if (nearby.kind === "perch") return selectedBird() && selectedBird().level >= FLIGHT_UNLOCK_LEVEL ? "Press E, Space, or Launch Bird to fly to another island." : `Raise a bird to level ${FLIGHT_UNLOCK_LEVEL} to unlock island flight.`;
+  if (nearby.kind === "npc") return "Press E to speak with the villager and receive local help.";
   return "Use the right panel to customize your explorer.";
+}
+
+function nearestVillageNpc() {
+  const island = ISLANDS[state.currentIsland];
+  if (!island?.village?.npcs?.length) return null;
+  const villageDist = Math.hypot(state.player.x - island.village.x, state.player.z - island.village.z);
+  if (villageDist > 30) return null;
+  let best = null;
+  for (const npc of island.village.npcs) {
+    const dist = Math.hypot(state.player.x - npc.x, state.player.z - npc.z);
+    if (!best || dist < best.distance) best = { npc, distance: dist };
+  }
+  return best;
 }
 
 function overlayMarkup() {
   const bird = selectedBird();
   const island = ISLANDS[state.currentIsland];
-  if (state.evolution) {
-    const progress = 1 - state.evolution.timer / state.evolution.duration;
-    return `<strong>Evolution</strong>${state.evolution.name} is transforming into its ${evolutionLabel(state.evolution.stage)} form.<br />Radiance ${(progress * 100).toFixed(0)}%`;
-  }
   if (state.scene === "flight" && bird) {
     const islandBelow = nearestIsland(state.flight.x, state.flight.z);
     const altitude = islandBelow ? Math.max(0, state.flight.y - getTerrainHeight(state.flight.x, state.flight.z)) : state.flight.y + 7;
@@ -1561,7 +2109,35 @@ function overlayMarkup() {
   const species = SPECIES.find((entry) => entry.id === bird.speciesId);
   const flightStatus = bird.level >= FLIGHT_UNLOCK_LEVEL ? "Can fly between islands" : `Flight unlock at level ${FLIGHT_UNLOCK_LEVEL}`;
   const restStatus = state.nestRestCooldown > 0 ? `Nest rest in ${Math.ceil(state.nestRestCooldown)}s` : "Nest rest ready";
-  return `<strong>${bird.name}</strong>${species.perk}<br />${evolutionLabel(bird.evolutionStage || getEvolutionStage(bird.level))} · Level ${bird.level} · XP ${Math.round(bird.xp)}/${bird.xpToNext} · Size ${(bird.size * 100).toFixed(0)}% · ${flightStatus}<br />${island.name}: ${island.biome} · ${restStatus}`;
+  return `<strong>${bird.name}</strong>${species.perk}<br />${getSpeciesStageName(species, bird.evolutionStage || getEvolutionStage(bird.level))} · Level ${bird.level} · XP ${Math.round(bird.xp)}/${bird.xpToNext} · Size ${(bird.size * 100).toFixed(0)}% · ${flightStatus}<br />${island.name}: ${island.biome} · ${restStatus}`;
+}
+
+function evolutionScreenMarkup() {
+  if (!state.evolution) return "";
+  const progress = 1 - state.evolution.timer / state.evolution.duration;
+  return `<div class="evolution-card">
+    <p class="evolution-overline">Evolution</p>
+    <div class="evolution-burst"></div>
+    <h2 class="evolution-name">${state.evolution.formName}</h2>
+    <p class="evolution-line">${state.evolution.name} is evolving!</p>
+    <p class="evolution-line">Its power is surging into a stronger elemental form.</p>
+    <p class="evolution-stage">Stage ${state.evolution.stage + 1} · Radiance ${(progress * 100).toFixed(0)}%</p>
+  </div>`;
+}
+
+function syncEvolutionScreen() {
+  if (!state.evolution) {
+    ui.evolutionScreen.className = "evolution-screen";
+    ui.evolutionScreen.setAttribute("aria-hidden", "true");
+    ui.evolutionScreen.innerHTML = "";
+    return;
+  }
+  const bird = state.birds.find((entry) => entry.id === state.evolution.birdId) || selectedBird();
+  const species = bird ? SPECIES.find((entry) => entry.id === bird.speciesId) : null;
+  const theme = evolutionThemeForLook(species?.look || "bloom");
+  ui.evolutionScreen.className = `evolution-screen open theme-${theme}`;
+  ui.evolutionScreen.setAttribute("aria-hidden", "false");
+  ui.evolutionScreen.innerHTML = evolutionScreenMarkup();
 }
 
 function inventoryMarkup() {
@@ -1592,9 +2168,10 @@ function rosterMarkup() {
   }
   const entries = state.birds.map((bird, index) => {
     const active = index === state.selectedBirdIndex ? " active" : "";
+    const species = SPECIES.find((entry) => entry.id === bird.speciesId);
     return `<button class="entry${active}" data-bird-index="${index}" type="button">
-      <h3>${bird.name} Lv.${bird.level} ${active ? "• Active" : ""}</h3>
-      <p>${capitalize(bird.rarity)} · Speed ${bird.speed.toFixed(2)} · Lift ${bird.lift.toFixed(2)} · Growth ${bird.growth.toFixed(2)}</p>
+      <h3>${getBirdDisplayName(bird)} Lv.${bird.level} ${active ? "• Active" : ""}</h3>
+      <p>${capitalize(bird.rarity)} · ${getSpeciesStageName(species, bird.evolutionStage || getEvolutionStage(bird.level))} · Speed ${bird.speed.toFixed(2)} · Lift ${bird.lift.toFixed(2)} · Growth ${bird.growth.toFixed(2)}</p>
       <p class="entry-action">${active ? "Current bird" : "Click to use this bird"}</p>
       <div class="chip-row">${bird.abilities.map((ability) => `<span class="chip">${ability}</span>`).join("")}</div>
     </button>`;
@@ -1609,8 +2186,8 @@ function activeBirdMarkup() {
   }
   const species = SPECIES.find((entry) => entry.id === bird.speciesId);
   return `<div class="entry current-bird active">
-    <h3>Current Bird: ${bird.name}</h3>
-    <p>${capitalize(bird.rarity)} ${species.name} · ${evolutionLabel(bird.evolutionStage || getEvolutionStage(bird.level))} · Level ${bird.level} · XP ${Math.round(bird.xp)}/${bird.xpToNext}</p>
+    <h3>Current Bird: ${getBirdDisplayName(bird)}</h3>
+    <p>${capitalize(bird.rarity)} ${species.name} · ${getSpeciesStageName(species, bird.evolutionStage || getEvolutionStage(bird.level))} · Level ${bird.level} · XP ${Math.round(bird.xp)}/${bird.xpToNext}</p>
     <p class="entry-action">This is the bird used for items, rest, and flight.</p>
   </div>`;
 }
@@ -1693,13 +2270,14 @@ function minimapMarkup() {
 
 function portraitMarkup() {
   const hair = CHARACTER_COLORS.hair[state.character.hair];
+  const skin = CHARACTER_COLORS.skin[state.character.skin];
   const jacket = CHARACTER_COLORS.jacket[state.character.jacket];
   const pack = CHARACTER_COLORS.pack[state.character.pack];
   return `
     <svg viewBox="0 0 220 100" aria-hidden="true">
       <rect x="0" y="0" width="220" height="100" rx="18" fill="rgba(255,255,255,0.04)" />
-      <circle cx="110" cy="34" r="16" fill="#ffd7b4" />
-      <path d="M92 35c2-14 34-20 36 2v-6c0-12-28-16-36 4z" fill="${hair}" />
+      <circle cx="110" cy="34" r="16" fill="${skin}" />
+      <path d="${state.character.hairStyle === "braid" ? "M92 33c6-15 31-16 36 0v-5c0-12-28-14-36 5z M109 49c3 7 5 12 5 18" : state.character.hairStyle === "short" ? "M94 34c4-9 28-10 32 0v-4c0-9-24-11-32 4z" : state.character.hairStyle === "wild" ? "M92 36c2-16 33-23 37 0l-6-13-7 7-7-8-7 10z" : "M92 35c2-14 34-20 36 2v-6c0-12-28-16-36 4z"}" fill="${hair}" stroke="${hair}" stroke-width="2" />
       <path d="M84 56c16-14 36-14 52 0v25H84z" fill="${jacket}" />
       <rect x="141" y="56" width="24" height="28" rx="8" fill="${pack}" />
       <rect x="155" y="58" width="4" height="18" rx="2" fill="rgba(255,255,255,0.45)" />
@@ -1725,11 +2303,13 @@ function refreshUI() {
   ui.mapSummary.innerHTML = mapSummaryMarkup();
   ui.mapPanel.innerHTML = minimapMarkup();
   ui.portrait.innerHTML = portraitMarkup();
+  syncEvolutionScreen();
   ui.hatchBtn.disabled = !state.backpack.some((item) => item.type === "egg");
   ui.useItemBtn.disabled = !bird || !state.backpack.some((item) => item.type === "item");
   ui.sendFlightBtn.disabled = !bird || bird.level < FLIGHT_UNLOCK_LEVEL || state.scene !== "land";
   ui.restBirdBtn.disabled = !bird || state.scene !== "land";
   ui.releaseBirdBtn.disabled = !bird || state.scene !== "land";
+  ui.releaseDuplicatesBtn.disabled = state.scene !== "land" || state.birds.length < 2;
   ui.settingsNote.textContent = saveQueued ? "Unsaved changes queued. Autosave will apply shortly." : "Progress autosaves while you play.";
   syncMusicState();
   applyDrawerState();
@@ -1766,24 +2346,36 @@ function bindDynamicPanels() {
 
 function syncCustomizationUI() {
   ui.hairSelect.value = state.character.hair;
+  ui.hairStyleSelect.value = state.character.hairStyle;
+  ui.skinSelect.value = state.character.skin;
   ui.jacketSelect.value = state.character.jacket;
   ui.packSelect.value = state.character.pack;
 }
 
 function nearestInteraction() {
   let best = null;
+  const island = ISLANDS[state.currentIsland];
+  for (const npc of villageNpcs) {
+    const dist = Math.hypot(state.player.x - npc.x, state.player.z - npc.z);
+    if (dist < NPC_INTERACT_DISTANCE && (!best || dist < best.distance)) {
+      best = { kind: "npc", npc, distance: dist };
+    }
+  }
   for (const mesh of interactables) {
     const dist = mesh.position.distanceTo(new THREE.Vector3(state.player.x, mesh.position.y, state.player.z));
     if (dist < INTERACT_DISTANCE && (!best || dist < best.distance)) {
       best = { kind: mesh.userData.kind, mesh, distance: dist };
     }
   }
-  const island = ISLANDS[state.currentIsland];
   for (const [key, landmark] of Object.entries({ nest: island.nest, perch: island.perch, tailor: island.tailor })) {
     const dist = Math.hypot(state.player.x - landmark.x, state.player.z - landmark.z);
     if (dist < INTERACT_DISTANCE && (!best || dist < best.distance)) {
       best = { kind: landmark.type, key, distance: dist };
     }
+  }
+  if (!best) {
+    const villageNpc = nearestVillageNpc();
+    if (villageNpc) best = { kind: "npc", npc: villageNpc.npc, distance: villageNpc.distance };
   }
   return best;
 }
@@ -1810,8 +2402,10 @@ function interactNearby() {
     else restBirdAtNest();
   } else if (nearby.kind === "perch") {
     startFlight();
+  } else if (nearby.kind === "npc") {
+    talkToNpc(nearby.npc);
   } else if (nearby.kind === "tailor") {
-    state.message = "Use the ranger panel on the right to customize your explorer.";
+    state.message = "Open Settings with O to change your explorer's look.";
   }
 }
 
@@ -1843,6 +2437,45 @@ function collectItem(entity) {
   state.message = `${def.name} added to your backpack.`;
   queueSave();
   return true;
+}
+
+function grantNpcReward(npc) {
+  const island = ISLANDS[state.currentIsland];
+  const rewardPool = island.theme === "ember"
+    ? ["ember_relic", "sunfruit"]
+    : island.theme === "storm"
+      ? ["gust_crystal", "feather_charm"]
+      : island.theme === "moonfen"
+        ? ["feather_charm", "bloom_nectar"]
+        : ["sunfruit", "bloom_nectar"];
+  const itemId = rewardPool[(npc.name.length + totalFlockLevel()) % rewardPool.length];
+  if (state.backpack.length < 10) {
+    const def = ITEM_DEFS.find((item) => item.id === itemId);
+    state.backpack.push({ type: "item", itemId: def.id, label: def.name });
+    state.selectedBagIndex = state.backpack.length - 1;
+    state.message = `${npc.name} shared ${def.name} with you.`;
+  } else {
+    const bird = selectedBird();
+    if (bird) {
+      gainBirdXp(bird, 24, true);
+      state.message = `${npc.name} trained ${bird.name} because your pack was full.`;
+    } else {
+      state.message = `${npc.name} offered help, but your pack was full.`;
+    }
+  }
+}
+
+function talkToNpc(npc) {
+  if (!npc) return;
+  const island = ISLANDS[state.currentIsland];
+  if (!state.completedNpcQuests[npc.id]) {
+    state.completedNpcQuests[npc.id] = true;
+    grantNpcReward(npc);
+    state.prompt = `${npc.name} from ${island.village?.label || island.name} gave you guidance.`;
+    queueSave();
+    return;
+  }
+  state.message = `${npc.name}: "${island.birdsHint} are often seen deeper in ${island.name}."`;
 }
 
 function ensureWorldSpawns() {
@@ -2041,6 +2674,7 @@ function updatePlayer(dt) {
   if (moveZ) {
     const forward = new THREE.Vector3(Math.sin(state.player.yaw), 0, Math.cos(state.player.yaw));
     const move = forward.multiplyScalar(moveZ).normalize().multiplyScalar(speed * dt);
+    state.player.facingYaw = Math.atan2(move.x, move.z);
     const candidateX = state.player.x + move.x;
     const candidateZ = state.player.z + move.z;
     if (!isBlocked(candidateX, candidateZ)) {
@@ -2074,7 +2708,7 @@ function updatePlayer(dt) {
   state.player.y = getTerrainHeight(state.player.x, state.player.z);
   playerMesh.position.set(state.player.x, state.player.y, state.player.z);
   playerMesh.rotation.x = 0;
-  playerMesh.rotation.y = -state.player.yaw + Math.PI;
+  playerMesh.rotation.y = -state.player.facingYaw + Math.PI;
   playerMesh.position.y += Math.sin(state.player.bob * 2) * 0.1 * state.player.moveBlend;
 
   if (companionMesh) {
@@ -2245,7 +2879,21 @@ document.addEventListener("mousemove", (event) => {
 
 ui.hairSelect.addEventListener("change", () => {
   state.character.hair = ui.hairSelect.value;
-  recolorPlayer();
+  rebuildWorld();
+  queueSave();
+  refreshUI();
+});
+
+ui.hairStyleSelect.addEventListener("change", () => {
+  state.character.hairStyle = ui.hairStyleSelect.value;
+  rebuildWorld();
+  queueSave();
+  refreshUI();
+});
+
+ui.skinSelect.addEventListener("change", () => {
+  state.character.skin = ui.skinSelect.value;
+  rebuildWorld();
   queueSave();
   refreshUI();
 });
@@ -2342,6 +2990,11 @@ ui.restBirdBtn.addEventListener("click", () => {
 
 ui.releaseBirdBtn.addEventListener("click", () => {
   releaseSelectedBird();
+  refreshUI();
+});
+
+ui.releaseDuplicatesBtn.addEventListener("click", () => {
+  releaseDuplicateBirds();
   refreshUI();
 });
 

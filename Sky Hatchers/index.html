@@ -10,6 +10,7 @@
     <main class="app fullscreen-app">
       <section class="viewport-shell">
         <canvas id="game" width="1440" height="820" aria-label="Sky Hatchers 3D game viewport"></canvas>
+        <div class="evolution-screen" id="evolutionScreen" aria-hidden="true"></div>
 
         <section class="topbar hud-bar">
           <div class="stat"><span class="label">Scene</span><span class="value" id="sceneStat">Sanctuary</span></div>
@@ -48,6 +49,7 @@
             <div class="action-row">
               <button id="restBirdBtn" type="button">Rest At Nest</button>
               <button id="releaseBirdBtn" type="button">Release Bird</button>
+              <button id="releaseDuplicatesBtn" type="button">Release Duplicates</button>
             </div>
           </section>
 
@@ -78,6 +80,23 @@
                   <option value="ember">Ember</option>
                   <option value="midnight">Midnight</option>
                   <option value="mint">Mint</option>
+                </select>
+              </label>
+              <label>
+                Hairstyle
+                <select id="hairStyleSelect">
+                  <option value="windswept">Windswept</option>
+                  <option value="braid">Braid</option>
+                  <option value="short">Short Crop</option>
+                  <option value="wild">Wild Mane</option>
+                </select>
+              </label>
+              <label>
+                Skin Tone
+                <select id="skinSelect">
+                  <option value="fair">Fair</option>
+                  <option value="warm">Warm</option>
+                  <option value="deep">Deep</option>
                 </select>
               </label>
               <label>
